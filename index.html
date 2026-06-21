@@ -80,6 +80,8 @@ body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--
 .logout-btn{background:var(--panel);border:1px solid var(--line);color:var(--muted);padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;}
 .logout-btn:hover{color:var(--error);border-color:var(--error);}
 .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+.error-banner{background:#2a1414;border:1px solid var(--error);color:#ff9b9b;border-radius:8px;padding:12px 16px;text-align:center;margin-bottom:12px;font-size:13px;}
+.error-banner button{background:var(--error);color:white;border:none;border-radius:6px;padding:6px 14px;margin-left:10px;cursor:pointer;font-weight:600;}
 </style>
 </head>
 <body>
@@ -88,7 +90,7 @@ body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--
 <div id="loginScreen">
   <div class="login-box">
     <div class="login-logo">♥ Poker Range ♠</div>
-    <div class="login-title">Accedi per visualizzare le range</div>
+    <div class="login-title">Accedi per visualizzare i range</div>
     <input class="login-input" id="loginEmail" placeholder="Email" type="email"/>
     <input class="login-input" id="loginPassword" placeholder="Password" type="password"/>
     <button class="login-btn" id="loginBtn">Accedi</button>
@@ -112,13 +114,17 @@ body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--
 </div>
 
 <div id="loadingMsg">⏳ Caricamento range in corso...</div>
+<div id="errorBanner" class="error-banner" style="display:none;">
+  <span id="errorBannerText"></span>
+  <button id="retryBtn">Riprova</button>
+</div>
 
 <div id="appContainer" style="display:none;">
 
 <div id="positionsContainer">
 <div class="row" id="openerRow">
 <div class="tabs" id="openerTabs">
-<span class="label" id="openerLabel">RFI:</span>
+<span class="label">RFI:</span>
 <div class="tab active">EP</div>
 <div class="tab">EP1</div>
 <div class="tab">EP2</div>
@@ -146,7 +152,7 @@ body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--
 </div>
 <div class="row" id="responderRow">
 <div class="tabs" id="responderTabs" style="display:flex;">
-<span class="label" id="responderLabel">Hero:</span>
+<span class="label">Hero:</span>
 <div class="tab" data-pos="EP">EP</div>
 <div class="tab" data-pos="EP1">EP1</div>
 <div class="tab" data-pos="EP2">EP2</div>
@@ -295,24 +301,77 @@ function mostraApp(user) {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appScreen').style.display = 'block';
   document.getElementById('userEmail').textContent = user.email;
-  if (!window.RANGES_LOADED) caricaRanges();
+  if (!window.APP_AVVIATA) avviaApp();
 }
 
-// ===== CARICA RANGES DA APPS SCRIPT =====
-window.RANGES_LOADED = false;
-let RANGES_DATA = {};
-let NOTES_DATA = {};
+// ===== CARICA UNA SINGOLA RANGE DA SUPABASE (su richiesta, non in blocco) =====
+// Passa sempre dalle funzioni protette (RPC) lato server, che applicano
+// il rate limiting: non leggiamo più le tabelle direttamente.
+window.APP_AVVIATA = false;
 
-async function caricaRanges() {
-  window.RANGES_LOADED = true;
-  try {
-    const resp = await fetch('https://script.google.com/macros/s/AKfycby58UFFPefx3IucfB49PDZo6VtGiuFpCTSCeryi0tU8ERUPth9fBTlyGKpkPWgh2Vu78Q/exec');
-    const data = await resp.json();
-    inizializza(data.ranges || {}, data.notes || {});
-  } catch(e) {
-    document.getElementById('loadingMsg').textContent = '❌ Errore caricamento range: ' + e.message;
+// Cache locale in memoria: se l'utente torna su una combinazione già vista
+// in questa sessione, evitiamo di richiamare il server inutilmente.
+const cacheRange = {};
+const cacheNota = {};
+
+// Errore dedicato per quando l'utente è bloccato dal rate limit (blocco permanente)
+class RateLimitError extends Error {
+  constructor() {
+    super('Account temporaneamente sospeso per troppe richieste. Contatta l\'amministratore.');
   }
 }
+
+function interpretaErroreSupabase(error) {
+  // La funzione SQL lancia un'eccezione con messaggio "RATE_LIMIT_BLOCKED"
+  if (error && /RATE_LIMIT_BLOCKED/.test(error.message || '')) return new RateLimitError();
+  return error;
+}
+
+async function fetchRangeDaSupabase(chiave) {
+  if (cacheRange.hasOwnProperty(chiave)) return cacheRange[chiave];
+  const { data, error } = await sb.rpc('get_range_protetta', { p_range_key: chiave });
+  if (error) throw interpretaErroreSupabase(error);
+  cacheRange[chiave] = data;
+  return data;
+}
+
+async function fetchNotaDaSupabase(chiave) {
+  if (cacheNota.hasOwnProperty(chiave)) return cacheNota[chiave];
+  const { data, error } = await sb.rpc('get_nota_protetta', { p_range_key: chiave });
+  if (error) throw interpretaErroreSupabase(error);
+  cacheNota[chiave] = data;
+  return data;
+}
+
+async function fetchConteggioTotaleRange() {
+  // Conteggio informativo, non sensibile: può restare una select diretta
+  // protetta dalla policy RLS (solo utenti autenticati, nessun dato esposto).
+  const { count, error } = await sb
+    .from('poker_ranges')
+    .select('*', { count: 'exact', head: true });
+  if (error) throw error;
+  return count;
+}
+
+function avviaApp() {
+  window.APP_AVVIATA = true;
+  const loadingMsg = document.getElementById('loadingMsg');
+  const errorBanner = document.getElementById('errorBanner');
+  loadingMsg.style.display = 'none';
+  errorBanner.style.display = 'none';
+  document.getElementById('appContainer').style.display = 'block';
+  window.creaMatrice();
+  window.impostaEventListener();
+  window.aggiornaUI();
+  fetchConteggioTotaleRange()
+    .then(c => { document.getElementById('totalRanges').textContent = c; })
+    .catch(() => { document.getElementById('totalRanges').textContent = '-'; });
+}
+
+document.getElementById('retryBtn').addEventListener('click', () => {
+  document.getElementById('errorBanner').style.display = 'none';
+  aggiornaUI();
+});
 
 // ===== APP LOGIC =====
 (function() {
@@ -369,6 +428,7 @@ async function caricaRanges() {
   }
 
   function creaMatrice() {
+    matrixContainer = document.getElementById('matrix');
     matrixContainer.innerHTML = '';
     for (let r=0;r<13;r++) for (let c=0;c<13;c++) {
       const mano=MANI[r][c], cell=document.createElement('div');
@@ -420,12 +480,57 @@ async function caricaRanges() {
     document.getElementById('rangeStats').innerHTML=html;
   }
 
-  function caricaRangeCorrente() {
+  let richiestaInCorsoId = 0;
+
+  async function caricaRangeCorrente() {
     const chiave=generaChiaveRange();
     document.getElementById('currentRangeKey').textContent=chiave;
-    if(RANGES_DATA[chiave]){percentualiMani=JSON.parse(JSON.stringify(RANGES_DATA[chiave]));document.getElementById('currentRangeStatus').textContent='✓ Presente';document.getElementById('currentRangeStatus').style.color='var(--success)';}
-    else{percentualiMani={};document.getElementById('currentRangeStatus').textContent='Vuoto';document.getElementById('currentRangeStatus').style.color='var(--muted)';}
-    document.getElementById('noteContent').textContent=NOTES_DATA[chiave]||'Nessuna nota per questa configurazione.';
+
+    const idRichiesta = ++richiestaInCorsoId;
+    document.getElementById('currentRangeStatus').textContent='⏳ Caricamento...';
+    document.getElementById('currentRangeStatus').style.color='var(--muted)';
+    document.getElementById('noteContent').textContent='Caricamento nota...';
+
+    let hands, nota;
+    try {
+      [hands, nota] = await Promise.all([
+        fetchRangeDaSupabase(chiave),
+        fetchNotaDaSupabase(chiave)
+      ]);
+    } catch (e) {
+      // Se è arrivata una richiesta più recente nel frattempo, ignoriamo questo errore
+      if (idRichiesta !== richiestaInCorsoId) return;
+      percentualiMani = {};
+      document.getElementById('currentRangeStatus').textContent='❌ Errore';
+      document.getElementById('currentRangeStatus').style.color='var(--error)';
+      const errorBanner = document.getElementById('errorBanner');
+      const errorBannerText = document.getElementById('errorBannerText');
+      if (e instanceof RateLimitError) {
+        document.getElementById('noteContent').textContent = 'Account sospeso per uso anomalo.';
+        errorBannerText.textContent = '⛔ Account sospeso per troppe richieste. Contatta l\'amministratore per lo sblocco.';
+      } else {
+        document.getElementById('noteContent').textContent = 'Errore di rete: ' + e.message;
+        errorBannerText.textContent = '❌ Errore caricamento range: ' + e.message;
+      }
+      errorBanner.style.display = 'block';
+      aggiornaStatistiche(); aggiornaVisualizzazioneMatrice();
+      return;
+    }
+
+    // Se nel frattempo l'utente ha già cliccato altrove, questa risposta è obsoleta: la scartiamo
+    if (idRichiesta !== richiestaInCorsoId) return;
+
+    if (hands) {
+      percentualiMani = hands;
+      document.getElementById('currentRangeStatus').textContent='✓ Presente';
+      document.getElementById('currentRangeStatus').style.color='var(--success)';
+    } else {
+      percentualiMani = {};
+      document.getElementById('currentRangeStatus').textContent='Vuoto';
+      document.getElementById('currentRangeStatus').style.color='var(--muted)';
+    }
+    document.getElementById('noteContent').textContent = nota || 'Nessuna nota per questa configurazione.';
+    aggiornaStatistiche(); aggiornaVisualizzazioneMatrice();
   }
 
   function aggiornaUI() {
@@ -434,18 +539,6 @@ async function caricaRanges() {
     const stackButtons=document.querySelectorAll('#stackGrid .cellBtn');
     const ordine=["EP","EP1","EP2","MP1","MP2","CO","BTN","SB","BB"];
     stackButtons.forEach(btn=>{if(!btn.getAttribute('data-orig'))btn.setAttribute('data-orig',btn.textContent.trim());});
-
-    // Aggiorna label dinamiche
-    const openerLabel=document.getElementById('openerLabel');
-    const responderLabel=document.getElementById('responderLabel');
-    if(azioneSelezionata==="RFI/OSHOVE"){openerLabel.textContent='RFI:';responderLabel.textContent='Hero:';}
-    else if(azioneSelezionata==="Vs 3Bet NAI"||azioneSelezionata==="Vs 3Bet AI"){openerLabel.textContent='Hero:';responderLabel.textContent='3bettor:';}
-    else if(azioneSelezionata==="Vs 4Bet"){openerLabel.textContent='Hero/3Bettor:';responderLabel.textContent='4Bettor:';}
-    else if(azioneSelezionata==="Call Shove"){openerLabel.textContent='Shove:';responderLabel.textContent='Hero:';}
-    else if(azioneSelezionata==="SB Limp vs BB ISO"){openerLabel.textContent='Hero:';responderLabel.textContent='Villain:';}
-    else if(azioneSelezionata==="BB vs SB Limp"){openerLabel.textContent='Villain:';responderLabel.textContent='Hero:';}
-    else{openerLabel.textContent='RFI:';responderLabel.textContent='Hero:';}
-
     if(azioneSelezionata==="RFI/OSHOVE"){responderTabs.style.display='none';responderSelezionato="NO";}
     else{responderTabs.style.display='flex';if(responderSelezionato==="NO")responderSelezionato="BB";}
     if(azioneSelezionata==="SB Limp vs BB ISO"||azioneSelezionata==="BB vs SB Limp"){
@@ -490,7 +583,7 @@ async function caricaRanges() {
     else if(azioneSelezionata==="Vs 4Bet"){document.getElementById('switchBackToVsRFIFrom4Bet').style.display='inline-block';sc.classList.add('show');}
     else if(azioneSelezionata==="BB vs SB Limp"){if(bbLimpSubMode!=="base"){document.getElementById('switchBackToBaseLimp').style.display='inline-block';sc.classList.add('show');}else{if(!['5bb','7bb','10bb','13bb','15bb'].includes(stackSelezionato)){document.getElementById('switchToVSLimp3BetNAI').style.display='inline-block';sc.classList.add('show');}if(!['5bb','80bb','100bb'].includes(stackSelezionato)){document.getElementById('switchToVSLimp3BetAI').style.display='inline-block';sc.classList.add('show');}}}
     else if(azioneSelezionata==="SB Limp vs BB ISO"){if(sbIsoSubMode!=="base"){document.getElementById('switchBackToBaseIso').style.display='inline-block';sc.classList.add('show');}else{if(!['5bb','7bb','10bb','13bb','15bb','17bb','20bb','23bb','25bb','28bb','30bb','32bb'].includes(stackSelezionato)){document.getElementById('switchToVsBBIsoNAI').style.display='inline-block';sc.classList.add('show');}if(!['5bb','7bb','10bb','13bb','15bb','80bb','100bb'].includes(stackSelezionato)){document.getElementById('switchToVsBBIsoAI').style.display='inline-block';sc.classList.add('show');}}}
-    caricaRangeCorrente(); aggiornaStatistiche(); aggiornaVisualizzazioneMatrice();
+    caricaRangeCorrente();
   }
 
   function impostaEventListener() {
@@ -516,15 +609,10 @@ async function caricaRanges() {
     document.getElementById('switchBackToVsRFIFrom4Bet').onclick=()=>{const h=apritoreSelezionato,o=responderSelezionato;apritoreSelezionato=o;responderSelezionato=h;azioneSelezionata="Vs RFI";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="Vs RFI")t.classList.add('active');});aggiornaUI();};
   }
 
-  window.inizializza = function(rangeData, noteData) {
-    RANGES_DATA = rangeData;
-    NOTES_DATA = noteData || {};
-    document.getElementById('totalRanges').textContent=Object.keys(RANGES_DATA).length;
-    document.getElementById('loadingMsg').style.display='none';
-    document.getElementById('appContainer').style.display='block';
-    matrixContainer=document.getElementById('matrix');
-    creaMatrice(); impostaEventListener(); aggiornaUI();
-  };
+  // Esponiamo le funzioni necessarie all'avvio dell'app (chiamato da fuori questa IIFE)
+  window.creaMatrice = creaMatrice;
+  window.impostaEventListener = impostaEventListener;
+  window.aggiornaUI = aggiornaUI;
 })();
 </script>
 </body>
