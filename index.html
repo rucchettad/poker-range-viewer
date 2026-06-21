@@ -294,11 +294,17 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
   document.getElementById('loginScreen').style.display = 'flex';
 });
 
-sb.auth.onAuthStateChange((event, session) => {
-  if (event === 'SIGNED_IN' && session) mostraApp(session.user);
-});
+
+
+window.DISCLAIMER_CHIUSO = false;
+window.UTENTE_IN_ATTESA = null;
 
 function mostraApp(user) {
+  if (!window.DISCLAIMER_CHIUSO) {
+    // Disclaimer non ancora chiuso — salva utente e aspetta
+    window.UTENTE_IN_ATTESA = user;
+    return;
+  }
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appScreen').style.display = 'block';
   document.getElementById('userEmail').textContent = user.email;
@@ -665,8 +671,10 @@ document.getElementById('retryBtn').addEventListener('click', () => {
     overlay.style.animation='fadeOut 0.3s ease-out';
     setTimeout(()=>{
       overlay.style.display='none';
+      window.DISCLAIMER_CHIUSO = true;
       sb.auth.getSession().then(({ data: { session } }) => {
         if (session) mostraApp(session.user);
+        else if (window.UTENTE_IN_ATTESA) mostraApp(window.UTENTE_IN_ATTESA);
         else document.getElementById('loginScreen').style.display='flex';
       });
     },300);
