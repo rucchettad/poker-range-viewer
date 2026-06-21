@@ -592,28 +592,4 @@ document.getElementById('retryBtn').addEventListener('click', () => {
     document.querySelectorAll('#modeTabs .tab').forEach(tab=>{tab.onclick=()=>{azioneSelezionata=tab.textContent;if(azioneSelezionata==="BB vs SB Limp")bbLimpSubMode="base";if(azioneSelezionata==="SB Limp vs BB ISO")sbIsoSubMode="base";document.querySelectorAll('#modeTabs .tab').forEach(t=>t.classList.remove('active'));tab.classList.add('active');aggiornaUI();};});
     document.querySelectorAll('.flat-tab').forEach(tab=>{tab.onclick=()=>{flatPosizioneSelezionata=tab.getAttribute('data-flat-pos');document.querySelectorAll('.flat-tab').forEach(t=>t.classList.remove('active'));tab.classList.add('active');aggiornaUI();};});
     document.querySelectorAll('.cellBtn').forEach(btn=>{btn.onclick=()=>{stackSelezionato=btn.getAttribute('data-orig')||btn.textContent.trim();document.querySelectorAll('.cellBtn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');aggiornaUI();};});
-    document.getElementById('switchTo3BetNAI').onclick=()=>{const ord=["EP","EP1","EP2","MP1","MP2","CO","BTN","SB","BB"];const idx=ord.indexOf(apritoreSelezionato);responderSelezionato=ord.slice(idx+1)[0]||"BB";azioneSelezionata="Vs 3Bet NAI";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="Vs 3Bet NAI")t.classList.add('active');});aggiornaUI();};
-    document.getElementById('switchTo3BetAI').onclick=()=>{const ord=["EP","EP1","EP2","MP1","MP2","CO","BTN","SB","BB"];const idx=ord.indexOf(apritoreSelezionato);responderSelezionato=ord.slice(idx+1)[0]||"BB";azioneSelezionata="Vs 3Bet AI";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="Vs 3Bet AI")t.classList.add('active');});aggiornaUI();};
-    document.getElementById('switchToIso').onclick=()=>{azioneSelezionata="SB Limp vs BB ISO";sbIsoSubMode="base";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="SB Limp vs BB ISO")t.classList.add('active');});aggiornaUI();};
-    document.getElementById('switchTo4Bet').onclick=()=>{const h=apritoreSelezionato,o=responderSelezionato;apritoreSelezionato=o;responderSelezionato=h;azioneSelezionata="Vs 4Bet";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="Vs 4Bet")t.classList.add('active');});aggiornaUI();};
-    document.getElementById('switchToVsRFIFlat').onclick=()=>{const ord=["EP","EP1","EP2","MP1","MP2","CO","BTN","SB","BB"];const idxO=ord.indexOf(apritoreSelezionato);const idxH=ord.indexOf(responderSelezionato);const tra=ord.slice(idxO+1,idxH);flatPosizioneSelezionata=tra.length>0?tra[tra.length-1]:ord[idxO+1];azioneSelezionata="Vs RFI e Flat";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="Vs RFI e Flat")t.classList.add('active');});aggiornaUI();};
-    document.getElementById('switchToBBvsSBLimp').onclick=()=>{azioneSelezionata="BB vs SB Limp";bbLimpSubMode="base";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="BB vs SB Limp")t.classList.add('active');});aggiornaUI();};
-    document.getElementById('switchToVSLimp3BetNAI').onclick=()=>{bbLimpSubMode="nai";aggiornaUI();};
-    document.getElementById('switchToVSLimp3BetAI').onclick=()=>{bbLimpSubMode="ai";aggiornaUI();};
-    document.getElementById('switchBackToBaseLimp').onclick=()=>{bbLimpSubMode="base";aggiornaUI();};
-    document.getElementById('switchToVsBBIsoNAI').onclick=()=>{sbIsoSubMode="nai";aggiornaUI();};
-    document.getElementById('switchToVsBBIsoAI').onclick=()=>{sbIsoSubMode="ai";aggiornaUI();};
-    document.getElementById('switchBackToBaseIso').onclick=()=>{sbIsoSubMode="base";aggiornaUI();};
-    document.getElementById('switchBackToVsRFI').onclick=()=>{azioneSelezionata="Vs RFI";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="Vs RFI")t.classList.add('active');});aggiornaUI();};
-    document.getElementById('switchBackToRFI').onclick=()=>{azioneSelezionata="RFI/OSHOVE";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="RFI/OSHOVE")t.classList.add('active');});aggiornaUI();};
-    document.getElementById('switchBackToVsRFIFrom4Bet').onclick=()=>{const h=apritoreSelezionato,o=responderSelezionato;apritoreSelezionato=o;responderSelezionato=h;azioneSelezionata="Vs RFI";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="Vs RFI")t.classList.add('active');});aggiornaUI();};
-  }
-
-  // Esponiamo le funzioni necessarie all'avvio dell'app (chiamato da fuori questa IIFE)
-  window.creaMatrice = creaMatrice;
-  window.impostaEventListener = impostaEventListener;
-  window.aggiornaUI = aggiornaUI;
-})();
-</script>
-</body>
-</html>
+    document.getElementById('switchTo3BetNAI').onclick=()=>{const ord=["EP","EP1","EP2","MP1","MP2","CO","BTN","SB","BB"];const idx=ord.indexOf(apritoreSelezionato);responderSelezionato=ord.slice(idx+1)[
