@@ -292,9 +292,12 @@ document.getElementById('loginPassword').addEventListener('keydown', e => {
 
 document.getElementById('logoutBtn').addEventListener('click', async () => {
   await sb.auth.signOut();
-  
+  window.DISCLAIMER_CHIUSO = false;
+  window.APP_AVVIATA = false;
   document.getElementById('appScreen').style.display = 'none';
-  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('loginScreen').style.display = 'none';
+  // Ricarica la pagina per mostrare il disclaimer
+  window.location.reload();
 });
 
 
