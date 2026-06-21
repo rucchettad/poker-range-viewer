@@ -289,7 +289,7 @@ document.getElementById('loginPassword').addEventListener('keydown', e => {
 
 document.getElementById('logoutBtn').addEventListener('click', async () => {
   await sb.auth.signOut();
-  localStorage.removeItem('disclaimerShown');
+  
   document.getElementById('appScreen').style.display = 'none';
   document.getElementById('loginScreen').style.display = 'flex';
 });
@@ -659,24 +659,12 @@ document.getElementById('retryBtn').addEventListener('click', () => {
   const overlay=document.getElementById('disclaimerOverlay');
   const button=document.getElementById('disclaimerButton');
   const countdownEl=document.getElementById('countdownSeconds');
-
-  // Se già mostrato in questa sessione browser, nascondi subito
-  if (localStorage.getItem('disclaimerShown')) {
-    overlay.style.display='none';
-    sb.auth.getSession().then(({ data: { session } }) => {
-      if (session) mostraApp(session.user);
-      else document.getElementById('loginScreen').style.display='flex';
-    });
-    return;
-  }
-
   let countdown=5;
   const intervalId=setInterval(()=>{countdown--;countdownEl.textContent=countdown;if(countdown<=0)closeDisclaimer();},1000);
   function closeDisclaimer(){
     overlay.style.animation='fadeOut 0.3s ease-out';
     setTimeout(()=>{
       overlay.style.display='none';
-      localStorage.setItem('disclaimerShown', '1');
       sb.auth.getSession().then(({ data: { session } }) => {
         if (session) mostraApp(session.user);
         else document.getElementById('loginScreen').style.display='flex';
