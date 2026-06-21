@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>Poker Range Viewer</title>
+<link rel="preload" href="./ranges.json" as="fetch" type="application/json" crossorigin="anonymous"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --bg:#0b0c10; --panel:#11131a; --line:#1d2330; --text:#e6eef7; --muted:#a9b4c2;
+  --btn:#1f6feb; --btn-muted:#2a3344;
+  --fold:#87ceeb; --flat:#16a34a; --bff:#ffe57f; --bbk:#ffb347; --shv:#ff5b5b;
+  --success:#10b981; --warning:#f59e0b; --error:#dc2626;
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);}
+
+/* LOGIN */
+#loginScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg);}
+.login-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:40px;width:360px;display:flex;flex-direction:column;gap:20px;}
+.login-logo{text-align:center;font-size:20px;font-weight:700;color:white;}
+.login-title{text-align:center;font-size:14px;color:var(--muted);}
+.login-input{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px 16px;color:var(--text);font-size:14px;width:100%;outline:none;}
+.login-input:focus{border-color:var(--btn);}
+.login-btn{background:var(--btn);color:white;border:none;border-radius:8px;padding:12px;font-size:15px;font-weight:700;cursor:pointer;width:100%;}
+.login-btn:hover{background:#388bfd;}
+.login-error{color:var(--error);font-size:13px;text-align:center;display:none;}
+.login-loading{color:var(--muted);font-size:13px;text-align:center;display:none;}
+
+/* APP */
+.wrap{max-width:1400px;margin:0 auto;padding:20px;}
+#positionsContainer{margin-bottom:8px;}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:8px;}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-right:30px;}
+.label{font-size:18px;font-weight:700;color:var(--muted);margin-right:10px;}
+.tab{padding:8px 12px;font-size:16px;border-radius:8px;border:1px solid var(--line);background:var(--panel);cursor:pointer;font-weight:600;color:#dfe7f2;display:inline-block;}
+.tab:hover{border-color:#2e3b52}
+.tab.active{background:var(--btn);border-color:transparent;color:white;}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:8px;}
+.flat-section{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:8px;display:none;}
+.flat-section.show{display:block;}
+.flat-tabs{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.flat-tab{padding:6px 10px;font-size:14px;border-radius:6px;border:1px solid var(--line);background:var(--panel);cursor:pointer;font-weight:600;color:#dfe7f2;transition:all 0.2s ease;}
+.flat-tab:hover{border-color:#2e3b52;}
+.flat-tab.active{background:var(--flat);border-color:transparent;color:white;}
+.canvasRow{display:flex;gap:12px;align-items:flex-start;position:relative;}
+.matrix-container{width:832px;height:728px;border:none;border-radius:8px;background:#0f1117;display:grid;grid-template-columns:repeat(13,64px);grid-template-rows:repeat(13,50px);gap:0;}
+.hand-cell{width:64px;height:50px;border:0.5px solid #1f2937;background:#1f2937;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:default;position:relative;box-sizing:border-box;}
+.hand-cell .hand-text{color:white;font-size:14px;font-weight:bold;z-index:10;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#000;text-shadow:1px 1px 0 #fff,-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff;}
+.color-bar{position:absolute;top:1px;left:1px;height:calc(100% - 2px);z-index:1;box-sizing:border-box;}
+.action-percentage{position:absolute;left:50%;top:75%;transform:translateX(-50%);color:#000;font-size:8px;font-weight:bold;text-shadow:1px 1px 0 #fff,-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff;z-index:11;pointer-events:none;}
+.title{font-size:16px;font-weight:700;margin:6px 0 10px;}
+.tableGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;width:100%;transform:scaleY(0.85);transform-origin:top;}
+.cellBtn{padding:7px 10px;font-size:13px;border:1px solid var(--line);background:var(--panel);border-radius:6px;cursor:pointer;text-align:center;font-weight:600;color:#dfe7f2;transition:all 0.2s ease;}
+.cellBtn:hover{border-color:#2e3b52}
+.cellBtn.active{background:var(--btn);color:white;border-color:transparent}
+.stats{display:flex;gap:12px;margin-top:10px;margin-bottom:16px;flex-wrap:wrap;justify-content:center;}
+.stat{background:var(--bg);padding:8px 12px;border-radius:8px;border:1px solid var(--line);display:flex;align-items:center;gap:8px;}
+.stat-color{width:18px;height:18px;border-radius:3px;border:1px solid #ffffff30;flex-shrink:0;}
+.stat-content{display:flex;flex-direction:column;}
+.stat-label{font-size:9px;color:var(--muted);text-transform:uppercase;font-weight:600;}
+.stat-value{font-size:13px;font-weight:700;color:var(--text);}
+.switch-buttons-container{display:none;gap:10px;margin-top:8px;flex-wrap:wrap;}
+.switch-buttons-container.show{display:flex;}
+.switch-btn{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border:none;color:white;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;transition:all 0.2s ease;box-shadow:0 4px 6px rgba(0,0,0,0.1);}
+.switch-btn:hover{transform:translateY(-2px);box-shadow:0 6px 12px rgba(0,0,0,0.15);}
+.info-box{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;}
+.info-title{font-size:13px;font-weight:700;color:var(--btn);margin-bottom:8px;text-align:center;}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12px;}
+.info-label{color:var(--muted);font-weight:500;}
+.info-value{color:var(--text);font-weight:700;}
+.note-panel{min-width:250px;max-width:250px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;font-size:13px;line-height:1.6;color:var(--text);display:flex;flex-direction:column;gap:8px;}
+.note-panel .note-title{font-size:14px;font-weight:700;margin-bottom:4px;color:var(--btn);}
+.note-content{width:100%;min-height:400px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px;color:var(--text);font-size:13px;line-height:1.6;font-family:system-ui,sans-serif;white-space:pre-wrap;}
+.sidePanel{position:absolute;right:0;top:0;display:flex;flex-direction:column;gap:8px;min-width:220px;max-width:220px;}
+#loadingMsg{text-align:center;padding:40px;color:var(--muted);font-size:16px;}
+.card-content-wrapper{display:flex;flex-direction:column;}
+.stats{order:0;}
+.canvasRow{order:1;}
+.logout-btn{background:var(--panel);border:1px solid var(--line);color:var(--muted);padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;}
+.logout-btn:hover{color:var(--error);border-color:var(--error);}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+.error-banner{background:#2a1414;border:1px solid var(--error);color:#ff9b9b;border-radius:8px;padding:12px 16px;text-align:center;margin-bottom:12px;font-size:13px;}
+.error-banner button{background:var(--error);color:white;border:none;border-radius:6px;padding:6px 14px;margin-left:10px;cursor:pointer;font-weight:600;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">♥ Poker Range ♠</div>
+    <div class="login-title">Accedi per visualizzare le range</div>
+    <input class="login-input" id="loginEmail" placeholder="Email" type="email"/>
+    <input class="login-input" id="loginPassword" placeholder="Password" type="password"/>
+    <button class="login-btn" id="loginBtn">Accedi</button>
+    <div class="login-error" id="loginError"></div>
+    <div class="login-loading" id="loginLoading">Accesso in corso...</div>
+  </div>
+</div>
+
+<!-- APP SCREEN -->
+<div id="appScreen" style="display:none;">
+<div class="wrap">
+
+<div class="topbar">
+  <div style="background:linear-gradient(135deg,#1f6feb 0%,#0969da 100%);border:2px solid #388bfd;border-radius:12px;padding:8px 20px;box-shadow:0 4px 12px rgba(31,111,235,0.3);">
+    <div style="font-size:14px;font-weight:700;color:white;">♥ Poker Range ♠ Preflop ♦ Mtt Normal ♣</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <span id="userEmail" style="font-size:12px;color:var(--muted);"></span>
+    <button class="logout-btn" id="logoutBtn">Esci</button>
+  </div>
+</div>
+
+<div id="loadingMsg">⏳ Caricamento range in corso...</div>
+<div id="errorBanner" class="error-banner" style="display:none;">
+  <span id="errorBannerText"></span>
+  <button id="retryBtn">Riprova</button>
+</div>
+
+<div id="appContainer" style="display:none;">
+
+<div id="positionsContainer">
+<div class="row" id="openerRow">
+<div class="tabs" id="openerTabs">
+<span class="label">RFI:</span>
+<div class="tab active">EP</div>
+<div class="tab">EP1</div>
+<div class="tab">EP2</div>
+<div class="tab">MP1</div>
+<div class="tab">MP2</div>
+<div class="tab">CO</div>
+<div class="tab">BTN</div>
+<div class="tab">SB</div>
+<div class="tab">BB</div>
+</div>
+</div>
+<div class="flat-section" id="flatSection">
+<div class="flat-tabs" id="flatTabs">
+<span class="label">Flat:</span>
+<div class="flat-tab" data-flat-pos="EP">EP</div>
+<div class="flat-tab" data-flat-pos="EP1">EP1</div>
+<div class="flat-tab" data-flat-pos="EP2">EP2</div>
+<div class="flat-tab" data-flat-pos="MP1">MP1</div>
+<div class="flat-tab" data-flat-pos="MP2">MP2</div>
+<div class="flat-tab" data-flat-pos="CO">CO</div>
+<div class="flat-tab" data-flat-pos="BTN">BTN</div>
+<div class="flat-tab active" data-flat-pos="SB">SB</div>
+<div class="flat-tab" data-flat-pos="BB">BB</div>
+</div>
+</div>
+<div class="row" id="responderRow">
+<div class="tabs" id="responderTabs" style="display:flex;">
+<span class="label">Hero:</span>
+<div class="tab" data-pos="EP">EP</div>
+<div class="tab" data-pos="EP1">EP1</div>
+<div class="tab" data-pos="EP2">EP2</div>
+<div class="tab" data-pos="MP1">MP1</div>
+<div class="tab" data-pos="MP2">MP2</div>
+<div class="tab" data-pos="CO">CO</div>
+<div class="tab" data-pos="BTN">BTN</div>
+<div class="tab" data-pos="SB">SB</div>
+<div class="tab active" data-pos="BB">BB</div>
+</div>
+</div>
+</div>
+
+<div class="row">
+<div class="tabs" id="modeTabs">
+<span class="label">Azione:</span>
+<div class="tab active">RFI/OSHOVE</div>
+<div class="tab">Vs 3Bet NAI</div>
+<div class="tab">Vs 3Bet AI</div>
+<div class="tab">Vs 4Bet</div>
+<div class="tab">Vs RFI</div>
+<div class="tab">Vs RFI e Flat</div>
+<div class="tab">Call Shove</div>
+<div class="tab">SB Limp vs BB ISO</div>
+<div class="tab">BB vs SB Limp</div>
+</div>
+</div>
+
+<div class="card">
+<div class="title">Dimensione Stack</div>
+<div class="tableGrid" id="stackGrid">
+<div class="cellBtn">5bb</div>
+<div class="cellBtn">7bb</div>
+<div class="cellBtn">10bb</div>
+<div class="cellBtn">13bb</div>
+<div class="cellBtn">15bb</div>
+<div class="cellBtn">17bb</div>
+<div class="cellBtn">20bb</div>
+<div class="cellBtn">23bb</div>
+<div class="cellBtn active">25bb</div>
+<div class="cellBtn">32bb</div>
+<div class="cellBtn">36bb</div>
+<div class="cellBtn">40bb</div>
+<div class="cellBtn">50bb</div>
+<div class="cellBtn">60bb</div>
+<div class="cellBtn">80bb</div>
+<div class="cellBtn">100bb</div>
+</div>
+
+<div class="card">
+<div class="title" id="headline">RFI/OSHOVE - EP - 25bb</div>
+<div class="switch-buttons-container" id="switchButtonsContainer">
+<button class="switch-btn" id="switchTo3BetNAI">→ Passa a Vs 3Bet NAI</button>
+<button class="switch-btn" id="switchTo3BetAI">→ Passa a Vs 3Bet AI</button>
+<button class="switch-btn" id="switchToIso">→ Passa a SB Limp vs BB ISO</button>
+<button class="switch-btn" id="switchTo4Bet">→ Passa a Vs 4Bet</button>
+<button class="switch-btn" id="switchToVsRFIFlat">→ Passa a Vs RFI e Flat</button>
+<button class="switch-btn" id="switchToBBvsSBLimp">→ Passa a BB vs SB Limp</button>
+<button class="switch-btn" id="switchToVSLimp3BetNAI">→ VS Limp 3Bet NAI</button>
+<button class="switch-btn" id="switchToVSLimp3BetAI">→ VS Limp 3Bet AI</button>
+<button class="switch-btn" id="switchToVsBBIsoNAI">→ vs BB 4Bet NAI</button>
+<button class="switch-btn" id="switchToVsBBIsoAI">→ vs BB 4Bet AI</button>
+<button class="switch-btn" id="switchBackToBaseLimp" style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);">← Indietro</button>
+<button class="switch-btn" id="switchBackToBaseIso" style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);">← Indietro</button>
+<button class="switch-btn" id="switchBackToVsRFI" style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);">← Indietro a Vs RFI</button>
+<button class="switch-btn" id="switchBackToRFI" style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);">← Indietro a RFI/OSHOVE</button>
+<button class="switch-btn" id="switchBackToVsRFIFrom4Bet" style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);">← Indietro a Vs RFI</button>
+</div>
+
+<div class="card-content-wrapper">
+<div class="stats" id="rangeStats"></div>
+<div class="canvasRow">
+<div class="note-panel" id="notePanel">
+  <div class="note-title">📝 Note Strategiche</div>
+  <div class="note-content" id="noteContent">Nessuna nota per questa configurazione.</div>
+</div>
+<div class="matrix-container" id="matrix"></div>
+<div class="sidePanel">
+  <div class="info-box">
+    <div class="info-title">📊 Info Range</div>
+    <div class="info-row">
+      <span class="info-label">Range Totali:</span>
+      <span class="info-value" id="totalRanges">-</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Stato:</span>
+      <span class="info-value" id="currentRangeStatus">-</span>
+    </div>
+    <div class="info-row" style="flex-direction:column;align-items:flex-start;gap:2px;">
+      <span class="info-label">Chiave:</span>
+      <span class="info-value" id="currentRangeKey" style="font-size:10px;word-break:break-all;color:var(--muted);">-</span>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+</div><!-- fine appContainer -->
+</div><!-- fine wrap -->
+</div><!-- fine appScreen -->
+
+<script>
+// ===== SUPABASE CONFIG =====
+const SUPABASE_URL = 'https://abnsmqheydlpoffxjhsx.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_38AgBvFnAwV3wO0jzSYCaw_BuOaf3z6';
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ===== LOGIN =====
+document.getElementById('loginBtn').addEventListener('click', async () => {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+  const loadEl = document.getElementById('loginLoading');
+  errEl.style.display = 'none';
+  loadEl.style.display = 'block';
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  loadEl.style.display = 'none';
+  if (error) {
+    errEl.textContent = 'Email o password errati.';
+    errEl.style.display = 'block';
+  } else {
+    mostraApp(data.user);
+  }
+});
+
+document.getElementById('loginPassword').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('loginBtn').click();
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await sb.auth.signOut();
+  document.getElementById('appScreen').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+});
+
+// Controlla sessione esistente
+sb.auth.getSession().then(({ data: { session } }) => {
+  if (session) mostraApp(session.user);
+});
+
+function mostraApp(user) {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'block';
+  document.getElementById('userEmail').textContent = user.email;
+  if (!window.RANGES_LOADED) caricaRanges();
+}
+
+// ===== CARICA RANGES DA FILE JSON LOCALE (GitHub Pages) =====
+window.RANGES_LOADED = false;
+let RANGES_DATA = {};
+let NOTES_DATA = {};
+
+async function caricaRanges() {
+  const loadingMsg = document.getElementById('loadingMsg');
+  const errorBanner = document.getElementById('errorBanner');
+  const errorBannerText = document.getElementById('errorBannerText');
+
+  errorBanner.style.display = 'none';
+  loadingMsg.style.display = 'block';
+  loadingMsg.textContent = '⏳ Caricamento range in corso...';
+
+  try {
+    const resp = await fetch('./ranges.json', { cache: 'no-cache' });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    window.RANGES_LOADED = true;
+    inizializza(data.ranges || {}, data.notes || {});
+  } catch (e) {
+    loadingMsg.style.display = 'none';
+    errorBannerText.textContent = '❌ Errore caricamento range: ' + e.message;
+    errorBanner.style.display = 'block';
+  }
+}
+
+document.getElementById('retryBtn').addEventListener('click', caricaRanges);
+
+// ===== APP LOGIC =====
+(function() {
+  'use strict';
+
+  const MANI = [
+    ["AA","AKs","AQs","AJs","ATs","A9s","A8s","A7s","A6s","A5s","A4s","A3s","A2s"],
+    ["AKo","KK","KQs","KJs","KTs","K9s","K8s","K7s","K6s","K5s","K4s","K3s","K2s"],
+    ["AQo","KQo","QQ","QJs","QTs","Q9s","Q8s","Q7s","Q6s","Q5s","Q4s","Q3s","Q2s"],
+    ["AJo","KJo","QJo","JJ","JTs","J9s","J8s","J7s","J6s","J5s","J4s","J3s","J2s"],
+    ["ATo","KTo","QTo","JTo","TT","T9s","T8s","T7s","T6s","T5s","T4s","T3s","T2s"],
+    ["A9o","K9o","Q9o","J9o","T9o","99","98s","97s","96s","95s","94s","93s","92s"],
+    ["A8o","K8o","Q8o","J8o","T8o","98o","88","87s","86s","85s","84s","83s","82s"],
+    ["A7o","K7o","Q7o","J7o","T7o","97o","87o","77","76s","75s","74s","73s","72s"],
+    ["A6o","K6o","Q6o","J6o","T6o","96o","86o","76o","66","65s","64s","63s","62s"],
+    ["A5o","K5o","Q5o","J5o","T5o","95o","85o","75o","65o","55","54s","53s","52s"],
+    ["A4o","K4o","Q4o","J4o","T4o","94o","84o","74o","64o","54o","44","43s","42s"],
+    ["A3o","K3o","Q3o","J3o","T3o","93o","83o","73o","63o","53o","43o","33","32s"],
+    ["A2o","K2o","Q2o","J2o","T2o","92o","82o","72o","62o","52o","42o","32o","22"]
+  ];
+
+  const COLORI = {
+    fold:'#87ceeb', flat:'#16a34a', threebfold:'#ffe57f', threebbroke:'#ff6600',
+    threebshove:'#dc2626', open:'#ffb347', limpflat:'#9333ea', limpthreebet:'#ffc0cb',
+    isotofold:'#ffe57f', isotobrokefold:'#ffa500', checkback:'#16a34a', bbshovebase:'#dc2626',
+    shove:'#dc2626', callnai:'#16a34a', '4betbrokenai':'#ffa500', '4betnaitofold':'#ffe57f', foldnai:'#87ceeb',
+    callai:'#16a34a', foldai:'#87ceeb',
+    raisevsiso:'#ffb347', foldvsiso:'#87ceeb', shovevsiso:'#dc2626', callvsiso:'#16a34a',
+    shovevsbbiso:'#dc2626', callvsbbiso:'#16a34a', foldvsbbiso:'#87ceeb',
+    callvsbbisoai:'#16a34a', foldvsbbisoai:'#87ceeb'
+  };
+
+  const ORDINE_AZIONI = ['threebshove','threebbroke','threebfold','open','flat','limpthreebet','limpflat','isotobrokefold','checkback','bbshovebase','shove','callnai','4betbrokenai','4betnaitofold','foldnai','callai','foldai','raisevsiso','shovevsiso','callvsiso','foldvsiso','shovevsbbiso','callvsbbiso','foldvsbbiso','callvsbbisoai','foldvsbbisoai','fold'];
+
+  let stackSelezionato = "25bb";
+  let apritoreSelezionato = "EP";
+  let responderSelezionato = "BB";
+  let azioneSelezionata = "RFI/OSHOVE";
+  let flatPosizioneSelezionata = "SB";
+  let bbLimpSubMode = "base";
+  let sbIsoSubMode = "base";
+  let percentualiMani = {};
+  let matrixContainer = null;
+
+  function normalizzaNome(nome) { return nome.replace(/\//g,'-').replace(/\s+/g,'_').replace(/\|/g,'_'); }
+
+  function generaChiaveRange() {
+    const m = normalizzaNome(azioneSelezionata);
+    if (azioneSelezionata === "RFI/OSHOVE") return responderSelezionato === "NO" ? `${m}_${apritoreSelezionato}_${stackSelezionato}` : `${m}_${apritoreSelezionato}_${responderSelezionato}_${stackSelezionato}`;
+    if (azioneSelezionata === "Vs RFI e Flat") return `${m}_${apritoreSelezionato}_${responderSelezionato}_${flatPosizioneSelezionata}_${stackSelezionato}`;
+    if (azioneSelezionata === "BB vs SB Limp") { let s=bbLimpSubMode==="nai"?"_NAI":bbLimpSubMode==="ai"?"_AI":""; return `${m}${s}_${apritoreSelezionato}_${responderSelezionato}_${stackSelezionato}`; }
+    if (azioneSelezionata === "SB Limp vs BB ISO") { let s=sbIsoSubMode==="nai"?"_NAI":sbIsoSubMode==="ai"?"_AI":""; return `${m}${s}_${apritoreSelezionato}_${responderSelezionato}_${stackSelezionato}`; }
+    return `${m}_${apritoreSelezionato}_${responderSelezionato}_${stackSelezionato}`;
+  }
+
+  function creaMatrice() {
+    matrixContainer.innerHTML = '';
+    for (let r=0;r<13;r++) for (let c=0;c<13;c++) {
+      const mano=MANI[r][c], cell=document.createElement('div');
+      cell.className='hand-cell'; cell.setAttribute('data-hand',mano);
+      const txt=document.createElement('div'); txt.className='hand-text'; txt.textContent=mano;
+      cell.appendChild(txt); matrixContainer.appendChild(cell);
+    }
+  }
+
+  function aggiornaVisualizzazioneMatrice() {
+    document.querySelectorAll('.hand-cell').forEach(cell => {
+      const mano=cell.getAttribute('data-hand');
+      cell.querySelectorAll('.color-bar').forEach(b=>b.remove());
+      cell.querySelectorAll('.action-percentage').forEach(p=>p.remove());
+      if (!percentualiMani[mano]) return;
+      let pctAcc=0, azioniOrdine=[];
+      const tutte=Object.keys(percentualiMani[mano]);
+      const ordinate=ORDINE_AZIONI.filter(a=>tutte.includes(a));
+      tutte.forEach(a=>{if(!ordinate.includes(a))ordinate.push(a);});
+      ordinate.forEach(az=>{
+        const pct=percentualiMani[mano][az];
+        if(pct>0){
+          azioniOrdine.push(az);
+          const bar=document.createElement('div'); bar.className='color-bar';
+          bar.style.backgroundColor=COLORI[az]||'#888';
+          bar.style.left=`calc(1px + ${pctAcc}% * (100% - 2px) / 100%)`;
+          bar.style.width=`calc(${pct}% * (100% - 2px) / 100%)`;
+          cell.appendChild(bar); pctAcc+=pct;
+        }
+      });
+      const n=azioniOrdine.length;
+      if(n>=3){const el=document.createElement('div');el.className='action-percentage';el.textContent=azioniOrdine.map(az=>percentualiMani[mano][az]).join('/');cell.appendChild(el);}
+      else azioniOrdine.forEach((az,idx)=>{const el=document.createElement('div');el.className='action-percentage';el.textContent=`${percentualiMani[mano][az]}%`;el.style.left=`${((idx+1)/(n+1))*100}%`;cell.appendChild(el);});
+    });
+  }
+
+  function aggiornaStatistiche() {
+    const contatori={};
+    Object.keys(COLORI).forEach(k=>{contatori[k]=0;});
+    Object.keys(percentualiMani).forEach(mano=>{
+      const combo=mano.includes('s')?4:mano.includes('o')?12:6;
+      Object.keys(contatori).forEach(az=>{if(percentualiMani[mano]&&percentualiMani[mano][az]>0)contatori[az]+=combo*(percentualiMani[mano][az]/100);});
+    });
+    const senzaFold=Object.keys(contatori).filter(k=>k!=='fold');
+    const tot=senzaFold.reduce((s,k)=>s+contatori[k],0);
+    const etichette={fold:'Fold',flat:'Flat/Call',threebfold:'3Bet/4Bet Fold',threebbroke:'3Bet/4Bet Broke',threebshove:'3Bet Shove',open:'Open',limpflat:'Limp/Flat',limpthreebet:'Limp/3Bet',isotobrokefold:'ISO to Broke/Fold',checkback:'Check Back',bbshovebase:'Shove (base)',shove:'Shove (NAI)',callnai:'Call (NAI)','4betbrokenai':'4Bet Broke NAI','4betnaitofold':'4Bet NAI to Fold',foldnai:'Fold (NAI)',callai:'Call (AI)',foldai:'Fold (AI)',raisevsiso:'Limp 3Bet',foldvsiso:'Fold vs ISO',shovevsiso:'Shove vs ISO',callvsiso:'Call vs ISO',shovevsbbiso:'Shove vs BB ISO',callvsbbiso:'Call vs BB ISO',foldvsbbiso:'Fold vs BB ISO',callvsbbisoai:'Call vs BB ISO AI',foldvsbbisoai:'Fold vs BB ISO AI'};
+    let html=`<div class="stat"><div class="stat-color" style="background:linear-gradient(45deg,#16a34a,#ffe57f,#ff6600,#dc2626,#ffb347)"></div><div class="stat-content"><div class="stat-label">Range Totale (senza Fold)</div><div class="stat-value">${Math.round(tot)} (${((tot/1326)*100).toFixed(1)}%)</div></div></div>`;
+    Object.keys(contatori).forEach(az=>{if(contatori[az]>0)html+=`<div class="stat"><div class="stat-color" style="background:${COLORI[az]}"></div><div class="stat-content"><div class="stat-label">${etichette[az]||az}</div><div class="stat-value">${Math.round(contatori[az])} (${((contatori[az]/1326)*100).toFixed(1)}%)</div></div></div>`;});
+    document.getElementById('rangeStats').innerHTML=html;
+  }
+
+  function caricaRangeCorrente() {
+    const chiave=generaChiaveRange();
+    document.getElementById('currentRangeKey').textContent=chiave;
+    if(RANGES_DATA[chiave]){percentualiMani=JSON.parse(JSON.stringify(RANGES_DATA[chiave]));document.getElementById('currentRangeStatus').textContent='✓ Presente';document.getElementById('currentRangeStatus').style.color='var(--success)';}
+    else{percentualiMani={};document.getElementById('currentRangeStatus').textContent='Vuoto';document.getElementById('currentRangeStatus').style.color='var(--muted)';}
+    document.getElementById('noteContent').textContent=NOTES_DATA[chiave]||'Nessuna nota per questa configurazione.';
+  }
+
+  function aggiornaUI() {
+    const responderTabs=document.getElementById('responderTabs');
+    const flatSection=document.getElementById('flatSection');
+    const stackButtons=document.querySelectorAll('#stackGrid .cellBtn');
+    const ordine=["EP","EP1","EP2","MP1","MP2","CO","BTN","SB","BB"];
+    stackButtons.forEach(btn=>{if(!btn.getAttribute('data-orig'))btn.setAttribute('data-orig',btn.textContent.trim());});
+    if(azioneSelezionata==="RFI/OSHOVE"){responderTabs.style.display='none';responderSelezionato="NO";}
+    else{responderTabs.style.display='flex';if(responderSelezionato==="NO")responderSelezionato="BB";}
+    if(azioneSelezionata==="SB Limp vs BB ISO"||azioneSelezionata==="BB vs SB Limp"){
+      document.querySelectorAll('#openerTabs .tab').forEach(t=>{t.style.display=t.textContent.trim()==='SB'?'inline-block':'none';});
+      document.querySelectorAll('#responderTabs .tab').forEach(t=>{t.style.display=t.getAttribute('data-pos')==='BB'?'inline-block':'none';});
+      apritoreSelezionato='SB';responderSelezionato='BB';
+      document.querySelectorAll('#openerTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent.trim()==='SB')t.classList.add('active');});
+      document.querySelectorAll('#responderTabs .tab').forEach(t=>{t.classList.remove('active');if(t.getAttribute('data-pos')==='BB')t.classList.add('active');});
+    } else {
+      document.querySelectorAll('#openerTabs .tab').forEach(t=>{const pos=t.textContent.trim();const nascondi=(azioneSelezionata!=="Vs 4Bet"&&pos==='BB')||(azioneSelezionata==="Vs RFI e Flat"&&(pos==='SB'||pos==='BB'));t.style.display=nascondi?'none':'inline-block';});
+      document.querySelectorAll('#responderTabs .tab').forEach(t=>{t.style.display=t.getAttribute('data-pos')?'inline-block':'none';});
+      if(apritoreSelezionato==='BB'&&azioneSelezionata!=="Vs 4Bet"){apritoreSelezionato='BTN';document.querySelectorAll('#openerTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent.trim()==='BTN')t.classList.add('active');});}
+    }
+    stackButtons.forEach(btn=>{
+      const orig=btn.getAttribute('data-orig')||btn.textContent.trim();let nascondi=false;
+      if(azioneSelezionata==="Call Shove"&&!['5bb','7bb','10bb','13bb','15bb','17bb','20bb','23bb','25bb'].includes(orig))nascondi=true;
+      if(["SB Limp vs BB ISO","BB vs SB Limp"].includes(azioneSelezionata)&&orig==='5bb')nascondi=true;
+      if(["Vs 3Bet NAI","Vs RFI","Vs RFI e Flat","BB vs SB Limp"].includes(azioneSelezionata)&&['5bb','7bb'].includes(orig))nascondi=true;
+      if(azioneSelezionata==="Vs 3Bet AI"&&!['10bb','13bb','15bb','17bb','20bb','23bb','25bb','32bb','36bb','40bb','50bb','60bb'].includes(orig))nascondi=true;
+      if(azioneSelezionata==="Vs 4Bet"&&['5bb','7bb','10bb','13bb','15bb','17bb'].includes(orig))nascondi=true;
+      btn.style.display=nascondi?'none':'inline-block';btn.textContent=orig;
+    });
+    if(azioneSelezionata==="Vs RFI e Flat"){flatSection.classList.add('show');document.querySelectorAll('.flat-tab').forEach(t=>{t.style.display=t.getAttribute('data-flat-pos')==='BB'?'none':'inline-block';});}
+    else flatSection.classList.remove('show');
+    if(["Vs RFI","Call Shove"].includes(azioneSelezionata)){const idxO=ordine.indexOf(apritoreSelezionato);document.querySelectorAll('#responderTabs .tab').forEach(t=>{const pos=t.getAttribute('data-pos');if(pos)t.style.display=ordine.indexOf(pos)<=idxO?'none':'inline-block';});if(responderSelezionato==="NO"||ordine.indexOf(responderSelezionato)<=idxO){responderSelezionato=ordine.slice(idxO+1)[0]||"BB";document.querySelectorAll('#responderTabs .tab').forEach(t=>{t.classList.remove('active');if(t.getAttribute('data-pos')===responderSelezionato)t.classList.add('active');});}}
+    if(["Vs 3Bet NAI","Vs 3Bet AI"].includes(azioneSelezionata)){const idxO=ordine.indexOf(apritoreSelezionato);document.querySelectorAll('#responderTabs .tab').forEach(t=>{const pos=t.getAttribute('data-pos');if(pos)t.style.display=ordine.indexOf(pos)<=idxO?'none':'inline-block';});if(ordine.indexOf(responderSelezionato)<=idxO){responderSelezionato=ordine.slice(idxO+1)[0]||"BB";document.querySelectorAll('#responderTabs .tab').forEach(t=>{t.classList.remove('active');if(t.getAttribute('data-pos')===responderSelezionato)t.classList.add('active');});}}
+    let titolo;
+    if(azioneSelezionata==="RFI/OSHOVE")titolo=`${azioneSelezionata} - ${apritoreSelezionato} - ${stackSelezionato}`;
+    else if(azioneSelezionata==="Vs RFI e Flat")titolo=`${azioneSelezionata} - ${responderSelezionato} vs ${apritoreSelezionato} - Flat: ${flatPosizioneSelezionata} - ${stackSelezionato}`;
+    else if(azioneSelezionata==="SB Limp vs BB ISO"){const s=sbIsoSubMode==="nai"?" - vs BB 4Bet NAI":sbIsoSubMode==="ai"?" - vs BB 4Bet AI":"";titolo=`${azioneSelezionata}${s} - SB vs BB - ${stackSelezionato}`;}
+    else if(azioneSelezionata==="BB vs SB Limp"){const s=bbLimpSubMode==="nai"?" - VS Limp 3Bet NAI":bbLimpSubMode==="ai"?" - VS Limp 3Bet AI":"";titolo=`${azioneSelezionata}${s} - BB vs SB - ${stackSelezionato}`;}
+    else titolo=`${azioneSelezionata} - ${responderSelezionato} vs ${apritoreSelezionato} - ${stackSelezionato}`;
+    document.getElementById('headline').textContent=titolo;
+    const sc=document.getElementById('switchButtonsContainer');
+    ['switchTo3BetNAI','switchTo3BetAI','switchToIso','switchTo4Bet','switchToVsRFIFlat','switchToBBvsSBLimp','switchToVSLimp3BetNAI','switchToVSLimp3BetAI','switchToVsBBIsoNAI','switchToVsBBIsoAI','switchBackToBaseLimp','switchBackToBaseIso','switchBackToVsRFI','switchBackToRFI','switchBackToVsRFIFrom4Bet'].forEach(id=>document.getElementById(id).style.display='none');
+    sc.classList.remove('show');
+    if(azioneSelezionata==="RFI/OSHOVE"){if(!['5bb','7bb'].includes(stackSelezionato)){document.getElementById('switchTo3BetNAI').style.display='inline-block';sc.classList.add('show');}if(!['5bb','7bb','80bb','100bb'].includes(stackSelezionato)){document.getElementById('switchTo3BetAI').style.display='inline-block';sc.classList.add('show');}if(apritoreSelezionato==='SB'&&stackSelezionato!=='5bb'){document.getElementById('switchToIso').style.display='inline-block';sc.classList.add('show');}}
+    else if(azioneSelezionata==="Vs RFI"){document.getElementById('switchTo4Bet').style.display='inline-block';document.getElementById('switchToVsRFIFlat').style.display='inline-block';if(apritoreSelezionato==='SB'&&responderSelezionato==='BB')document.getElementById('switchToBBvsSBLimp').style.display='inline-block';sc.classList.add('show');}
+    else if(azioneSelezionata==="Vs RFI e Flat"){document.getElementById('switchBackToVsRFI').style.display='inline-block';sc.classList.add('show');}
+    else if(["Vs 3Bet NAI","Vs 3Bet AI"].includes(azioneSelezionata)){document.getElementById('switchBackToRFI').style.display='inline-block';sc.classList.add('show');}
+    else if(azioneSelezionata==="Vs 4Bet"){document.getElementById('switchBackToVsRFIFrom4Bet').style.display='inline-block';sc.classList.add('show');}
+    else if(azioneSelezionata==="BB vs SB Limp"){if(bbLimpSubMode!=="base"){document.getElementById('switchBackToBaseLimp').style.display='inline-block';sc.classList.add('show');}else{if(!['5bb','7bb','10bb','13bb','15bb'].includes(stackSelezionato)){document.getElementById('switchToVSLimp3BetNAI').style.display='inline-block';sc.classList.add('show');}if(!['5bb','80bb','100bb'].includes(stackSelezionato)){document.getElementById('switchToVSLimp3BetAI').style.display='inline-block';sc.classList.add('show');}}}
+    else if(azioneSelezionata==="SB Limp vs BB ISO"){if(sbIsoSubMode!=="base"){document.getElementById('switchBackToBaseIso').style.display='inline-block';sc.classList.add('show');}else{if(!['5bb','7bb','10bb','13bb','15bb','17bb','20bb','23bb','25bb','28bb','30bb','32bb'].includes(stackSelezionato)){document.getElementById('switchToVsBBIsoNAI').style.display='inline-block';sc.classList.add('show');}if(!['5bb','7bb','10bb','13bb','15bb','80bb','100bb'].includes(stackSelezionato)){document.getElementById('switchToVsBBIsoAI').style.display='inline-block';sc.classList.add('show');}}}
+    caricaRangeCorrente(); aggiornaStatistiche(); aggiornaVisualizzazioneMatrice();
+  }
+
+  function impostaEventListener() {
+    document.querySelectorAll('#openerTabs .tab').forEach(tab=>{tab.onclick=()=>{apritoreSelezionato=tab.textContent.trim();document.querySelectorAll('#openerTabs .tab').forEach(t=>t.classList.remove('active'));tab.classList.add('active');aggiornaUI();};});
+    document.querySelectorAll('#responderTabs .tab').forEach(tab=>{tab.onclick=()=>{responderSelezionato=tab.getAttribute('data-pos');document.querySelectorAll('#responderTabs .tab').forEach(t=>t.classList.remove('active'));tab.classList.add('active');aggiornaUI();};});
+    document.querySelectorAll('#modeTabs .tab').forEach(tab=>{tab.onclick=()=>{azioneSelezionata=tab.textContent;if(azioneSelezionata==="BB vs SB Limp")bbLimpSubMode="base";if(azioneSelezionata==="SB Limp vs BB ISO")sbIsoSubMode="base";document.querySelectorAll('#modeTabs .tab').forEach(t=>t.classList.remove('active'));tab.classList.add('active');aggiornaUI();};});
+    document.querySelectorAll('.flat-tab').forEach(tab=>{tab.onclick=()=>{flatPosizioneSelezionata=tab.getAttribute('data-flat-pos');document.querySelectorAll('.flat-tab').forEach(t=>t.classList.remove('active'));tab.classList.add('active');aggiornaUI();};});
+    document.querySelectorAll('.cellBtn').forEach(btn=>{btn.onclick=()=>{stackSelezionato=btn.getAttribute('data-orig')||btn.textContent.trim();document.querySelectorAll('.cellBtn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');aggiornaUI();};});
+    document.getElementById('switchTo3BetNAI').onclick=()=>{azioneSelezionata="Vs 3Bet NAI";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="Vs 3Bet NAI")t.classList.add('active');});aggiornaUI();};
+    document.getElementById('switchTo3BetAI').onclick=()=>{azioneSelezionata="Vs 3Bet AI";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="Vs 3Bet AI")t.classList.add('active');});aggiornaUI();};
+    document.getElementById('switchToIso').onclick=()=>{azioneSelezionata="SB Limp vs BB ISO";sbIsoSubMode="base";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="SB Limp vs BB ISO")t.classList.add('active');});aggiornaUI();};
+    document.getElementById('switchTo4Bet').onclick=()=>{const h=apritoreSelezionato,o=responderSelezionato;apritoreSelezionato=o;responderSelezionato=h;azioneSelezionata="Vs 4Bet";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="Vs 4Bet")t.classList.add('active');});aggiornaUI();};
+    document.getElementById('switchToVsRFIFlat').onclick=()=>{azioneSelezionata="Vs RFI e Flat";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="Vs RFI e Flat")t.classList.add('active');});aggiornaUI();};
+    document.getElementById('switchToBBvsSBLimp').onclick=()=>{azioneSelezionata="BB vs SB Limp";bbLimpSubMode="base";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="BB vs SB Limp")t.classList.add('active');});aggiornaUI();};
+    document.getElementById('switchToVSLimp3BetNAI').onclick=()=>{bbLimpSubMode="nai";aggiornaUI();};
+    document.getElementById('switchToVSLimp3BetAI').onclick=()=>{bbLimpSubMode="ai";aggiornaUI();};
+    document.getElementById('switchBackToBaseLimp').onclick=()=>{bbLimpSubMode="base";aggiornaUI();};
+    document.getElementById('switchToVsBBIsoNAI').onclick=()=>{sbIsoSubMode="nai";aggiornaUI();};
+    document.getElementById('switchToVsBBIsoAI').onclick=()=>{sbIsoSubMode="ai";aggiornaUI();};
+    document.getElementById('switchBackToBaseIso').onclick=()=>{sbIsoSubMode="base";aggiornaUI();};
+    document.getElementById('switchBackToVsRFI').onclick=()=>{azioneSelezionata="Vs RFI";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="Vs RFI")t.classList.add('active');});aggiornaUI();};
+    document.getElementById('switchBackToRFI').onclick=()=>{azioneSelezionata="RFI/OSHOVE";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="RFI/OSHOVE")t.classList.add('active');});aggiornaUI();};
+    document.getElementById('switchBackToVsRFIFrom4Bet').onclick=()=>{const h=apritoreSelezionato,o=responderSelezionato;apritoreSelezionato=o;responderSelezionato=h;azioneSelezionata="Vs RFI";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="Vs RFI")t.classList.add('active');});aggiornaUI();};
+  }
+
+  window.inizializza = function(rangeData, noteData) {
+    RANGES_DATA = rangeData;
+    NOTES_DATA = noteData || {};
+    document.getElementById('totalRanges').textContent=Object.keys(RANGES_DATA).length;
+    document.getElementById('loadingMsg').style.display='none';
+    document.getElementById('appContainer').style.display='block';
+    matrixContainer=document.getElementById('matrix');
+    creaMatrice(); impostaEventListener(); aggiornaUI();
+  };
+})();
+</script>
+</body>
+</html>
