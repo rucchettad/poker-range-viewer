@@ -124,7 +124,7 @@ body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--
 <div id="positionsContainer">
 <div class="row" id="openerRow">
 <div class="tabs" id="openerTabs">
-<span class="label">RFI:</span>
+<span class="label" id="openerLabel">RFI:</span>
 <div class="tab active">EP</div>
 <div class="tab">EP1</div>
 <div class="tab">EP2</div>
@@ -152,7 +152,7 @@ body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--
 </div>
 <div class="row" id="responderRow">
 <div class="tabs" id="responderTabs" style="display:flex;">
-<span class="label">Hero:</span>
+<span class="label" id="responderLabel">Hero:</span>
 <div class="tab" data-pos="EP">EP</div>
 <div class="tab" data-pos="EP1">EP1</div>
 <div class="tab" data-pos="EP2">EP2</div>
@@ -546,6 +546,18 @@ document.getElementById('retryBtn').addEventListener('click', () => {
     const stackButtons=document.querySelectorAll('#stackGrid .cellBtn');
     const ordine=["EP","EP1","EP2","MP1","MP2","CO","BTN","SB","BB"];
     stackButtons.forEach(btn=>{if(!btn.getAttribute('data-orig'))btn.setAttribute('data-orig',btn.textContent.trim());});
+
+    // Aggiorna label dinamiche
+    const openerLabel=document.getElementById('openerLabel');
+    const responderLabel=document.getElementById('responderLabel');
+    if(azioneSelezionata==="RFI/OSHOVE"){openerLabel.textContent='RFI:';responderLabel.textContent='Hero:';}
+    else if(azioneSelezionata==="Vs 3Bet NAI"||azioneSelezionata==="Vs 3Bet AI"){openerLabel.textContent='Hero:';responderLabel.textContent='3bettor:';}
+    else if(azioneSelezionata==="Vs 4Bet"){openerLabel.textContent='Hero/3Bettor:';responderLabel.textContent='4Bettor:';}
+    else if(azioneSelezionata==="Call Shove"){openerLabel.textContent='Shove:';responderLabel.textContent='Hero:';}
+    else if(azioneSelezionata==="SB Limp vs BB ISO"){openerLabel.textContent='Hero:';responderLabel.textContent='Villain:';}
+    else if(azioneSelezionata==="BB vs SB Limp"){openerLabel.textContent='Villain:';responderLabel.textContent='Hero:';}
+    else{openerLabel.textContent='RFI:';responderLabel.textContent='Hero:';}
+
     if(azioneSelezionata==="RFI/OSHOVE"){responderTabs.style.display='none';responderSelezionato="NO";}
     else{responderTabs.style.display='flex';if(responderSelezionato==="NO")responderSelezionato="BB";}
     if(azioneSelezionata==="SB Limp vs BB ISO"||azioneSelezionata==="BB vs SB Limp"){
