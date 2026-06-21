@@ -4,84 +4,91 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <title>Poker Range Viewer</title>
+
+<!-- SUPABASE SDK -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'https://abnsmqheydlpoffxjhsx.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_38AgBvFnAwV3wO0jzSYCaw_BuOaf3z6';
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+</script>
+
 <style>
-:root {
-  --bg:#0b0c10; --panel:#11131a; --line:#1d2330; --text:#e6eef7; --muted:#a9b4c2;
-  --btn:#1f6feb; --btn-muted:#2a3344;
-  --fold:#87ceeb; --flat:#16a34a; --bff:#ffe57f; --bbk:#ffb347; --shv:#ff5b5b;
-  --success:#10b981; --warning:#f59e0b; --error:#dc2626;
-}
-*{box-sizing:border-box;}
-body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);}
+    :root {
+      --bg:#0b0c10; --panel:#11131a; --line:#1d2330; --text:#e6eef7; --muted:#a9b4c2;
+      --btn:#1f6feb; --btn-muted:#2a3344;
+      --fold:#87ceeb; --flat:#16a34a; --bff:#ffe57f; --bbk:#ffb347; --shv:#ff5b5b;
+      --success:#10b981; --warning:#f59e0b; --error:#dc2626;
+    }
+    body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);}
 
-/* LOGIN */
-#loginScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg);}
-.login-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:40px;width:360px;display:flex;flex-direction:column;gap:20px;}
-.login-logo{text-align:center;font-size:20px;font-weight:700;color:white;}
-.login-title{text-align:center;font-size:14px;color:var(--muted);}
-.login-input{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px 16px;color:var(--text);font-size:14px;width:100%;outline:none;}
-.login-input:focus{border-color:var(--btn);}
-.login-btn{background:var(--btn);color:white;border:none;border-radius:8px;padding:12px;font-size:15px;font-weight:700;cursor:pointer;width:100%;}
-.login-btn:hover{background:#388bfd;}
-.login-error{color:var(--error);font-size:13px;text-align:center;display:none;}
-.login-loading{color:var(--muted);font-size:13px;text-align:center;display:none;}
+    /* LOGIN */
+    #loginScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg);}
+    .login-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:40px;width:360px;display:flex;flex-direction:column;gap:20px;}
+    .login-logo{text-align:center;font-size:20px;font-weight:700;color:white;}
+    .login-title{text-align:center;font-size:14px;color:var(--muted);}
+    .login-input{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px 16px;color:var(--text);font-size:14px;width:100%;outline:none;}
+    .login-input:focus{border-color:var(--btn);}
+    .login-btn{background:var(--btn);color:white;border:none;border-radius:8px;padding:12px;font-size:15px;font-weight:700;cursor:pointer;width:100%;}
+    .login-btn:hover{background:#388bfd;}
+    .login-error{color:var(--error);font-size:13px;text-align:center;display:none;}
+    .login-loading{color:var(--muted);font-size:13px;text-align:center;display:none;}
 
-/* APP */
-.wrap{max-width:1400px;margin:0 auto;padding:20px;}
-#positionsContainer{margin-bottom:8px;}
-.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:8px;}
-.tabs{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-right:30px;}
-.label{font-size:18px;font-weight:700;color:var(--muted);margin-right:10px;}
-.tab{padding:8px 12px;font-size:16px;border-radius:8px;border:1px solid var(--line);background:var(--panel);cursor:pointer;font-weight:600;color:#dfe7f2;display:inline-block;}
-.tab:hover{border-color:#2e3b52}
-.tab.active{background:var(--btn);border-color:transparent;color:white;}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:8px;}
-.flat-section{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:8px;display:none;}
-.flat-section.show{display:block;}
-.flat-tabs{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
-.flat-tab{padding:6px 10px;font-size:14px;border-radius:6px;border:1px solid var(--line);background:var(--panel);cursor:pointer;font-weight:600;color:#dfe7f2;transition:all 0.2s ease;}
-.flat-tab:hover{border-color:#2e3b52;}
-.flat-tab.active{background:var(--flat);border-color:transparent;color:white;}
-.canvasRow{display:flex;gap:12px;align-items:flex-start;position:relative;}
-.matrix-container{width:832px;height:728px;border:none;border-radius:8px;background:#0f1117;display:grid;grid-template-columns:repeat(13,64px);grid-template-rows:repeat(13,50px);gap:0;}
-.hand-cell{width:64px;height:50px;border:0.5px solid #1f2937;background:#1f2937;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:default;position:relative;box-sizing:border-box;}
-.hand-cell .hand-text{color:white;font-size:14px;font-weight:bold;z-index:10;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#000;text-shadow:1px 1px 0 #fff,-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff;}
-.color-bar{position:absolute;top:1px;left:1px;height:calc(100% - 2px);z-index:1;box-sizing:border-box;}
-.action-percentage{position:absolute;left:50%;top:75%;transform:translateX(-50%);color:#000;font-size:8px;font-weight:bold;text-shadow:1px 1px 0 #fff,-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff;z-index:11;pointer-events:none;}
-.title{font-size:16px;font-weight:700;margin:6px 0 10px;}
-.tableGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;width:100%;transform:scaleY(0.85);transform-origin:top;}
-.cellBtn{padding:7px 10px;font-size:13px;border:1px solid var(--line);background:var(--panel);border-radius:6px;cursor:pointer;text-align:center;font-weight:600;color:#dfe7f2;transition:all 0.2s ease;}
-.cellBtn:hover{border-color:#2e3b52}
-.cellBtn.active{background:var(--btn);color:white;border-color:transparent}
-.stats{display:flex;gap:12px;margin-top:10px;margin-bottom:16px;flex-wrap:wrap;justify-content:center;}
-.stat{background:var(--bg);padding:8px 12px;border-radius:8px;border:1px solid var(--line);display:flex;align-items:center;gap:8px;}
-.stat-color{width:18px;height:18px;border-radius:3px;border:1px solid #ffffff30;flex-shrink:0;}
-.stat-content{display:flex;flex-direction:column;}
-.stat-label{font-size:9px;color:var(--muted);text-transform:uppercase;font-weight:600;}
-.stat-value{font-size:13px;font-weight:700;color:var(--text);}
-.switch-buttons-container{display:none;gap:10px;margin-top:8px;flex-wrap:wrap;}
-.switch-buttons-container.show{display:flex;}
-.switch-btn{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border:none;color:white;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;transition:all 0.2s ease;box-shadow:0 4px 6px rgba(0,0,0,0.1);}
-.switch-btn:hover{transform:translateY(-2px);box-shadow:0 6px 12px rgba(0,0,0,0.15);}
-.info-box{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;}
-.info-title{font-size:13px;font-weight:700;color:var(--btn);margin-bottom:8px;text-align:center;}
-.info-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12px;}
-.info-label{color:var(--muted);font-weight:500;}
-.info-value{color:var(--text);font-weight:700;}
-.note-panel{min-width:250px;max-width:250px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;font-size:13px;line-height:1.6;color:var(--text);display:flex;flex-direction:column;gap:8px;}
-.note-panel .note-title{font-size:14px;font-weight:700;margin-bottom:4px;color:var(--btn);}
-.note-content{width:100%;min-height:400px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px;color:var(--text);font-size:13px;line-height:1.6;font-family:system-ui,sans-serif;white-space:pre-wrap;}
-.sidePanel{position:absolute;right:0;top:0;display:flex;flex-direction:column;gap:8px;min-width:220px;max-width:220px;}
-#loadingMsg{text-align:center;padding:40px;color:var(--muted);font-size:16px;}
-.card-content-wrapper{display:flex;flex-direction:column;}
-.stats{order:0;}
-.canvasRow{order:1;}
-.logout-btn{background:var(--panel);border:1px solid var(--line);color:var(--muted);padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;}
-.logout-btn:hover{color:var(--error);border-color:var(--error);}
-.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
-.error-banner{background:#2a1414;border:1px solid var(--error);color:#ff9b9b;border-radius:8px;padding:12px 16px;text-align:center;margin-bottom:12px;font-size:13px;}
-.error-banner button{background:var(--error);color:white;border:none;border-radius:6px;padding:6px 14px;margin-left:10px;cursor:pointer;font-weight:600;}
+    /* APP */
+    .wrap{max-width:1400px;margin:0 auto;padding:20px;}
+    #positionsContainer{margin-bottom:8px;}
+    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:8px;}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-right:30px;}
+    .label{font-size:18px;font-weight:700;color:var(--muted);margin-right:10px;}
+    .tab{padding:8px 12px;font-size:16px;border-radius:8px;border:1px solid var(--line);background:var(--panel);cursor:pointer;font-weight:600;color:#dfe7f2;display:inline-block;}
+    .tab:hover{border-color:#2e3b52}
+    .tab.active{background:var(--btn);border-color:transparent;color:white;}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:8px;}
+    .flat-section{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:8px;display:none;}
+    .flat-section.show{display:block;}
+    .flat-tabs{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+    .flat-tab{padding:6px 10px;font-size:14px;border-radius:6px;border:1px solid var(--line);background:var(--panel);cursor:pointer;font-weight:600;color:#dfe7f2;transition:all 0.2s ease;}
+    .flat-tab:hover{border-color:#2e3b52;}
+    .flat-tab.active{background:var(--flat);border-color:transparent;color:white;}
+    .canvasRow{display:flex;gap:12px;align-items:flex-start;position:relative;}
+    .note-panel{min-width:250px;max-width:250px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;font-size:13px;line-height:1.6;color:var(--text);display:flex;flex-direction:column;gap:8px;}
+    .note-panel .note-title{font-size:14px;font-weight:700;margin-bottom:4px;color:var(--btn);}
+    .note-content{width:100%;min-height:400px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px;color:var(--text);font-size:13px;line-height:1.6;font-family:system-ui,sans-serif;white-space:pre-wrap;}
+    .sidePanel{position:absolute;right:0;top:0;display:flex;flex-direction:column;gap:8px;min-width:220px;max-width:220px;}
+    .matrix-container{width:832px;height:728px;border:none;border-radius:8px;background:#0f1117;display:grid;grid-template-columns:repeat(13,64px);grid-template-rows:repeat(13,50px);gap:0;}
+    .hand-cell{width:64px;height:50px;border:0.5px solid #1f2937;background:#1f2937;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:default;position:relative;box-sizing:border-box;}
+    .hand-text{color:white;font-size:14px;font-weight:bold;z-index:10;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#000;text-shadow:1px 1px 0 #fff,-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff;}
+    .color-bar{position:absolute;top:1px;left:1px;height:calc(100% - 2px);z-index:1;box-sizing:border-box;}
+    .action-percentage{position:absolute;left:50%;top:75%;transform:translateX(-50%);color:#000;font-size:8px;font-weight:bold;text-shadow:1px 1px 0 #fff,-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff;z-index:11;pointer-events:none;}
+    .title{font-size:16px;font-weight:700;margin:6px 0 10px;}
+    .tableGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;width:100%;transform:scaleY(0.85);transform-origin:top;}
+    .cellBtn{padding:7px 10px;font-size:13px;border:1px solid var(--line);background:var(--panel);border-radius:6px;cursor:pointer;text-align:center;font-weight:600;color:#dfe7f2;transition:all 0.2s ease;}
+    .cellBtn:hover{border-color:#2e3b52}
+    .cellBtn.active{background:var(--btn);color:white;border-color:transparent}
+    .stats{display:flex;gap:12px;margin-top:10px;margin-bottom:16px;flex-wrap:wrap;justify-content:center;}
+    .stat{background:var(--bg);padding:8px 12px;border-radius:8px;border:1px solid var(--line);display:flex;align-items:center;gap:8px;}
+    .stat-color{width:18px;height:18px;border-radius:3px;border:1px solid #ffffff30;flex-shrink:0;}
+    .stat-content{display:flex;flex-direction:column;}
+    .stat-label{font-size:9px;color:var(--muted);text-transform:uppercase;font-weight:600;}
+    .stat-value{font-size:13px;font-weight:700;color:var(--text);}
+    .switch-buttons-container{display:none;gap:10px;margin-top:8px;flex-wrap:wrap;}
+    .switch-buttons-container.show{display:flex;}
+    .switch-btn{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border:none;color:white;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;transition:all 0.2s ease;box-shadow:0 4px 6px rgba(0,0,0,0.1);}
+    .switch-btn:hover{transform:translateY(-2px);box-shadow:0 6px 12px rgba(0,0,0,0.15);}
+    .info-box{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;}
+    .info-title{font-size:13px;font-weight:700;color:var(--btn);margin-bottom:8px;text-align:center;}
+    .info-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12px;}
+    .info-label{color:var(--muted);font-weight:500;}
+    .info-value{color:var(--text);font-weight:700;}
+    .card-content-wrapper{display:flex;flex-direction:column;}
+    .stats{order:0;}
+    .canvasRow{order:1;}
+    .logout-btn{background:var(--panel);border:1px solid var(--line);color:var(--muted);padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;}
+    .logout-btn:hover{color:var(--error);border-color:var(--error);}
+    .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+    .error-banner{background:#2a1414;border:1px solid var(--error);color:#ff9b9b;border-radius:8px;padding:12px 16px;text-align:center;margin-bottom:12px;font-size:13px;}
+    .error-banner button{background:var(--error);color:white;border:none;border-radius:6px;padding:6px 14px;margin-left:10px;cursor:pointer;font-weight:600;}
 </style>
 </head>
 <body>
@@ -105,7 +112,7 @@ body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--
 
 <div class="topbar">
   <div style="background:linear-gradient(135deg,#1f6feb 0%,#0969da 100%);border:2px solid #388bfd;border-radius:12px;padding:8px 20px;box-shadow:0 4px 12px rgba(31,111,235,0.3);">
-    <div style="font-size:14px;font-weight:700;color:white;">♥ Poker Range ♠ Preflop ♦ Mtt Normal ♣</div>
+    <div style="font-size:14px;font-weight:700;color:white;">♥Poker Range ♠ Preflop ♦ Mtt Normal♣</div>
   </div>
   <div style="display:flex;align-items:center;gap:10px;">
     <span id="userEmail" style="font-size:12px;color:var(--muted);"></span>
@@ -113,7 +120,7 @@ body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--
   </div>
 </div>
 
-<div id="loadingMsg">⏳ Caricamento range in corso...</div>
+<div id="loadingMsg" style="text-align:center;padding:40px;color:var(--muted);font-size:16px;">⏳ Caricamento range in corso...</div>
 <div id="errorBanner" class="error-banner" style="display:none;">
   <span id="errorBannerText"></span>
   <button id="retryBtn">Riprova</button>
@@ -253,17 +260,11 @@ body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--
 </div>
 </div>
 
-</div><!-- fine appContainer -->
-</div><!-- fine wrap -->
-</div><!-- fine appScreen -->
+</div>
+</div>
+</div>
 
 <script>
-// ===== SUPABASE CONFIG =====
-const SUPABASE_URL = 'https://abnsmqheydlpoffxjhsx.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_38AgBvFnAwV3wO0jzSYCaw_BuOaf3z6';
-const { createClient } = supabase;
-const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
-
 // ===== LOGIN =====
 document.getElementById('loginBtn').addEventListener('click', async () => {
   const email = document.getElementById('loginEmail').value.trim();
@@ -292,16 +293,12 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
   document.getElementById('loginScreen').style.display = 'flex';
 });
 
-// Controlla sessione esistente
 sb.auth.getSession().then(({ data: { session } }) => {
   if (session) mostraApp(session.user);
 });
 
-// Gestione magic link / token nell'URL
 sb.auth.onAuthStateChange((event, session) => {
-  if (event === 'SIGNED_IN' && session) {
-    mostraApp(session.user);
-  }
+  if (event === 'SIGNED_IN' && session) mostraApp(session.user);
 });
 
 function mostraApp(user) {
@@ -311,66 +308,51 @@ function mostraApp(user) {
   if (!window.APP_AVVIATA) avviaApp();
 }
 
-// ===== CARICA UNA SINGOLA RANGE DA SUPABASE (su richiesta, non in blocco) =====
-// Passa sempre dalle funzioni protette (RPC) lato server, che applicano
-// il rate limiting: non leggiamo più le tabelle direttamente.
+// ===== SUPABASE DATA =====
 window.APP_AVVIATA = false;
-
-// Cache locale in memoria: se l'utente torna su una combinazione già vista
-// in questa sessione, evitiamo di richiamare il server inutilmente.
 const cacheRange = {};
 const cacheNota = {};
 
-// Errore dedicato per quando l'utente è bloccato dal rate limit (blocco permanente)
 class RateLimitError extends Error {
-  constructor() {
-    super('Account temporaneamente sospeso per troppe richieste. Contatta l\'amministratore.');
-  }
+  constructor() { super('Account temporaneamente sospeso per troppe richieste.'); }
 }
 
-function interpretaErroreSupabase(error) {
-  // La funzione SQL lancia un'eccezione con messaggio "RATE_LIMIT_BLOCKED"
+function interpretaErrore(error) {
   if (error && /RATE_LIMIT_BLOCKED/.test(error.message || '')) return new RateLimitError();
   return error;
 }
 
-async function fetchRangeDaSupabase(chiave) {
+async function fetchRange(chiave) {
   if (cacheRange.hasOwnProperty(chiave)) return cacheRange[chiave];
   const { data, error } = await sb.rpc('get_range_protetta', { p_range_key: chiave });
-  if (error) throw interpretaErroreSupabase(error);
+  if (error) throw interpretaErrore(error);
   cacheRange[chiave] = data;
   return data;
 }
 
-async function fetchNotaDaSupabase(chiave) {
+async function fetchNota(chiave) {
   if (cacheNota.hasOwnProperty(chiave)) return cacheNota[chiave];
   const { data, error } = await sb.rpc('get_nota_protetta', { p_range_key: chiave });
-  if (error) throw interpretaErroreSupabase(error);
+  if (error) throw interpretaErrore(error);
   cacheNota[chiave] = data;
   return data;
 }
 
-async function fetchConteggioTotaleRange() {
-  // Conteggio informativo, non sensibile: può restare una select diretta
-  // protetta dalla policy RLS (solo utenti autenticati, nessun dato esposto).
-  const { count, error } = await sb
-    .from('poker_ranges')
-    .select('*', { count: 'exact', head: true });
+async function fetchConteggio() {
+  const { count, error } = await sb.from('poker_ranges').select('*', { count: 'exact', head: true });
   if (error) throw error;
   return count;
 }
 
 function avviaApp() {
   window.APP_AVVIATA = true;
-  const loadingMsg = document.getElementById('loadingMsg');
-  const errorBanner = document.getElementById('errorBanner');
-  loadingMsg.style.display = 'none';
-  errorBanner.style.display = 'none';
+  document.getElementById('loadingMsg').style.display = 'none';
+  document.getElementById('errorBanner').style.display = 'none';
   document.getElementById('appContainer').style.display = 'block';
   window.creaMatrice();
   window.impostaEventListener();
   window.aggiornaUI();
-  fetchConteggioTotaleRange()
+  fetchConteggio()
     .then(c => { document.getElementById('totalRanges').textContent = c; })
     .catch(() => { document.getElementById('totalRanges').textContent = '-'; });
 }
@@ -422,6 +404,7 @@ document.getElementById('retryBtn').addEventListener('click', () => {
   let sbIsoSubMode = "base";
   let percentualiMani = {};
   let matrixContainer = null;
+  let richiestaInCorsoId = 0;
 
   function normalizzaNome(nome) { return nome.replace(/\//g,'-').replace(/\s+/g,'_').replace(/\|/g,'_'); }
 
@@ -487,46 +470,35 @@ document.getElementById('retryBtn').addEventListener('click', () => {
     document.getElementById('rangeStats').innerHTML=html;
   }
 
-  let richiestaInCorsoId = 0;
-
   async function caricaRangeCorrente() {
     const chiave=generaChiaveRange();
     document.getElementById('currentRangeKey').textContent=chiave;
-
     const idRichiesta = ++richiestaInCorsoId;
-    document.getElementById('currentRangeStatus').textContent='⏳ Caricamento...';
+    document.getElementById('currentRangeStatus').textContent='⏳';
     document.getElementById('currentRangeStatus').style.color='var(--muted)';
-    document.getElementById('noteContent').textContent='Caricamento nota...';
-
+    document.getElementById('noteContent').textContent='Caricamento...';
     let hands, nota;
     try {
-      [hands, nota] = await Promise.all([
-        fetchRangeDaSupabase(chiave),
-        fetchNotaDaSupabase(chiave)
-      ]);
-    } catch (e) {
-      // Se è arrivata una richiesta più recente nel frattempo, ignoriamo questo errore
+      [hands, nota] = await Promise.all([fetchRange(chiave), fetchNota(chiave)]);
+    } catch(e) {
       if (idRichiesta !== richiestaInCorsoId) return;
       percentualiMani = {};
       document.getElementById('currentRangeStatus').textContent='❌ Errore';
       document.getElementById('currentRangeStatus').style.color='var(--error)';
-      const errorBanner = document.getElementById('errorBanner');
-      const errorBannerText = document.getElementById('errorBannerText');
+      const errBanner = document.getElementById('errorBanner');
+      const errText = document.getElementById('errorBannerText');
       if (e instanceof RateLimitError) {
-        document.getElementById('noteContent').textContent = 'Account sospeso per uso anomalo.';
-        errorBannerText.textContent = '⛔ Account sospeso per troppe richieste. Contatta l\'amministratore per lo sblocco.';
+        document.getElementById('noteContent').textContent='Account sospeso per uso anomalo.';
+        errText.textContent='⛔ Account sospeso per troppe richieste.';
       } else {
-        document.getElementById('noteContent').textContent = 'Errore di rete: ' + e.message;
-        errorBannerText.textContent = '❌ Errore caricamento range: ' + e.message;
+        document.getElementById('noteContent').textContent='Errore: ' + e.message;
+        errText.textContent='❌ Errore caricamento: ' + e.message;
       }
-      errorBanner.style.display = 'block';
+      errBanner.style.display='block';
       aggiornaStatistiche(); aggiornaVisualizzazioneMatrice();
       return;
     }
-
-    // Se nel frattempo l'utente ha già cliccato altrove, questa risposta è obsoleta: la scartiamo
     if (idRichiesta !== richiestaInCorsoId) return;
-
     if (hands) {
       percentualiMani = hands;
       document.getElementById('currentRangeStatus').textContent='✓ Presente';
@@ -545,11 +517,12 @@ document.getElementById('retryBtn').addEventListener('click', () => {
     const flatSection=document.getElementById('flatSection');
     const stackButtons=document.querySelectorAll('#stackGrid .cellBtn');
     const ordine=["EP","EP1","EP2","MP1","MP2","CO","BTN","SB","BB"];
-    stackButtons.forEach(btn=>{if(!btn.getAttribute('data-orig'))btn.setAttribute('data-orig',btn.textContent.trim());});
-
-    // Aggiorna label dinamiche
     const openerLabel=document.getElementById('openerLabel');
     const responderLabel=document.getElementById('responderLabel');
+
+    stackButtons.forEach(btn=>{if(!btn.getAttribute('data-orig'))btn.setAttribute('data-orig',btn.textContent.trim());});
+
+    // Label dinamiche
     if(azioneSelezionata==="RFI/OSHOVE"){openerLabel.textContent='RFI:';responderLabel.textContent='Hero:';}
     else if(azioneSelezionata==="Vs 3Bet NAI"||azioneSelezionata==="Vs 3Bet AI"){openerLabel.textContent='Hero:';responderLabel.textContent='3bettor:';}
     else if(azioneSelezionata==="Vs 4Bet"){openerLabel.textContent='Hero/3Bettor:';responderLabel.textContent='4Bettor:';}
@@ -560,6 +533,7 @@ document.getElementById('retryBtn').addEventListener('click', () => {
 
     if(azioneSelezionata==="RFI/OSHOVE"){responderTabs.style.display='none';responderSelezionato="NO";}
     else{responderTabs.style.display='flex';if(responderSelezionato==="NO")responderSelezionato="BB";}
+
     if(azioneSelezionata==="SB Limp vs BB ISO"||azioneSelezionata==="BB vs SB Limp"){
       document.querySelectorAll('#openerTabs .tab').forEach(t=>{t.style.display=t.textContent.trim()==='SB'?'inline-block':'none';});
       document.querySelectorAll('#responderTabs .tab').forEach(t=>{t.style.display=t.getAttribute('data-pos')==='BB'?'inline-block':'none';});
@@ -571,6 +545,7 @@ document.getElementById('retryBtn').addEventListener('click', () => {
       document.querySelectorAll('#responderTabs .tab').forEach(t=>{t.style.display=t.getAttribute('data-pos')?'inline-block':'none';});
       if(apritoreSelezionato==='BB'&&azioneSelezionata!=="Vs 4Bet"){apritoreSelezionato='BTN';document.querySelectorAll('#openerTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent.trim()==='BTN')t.classList.add('active');});}
     }
+
     stackButtons.forEach(btn=>{
       const orig=btn.getAttribute('data-orig')||btn.textContent.trim();let nascondi=false;
       if(azioneSelezionata==="Call Shove"&&!['5bb','7bb','10bb','13bb','15bb','17bb','20bb','23bb','25bb'].includes(orig))nascondi=true;
@@ -580,18 +555,37 @@ document.getElementById('retryBtn').addEventListener('click', () => {
       if(azioneSelezionata==="Vs 4Bet"&&['5bb','7bb','10bb','13bb','15bb','17bb'].includes(orig))nascondi=true;
       btn.style.display=nascondi?'none':'inline-block';btn.textContent=orig;
     });
+
     if(azioneSelezionata==="Vs RFI e Flat"){flatSection.classList.add('show');document.querySelectorAll('.flat-tab').forEach(t=>{t.style.display=t.getAttribute('data-flat-pos')==='BB'?'none':'inline-block';});}
     else flatSection.classList.remove('show');
+
     if(["Vs RFI","Call Shove"].includes(azioneSelezionata)){const idxO=ordine.indexOf(apritoreSelezionato);document.querySelectorAll('#responderTabs .tab').forEach(t=>{const pos=t.getAttribute('data-pos');if(pos)t.style.display=ordine.indexOf(pos)<=idxO?'none':'inline-block';});if(responderSelezionato==="NO"||ordine.indexOf(responderSelezionato)<=idxO){responderSelezionato=ordine.slice(idxO+1)[0]||"BB";document.querySelectorAll('#responderTabs .tab').forEach(t=>{t.classList.remove('active');if(t.getAttribute('data-pos')===responderSelezionato)t.classList.add('active');});}}
+
     if(["Vs 3Bet NAI","Vs 3Bet AI"].includes(azioneSelezionata)){const idxO=ordine.indexOf(apritoreSelezionato);document.querySelectorAll('#responderTabs .tab').forEach(t=>{const pos=t.getAttribute('data-pos');if(pos)t.style.display=ordine.indexOf(pos)<=idxO?'none':'inline-block';});if(ordine.indexOf(responderSelezionato)<=idxO){responderSelezionato=ordine.slice(idxO+1)[0]||"BB";document.querySelectorAll('#responderTabs .tab').forEach(t=>{t.classList.remove('active');if(t.getAttribute('data-pos')===responderSelezionato)t.classList.add('active');});}}
+
+    if(azioneSelezionata==="Vs 4Bet"){const idxH=ordine.indexOf(apritoreSelezionato);document.querySelectorAll('#responderTabs .tab').forEach(t=>{const pos=t.getAttribute('data-pos');if(pos)t.style.display=pos===apritoreSelezionato?'none':'inline-block';});}
+
+    if(azioneSelezionata==="Vs RFI e Flat"){
+      const idxRFI=ordine.indexOf(apritoreSelezionato);
+      document.querySelectorAll('.flat-tab').forEach(t=>{const pos=t.getAttribute('data-flat-pos');if(pos)t.style.display=ordine.indexOf(pos)<=idxRFI?'none':'inline-block';});
+      const idxFlat=ordine.indexOf(flatPosizioneSelezionata);
+      document.querySelectorAll('#responderTabs .tab').forEach(t=>{const pos=t.getAttribute('data-pos');if(pos)t.style.display=ordine.indexOf(pos)<=idxFlat?'none':'inline-block';});
+      if(idxFlat<=idxRFI){flatPosizioneSelezionata=ordine.slice(idxRFI+1)[0]||"BB";document.querySelectorAll('.flat-tab').forEach(t=>{t.classList.remove('active');if(t.getAttribute('data-flat-pos')===flatPosizioneSelezionata)t.classList.add('active');});}
+      const nuovoIdxFlat=ordine.indexOf(flatPosizioneSelezionata);
+      if(responderSelezionato==="NO"||ordine.indexOf(responderSelezionato)<=nuovoIdxFlat){responderSelezionato=ordine.slice(nuovoIdxFlat+1)[0]||"BB";document.querySelectorAll('#responderTabs .tab').forEach(t=>{t.classList.remove('active');if(t.getAttribute('data-pos')===responderSelezionato)t.classList.add('active');});}
+    }
+
+    // Titolo
     let titolo;
-    if(azioneSelezionata==="RFI/OSHOVE")titolo=`${azioneSelezionata} - ${apritoreSelezionato} - ${stackSelezionato}`;
+    if(azioneSelezionata==="RFI/OSHOVE")titolo=responderSelezionato==="NO"?`${azioneSelezionata} - ${apritoreSelezionato} - ${stackSelezionato}`:`${azioneSelezionata} - ${apritoreSelezionato} vs ${responderSelezionato} - ${stackSelezionato}`;
     else if(azioneSelezionata==="Vs RFI e Flat")titolo=`${azioneSelezionata} - ${responderSelezionato} vs ${apritoreSelezionato} - Flat: ${flatPosizioneSelezionata} - ${stackSelezionato}`;
+    else if(["Vs 3Bet NAI","Vs 3Bet AI","Vs 4Bet"].includes(azioneSelezionata))titolo=`${azioneSelezionata} - ${apritoreSelezionato} vs ${responderSelezionato} - ${stackSelezionato}`;
     else if(azioneSelezionata==="SB Limp vs BB ISO"){const s=sbIsoSubMode==="nai"?" - vs BB 4Bet NAI":sbIsoSubMode==="ai"?" - vs BB 4Bet AI":"";titolo=`${azioneSelezionata}${s} - SB vs BB - ${stackSelezionato}`;}
     else if(azioneSelezionata==="BB vs SB Limp"){const s=bbLimpSubMode==="nai"?" - VS Limp 3Bet NAI":bbLimpSubMode==="ai"?" - VS Limp 3Bet AI":"";titolo=`${azioneSelezionata}${s} - BB vs SB - ${stackSelezionato}`;}
-    else if(["Vs 3Bet NAI","Vs 3Bet AI","Vs 4Bet"].includes(azioneSelezionata))titolo=`${azioneSelezionata} - ${apritoreSelezionato} vs ${responderSelezionato} - ${stackSelezionato}`;
     else titolo=`${azioneSelezionata} - ${responderSelezionato} vs ${apritoreSelezionato} - ${stackSelezionato}`;
     document.getElementById('headline').textContent=titolo;
+
+    // Switch buttons
     const sc=document.getElementById('switchButtonsContainer');
     ['switchTo3BetNAI','switchTo3BetAI','switchToIso','switchTo4Bet','switchToVsRFIFlat','switchToBBvsSBLimp','switchToVSLimp3BetNAI','switchToVSLimp3BetAI','switchToVsBBIsoNAI','switchToVsBBIsoAI','switchBackToBaseLimp','switchBackToBaseIso','switchBackToVsRFI','switchBackToRFI','switchBackToVsRFIFrom4Bet'].forEach(id=>document.getElementById(id).style.display='none');
     sc.classList.remove('show');
@@ -602,6 +596,7 @@ document.getElementById('retryBtn').addEventListener('click', () => {
     else if(azioneSelezionata==="Vs 4Bet"){document.getElementById('switchBackToVsRFIFrom4Bet').style.display='inline-block';sc.classList.add('show');}
     else if(azioneSelezionata==="BB vs SB Limp"){if(bbLimpSubMode!=="base"){document.getElementById('switchBackToBaseLimp').style.display='inline-block';sc.classList.add('show');}else{if(!['5bb','7bb','10bb','13bb','15bb'].includes(stackSelezionato)){document.getElementById('switchToVSLimp3BetNAI').style.display='inline-block';sc.classList.add('show');}if(!['5bb','80bb','100bb'].includes(stackSelezionato)){document.getElementById('switchToVSLimp3BetAI').style.display='inline-block';sc.classList.add('show');}}}
     else if(azioneSelezionata==="SB Limp vs BB ISO"){if(sbIsoSubMode!=="base"){document.getElementById('switchBackToBaseIso').style.display='inline-block';sc.classList.add('show');}else{if(!['5bb','7bb','10bb','13bb','15bb','17bb','20bb','23bb','25bb','28bb','30bb','32bb'].includes(stackSelezionato)){document.getElementById('switchToVsBBIsoNAI').style.display='inline-block';sc.classList.add('show');}if(!['5bb','7bb','10bb','13bb','15bb','80bb','100bb'].includes(stackSelezionato)){document.getElementById('switchToVsBBIsoAI').style.display='inline-block';sc.classList.add('show');}}}
+
     caricaRangeCorrente();
   }
 
@@ -611,11 +606,13 @@ document.getElementById('retryBtn').addEventListener('click', () => {
     document.querySelectorAll('#modeTabs .tab').forEach(tab=>{tab.onclick=()=>{azioneSelezionata=tab.textContent;if(azioneSelezionata==="BB vs SB Limp")bbLimpSubMode="base";if(azioneSelezionata==="SB Limp vs BB ISO")sbIsoSubMode="base";document.querySelectorAll('#modeTabs .tab').forEach(t=>t.classList.remove('active'));tab.classList.add('active');aggiornaUI();};});
     document.querySelectorAll('.flat-tab').forEach(tab=>{tab.onclick=()=>{flatPosizioneSelezionata=tab.getAttribute('data-flat-pos');document.querySelectorAll('.flat-tab').forEach(t=>t.classList.remove('active'));tab.classList.add('active');aggiornaUI();};});
     document.querySelectorAll('.cellBtn').forEach(btn=>{btn.onclick=()=>{stackSelezionato=btn.getAttribute('data-orig')||btn.textContent.trim();document.querySelectorAll('.cellBtn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');aggiornaUI();};});
-    document.getElementById('switchTo3BetNAI').onclick=()=>{const ord=["EP","EP1","EP2","MP1","MP2","CO","BTN","SB","BB"];const idx=ord.indexOf(apritoreSelezionato);responderSelezionato=ord.slice(idx+1)[0]||"BB";azioneSelezionata="Vs 3Bet NAI";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="Vs 3Bet NAI")t.classList.add('active');});aggiornaUI();};
-    document.getElementById('switchTo3BetAI').onclick=()=>{const ord=["EP","EP1","EP2","MP1","MP2","CO","BTN","SB","BB"];const idx=ord.indexOf(apritoreSelezionato);responderSelezionato=ord.slice(idx+1)[0]||"BB";azioneSelezionata="Vs 3Bet AI";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="Vs 3Bet AI")t.classList.add('active');});aggiornaUI();};
+
+    const ord=["EP","EP1","EP2","MP1","MP2","CO","BTN","SB","BB"];
+    document.getElementById('switchTo3BetNAI').onclick=()=>{const idx=ord.indexOf(apritoreSelezionato);responderSelezionato=ord.slice(idx+1)[0]||"BB";azioneSelezionata="Vs 3Bet NAI";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="Vs 3Bet NAI")t.classList.add('active');});aggiornaUI();};
+    document.getElementById('switchTo3BetAI').onclick=()=>{const idx=ord.indexOf(apritoreSelezionato);responderSelezionato=ord.slice(idx+1)[0]||"BB";azioneSelezionata="Vs 3Bet AI";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="Vs 3Bet AI")t.classList.add('active');});aggiornaUI();};
     document.getElementById('switchToIso').onclick=()=>{azioneSelezionata="SB Limp vs BB ISO";sbIsoSubMode="base";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="SB Limp vs BB ISO")t.classList.add('active');});aggiornaUI();};
     document.getElementById('switchTo4Bet').onclick=()=>{const h=apritoreSelezionato,o=responderSelezionato;apritoreSelezionato=o;responderSelezionato=h;azioneSelezionata="Vs 4Bet";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="Vs 4Bet")t.classList.add('active');});aggiornaUI();};
-    document.getElementById('switchToVsRFIFlat').onclick=()=>{const ord=["EP","EP1","EP2","MP1","MP2","CO","BTN","SB","BB"];const idxO=ord.indexOf(apritoreSelezionato);const idxH=ord.indexOf(responderSelezionato);const tra=ord.slice(idxO+1,idxH);flatPosizioneSelezionata=tra.length>0?tra[tra.length-1]:ord[idxO+1];azioneSelezionata="Vs RFI e Flat";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="Vs RFI e Flat")t.classList.add('active');});aggiornaUI();};
+    document.getElementById('switchToVsRFIFlat').onclick=()=>{const idxO=ord.indexOf(apritoreSelezionato);const idxH=ord.indexOf(responderSelezionato);const tra=ord.slice(idxO+1,idxH);flatPosizioneSelezionata=tra.length>0?tra[tra.length-1]:ord[idxO+1];azioneSelezionata="Vs RFI e Flat";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="Vs RFI e Flat")t.classList.add('active');});aggiornaUI();};
     document.getElementById('switchToBBvsSBLimp').onclick=()=>{azioneSelezionata="BB vs SB Limp";bbLimpSubMode="base";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="BB vs SB Limp")t.classList.add('active');});aggiornaUI();};
     document.getElementById('switchToVSLimp3BetNAI').onclick=()=>{bbLimpSubMode="nai";aggiornaUI();};
     document.getElementById('switchToVSLimp3BetAI').onclick=()=>{bbLimpSubMode="ai";aggiornaUI();};
@@ -628,11 +625,49 @@ document.getElementById('retryBtn').addEventListener('click', () => {
     document.getElementById('switchBackToVsRFIFrom4Bet').onclick=()=>{const h=apritoreSelezionato,o=responderSelezionato;apritoreSelezionato=o;responderSelezionato=h;azioneSelezionata="Vs RFI";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="Vs RFI")t.classList.add('active');});aggiornaUI();};
   }
 
-  // Esponiamo le funzioni necessarie all'avvio dell'app (chiamato da fuori questa IIFE)
   window.creaMatrice = creaMatrice;
   window.impostaEventListener = impostaEventListener;
   window.aggiornaUI = aggiornaUI;
 })();
 </script>
+
+<!-- DISCLAIMER -->
+<div id="disclaimerOverlay" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn 0.3s ease-out;">
+  <div style="background:linear-gradient(135deg,#1f2937 0%,#111827 100%);border:2px solid #f59e0b;border-radius:16px;padding:32px;max-width:600px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.5);animation:slideUp 0.4s ease-out;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid #374151;">
+      <div style="font-size:32px;">⚖️</div>
+      <h2 style="font-size:22px;font-weight:700;color:#f59e0b;margin:0;">CONDIZIONI D'USO</h2>
+    </div>
+    <div style="color:#e5e7eb;font-size:15px;line-height:1.8;margin-bottom:24px;">
+      <div style="background:rgba(245,158,11,0.1);border-left:4px solid #f59e0b;padding:12px 16px;border-radius:6px;margin-bottom:16px;font-weight:600;">
+        L'uso in tempo reale durante il gioco VIOLA i "Termini di Servizio" di tutte le piattaforme poker.
+      </div>
+      <div style="background:rgba(239,68,68,0.1);border:1px solid #ef4444;padding:14px 18px;border-radius:8px;font-weight:700;text-align:center;color:#fca5a5;letter-spacing:0.5px;">
+        L'UTENTE È TOTALMENTE RESPONSABILE DELL'USO CONFORME.
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;align-items:center;">
+      <button id="disclaimerButton" style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);border:none;color:white;padding:14px 32px;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;width:100%;max-width:300px;">✓ HO COMPRESO</button>
+      <div style="color:#9ca3af;font-size:13px;font-style:italic;">Chiusura automatica tra <span id="countdownSeconds">5</span> secondi...</div>
+    </div>
+  </div>
+</div>
+<style>
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeOut{from{opacity:1}to{opacity:0}}
+</style>
+<script>
+(function(){
+  const overlay=document.getElementById('disclaimerOverlay');
+  const button=document.getElementById('disclaimerButton');
+  const countdownEl=document.getElementById('countdownSeconds');
+  let countdown=5;
+  const intervalId=setInterval(()=>{countdown--;countdownEl.textContent=countdown;if(countdown<=0)closeDisclaimer();},1000);
+  function closeDisclaimer(){overlay.style.animation='fadeOut 0.3s ease-out';setTimeout(()=>{overlay.style.display='none';},300);clearInterval(intervalId);}
+  button.addEventListener('click',closeDisclaimer);
+})();
+</script>
+
 </body>
 </html>
