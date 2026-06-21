@@ -79,7 +79,8 @@ body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--
 .canvasRow{order:1;}
 .logout-btn{background:var(--panel);border:1px solid var(--line);color:var(--muted);padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;}
 .logout-btn:hover{color:var(--error);border-color:var(--error);}
-.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+.topbar{display:flex;justify-content:center;align-items:center;margin-bottom:16px;position:relative;}
+.topbar .logout-wrapper{position:absolute;right:0;display:flex;align-items:center;gap:12px;}
 .error-banner{background:#2a1414;border:1px solid var(--error);color:#ff9b9b;border-radius:8px;padding:12px 16px;text-align:center;margin-bottom:12px;font-size:13px;}
 .error-banner button{background:var(--error);color:white;border:none;border-radius:6px;padding:6px 14px;margin-left:10px;cursor:pointer;font-weight:600;}
 </style>
@@ -105,13 +106,14 @@ body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--
 
 <div class="topbar">
   <div style="background:linear-gradient(135deg,#1f6feb 0%,#0969da 100%);border:2px solid #388bfd;border-radius:12px;padding:8px 20px;box-shadow:0 4px 12px rgba(31,111,235,0.3);">
-    <div style="font-size:14px;font-weight:700;color:white;">♥ Poker Range ♠ Preflop ♦ Mtt Normal ♣</div>
+    <div style="font-size:14px;font-weight:700;color:white;text-align:center;">♥ Poker Range ♠ Preflop ✦ Mtt Normal ✦</div>
   </div>
-  <div style="display:flex;align-items:center;gap:10px;">
+  <div class="logout-wrapper">
     <span id="userEmail" style="font-size:12px;color:var(--muted);"></span>
     <button class="logout-btn" id="logoutBtn">Esci</button>
   </div>
 </div>
+
 
 <div id="loadingMsg">⏳ Caricamento range in corso...</div>
 <div id="errorBanner" class="error-banner" style="display:none;">
