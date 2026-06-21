@@ -265,6 +265,9 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 </div>
 
 <script>
+window.DISCLAIMER_CHIUSO = false;
+window.UTENTE_IN_ATTESA = null;
+
 // ===== LOGIN =====
 document.getElementById('loginBtn').addEventListener('click', async () => {
   const email = document.getElementById('loginEmail').value.trim();
@@ -295,9 +298,6 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
 });
 
 
-
-window.DISCLAIMER_CHIUSO = false;
-window.UTENTE_IN_ATTESA = null;
 
 function mostraApp(user) {
   if (!window.DISCLAIMER_CHIUSO) {
