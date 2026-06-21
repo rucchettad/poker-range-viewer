@@ -282,30 +282,9 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
     errEl.textContent = 'Email o password errati.';
     errEl.style.display = 'block';
   } else {
-    // Mostra disclaimer prima di entrare nell'app
-    window.UTENTE_IN_ATTESA = data.user;
-    window.DISCLAIMER_CHIUSO = false;
-    const overlay = document.getElementById('disclaimerOverlay');
-    const countdownEl = document.getElementById('countdownSeconds');
-    countdownEl.textContent = '5';
-    overlay.style.display = 'flex';
-    overlay.style.animation = 'fadeIn 0.3s ease-out';
+    // Dopo login mostra disclaimer poi app
     document.getElementById('loginScreen').style.display = 'none';
-    let countdown = 5;
-    const intervalId = setInterval(() => {
-      countdown--;
-      countdownEl.textContent = countdown;
-      if (countdown <= 0) { clearInterval(intervalId); chiudiDisclaimer(); }
-    }, 1000);
-    function chiudiDisclaimer() {
-      overlay.style.animation = 'fadeOut 0.3s ease-out';
-      setTimeout(() => {
-        overlay.style.display = 'none';
-        window.DISCLAIMER_CHIUSO = true;
-        mostraApp(window.UTENTE_IN_ATTESA);
-      }, 300);
-    }
-    document.getElementById('disclaimerButton').onclick = () => { clearInterval(intervalId); chiudiDisclaimer(); };
+    mostraDisclaimerPoiApp(data.user);
   }
 });
 
@@ -323,9 +302,31 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
 
 
 
+function mostraDisclaimerPoiApp(user) {
+  const overlay = document.getElementById('disclaimerOverlay');
+  const countdownEl = document.getElementById('countdownSeconds');
+  countdownEl.textContent = '5';
+  overlay.style.display = 'flex';
+  overlay.style.animation = 'fadeIn 0.3s ease-out';
+  let countdown = 5;
+  const intervalId = setInterval(() => {
+    countdown--;
+    countdownEl.textContent = countdown;
+    if (countdown <= 0) { clearInterval(intervalId); chiudi(); }
+  }, 1000);
+  function chiudi() {
+    overlay.style.animation = 'fadeOut 0.3s ease-out';
+    setTimeout(() => {
+      overlay.style.display = 'none';
+      window.DISCLAIMER_CHIUSO = true;
+      mostraApp(user);
+    }, 300);
+  }
+  document.getElementById('disclaimerButton').onclick = () => { clearInterval(intervalId); chiudi(); };
+}
+
 function mostraApp(user) {
   if (!window.DISCLAIMER_CHIUSO) {
-    // Disclaimer non ancora chiuso — salva utente e aspetta
     window.UTENTE_IN_ATTESA = user;
     return;
   }
