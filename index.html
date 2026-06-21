@@ -282,7 +282,30 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
     errEl.textContent = 'Email o password errati.';
     errEl.style.display = 'block';
   } else {
-    mostraApp(data.user);
+    // Mostra disclaimer prima di entrare nell'app
+    window.UTENTE_IN_ATTESA = data.user;
+    window.DISCLAIMER_CHIUSO = false;
+    const overlay = document.getElementById('disclaimerOverlay');
+    const countdownEl = document.getElementById('countdownSeconds');
+    countdownEl.textContent = '5';
+    overlay.style.display = 'flex';
+    overlay.style.animation = 'fadeIn 0.3s ease-out';
+    document.getElementById('loginScreen').style.display = 'none';
+    let countdown = 5;
+    const intervalId = setInterval(() => {
+      countdown--;
+      countdownEl.textContent = countdown;
+      if (countdown <= 0) { clearInterval(intervalId); chiudiDisclaimer(); }
+    }, 1000);
+    function chiudiDisclaimer() {
+      overlay.style.animation = 'fadeOut 0.3s ease-out';
+      setTimeout(() => {
+        overlay.style.display = 'none';
+        window.DISCLAIMER_CHIUSO = true;
+        mostraApp(window.UTENTE_IN_ATTESA);
+      }, 300);
+    }
+    document.getElementById('disclaimerButton').onclick = () => { clearInterval(intervalId); chiudiDisclaimer(); };
   }
 });
 
@@ -292,12 +315,10 @@ document.getElementById('loginPassword').addEventListener('keydown', e => {
 
 document.getElementById('logoutBtn').addEventListener('click', async () => {
   await sb.auth.signOut();
-  window.DISCLAIMER_CHIUSO = false;
   window.APP_AVVIATA = false;
+  window.DISCLAIMER_CHIUSO = false;
   document.getElementById('appScreen').style.display = 'none';
-  document.getElementById('loginScreen').style.display = 'none';
-  // Ricarica la pagina per mostrare il disclaimer
-  window.location.reload();
+  document.getElementById('loginScreen').style.display = 'flex';
 });
 
 
