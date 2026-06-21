@@ -94,7 +94,7 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 <body>
 
 <!-- LOGIN SCREEN -->
-<div id="loginScreen">
+<div id="loginScreen" style="display:none;">
   <div class="login-box">
     <div class="login-logo">♥ Poker Range ♠</div>
     <div class="login-title">Accedi per visualizzare i range</div>
@@ -291,10 +291,6 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
   await sb.auth.signOut();
   document.getElementById('appScreen').style.display = 'none';
   document.getElementById('loginScreen').style.display = 'flex';
-});
-
-sb.auth.getSession().then(({ data: { session } }) => {
-  if (session) mostraApp(session.user);
 });
 
 sb.auth.onAuthStateChange((event, session) => {
@@ -662,9 +658,31 @@ document.getElementById('retryBtn').addEventListener('click', () => {
   const overlay=document.getElementById('disclaimerOverlay');
   const button=document.getElementById('disclaimerButton');
   const countdownEl=document.getElementById('countdownSeconds');
+
+  // Se già mostrato in questa sessione browser, nascondi subito
+  if (sessionStorage.getItem('disclaimerShown')) {
+    overlay.style.display='none';
+    sb.auth.getSession().then(({ data: { session } }) => {
+      if (session) mostraApp(session.user);
+      else document.getElementById('loginScreen').style.display='flex';
+    });
+    return;
+  }
+
   let countdown=5;
   const intervalId=setInterval(()=>{countdown--;countdownEl.textContent=countdown;if(countdown<=0)closeDisclaimer();},1000);
-  function closeDisclaimer(){overlay.style.animation='fadeOut 0.3s ease-out';setTimeout(()=>{overlay.style.display='none';},300);clearInterval(intervalId);}
+  function closeDisclaimer(){
+    overlay.style.animation='fadeOut 0.3s ease-out';
+    setTimeout(()=>{
+      overlay.style.display='none';
+      sessionStorage.setItem('disclaimerShown', '1');
+      sb.auth.getSession().then(({ data: { session } }) => {
+        if (session) mostraApp(session.user);
+        else document.getElementById('loginScreen').style.display='flex';
+      });
+    },300);
+    clearInterval(intervalId);
+  }
   button.addEventListener('click',closeDisclaimer);
 })();
 </script>
