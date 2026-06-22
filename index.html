@@ -349,6 +349,10 @@ function interpretaErrore(error) {
 async function fetchRange(chiave) {
   const { data, error } = await sb.rpc('get_range_protetta', { p_range_key: chiave });
   if (error) throw interpretaErrore(error);
+  if (data && data.error) {
+    if (data.error === 'RATE_LIMIT_BLOCKED') throw new RateLimitError();
+    throw new Error(data.error);
+  }
   return data;
 }
 
