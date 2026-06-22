@@ -12,6 +12,15 @@ const SUPABASE_URL = 'https://abnsmqheydlpoffxjhsx.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_38AgBvFnAwV3wO0jzSYCaw_BuOaf3z6';
 const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Gestione link reset password
+sb.auth.onAuthStateChange(async (event, session) => {
+  if (event === 'PASSWORD_RECOVERY') {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('disclaimerOverlay').style.display = 'none';
+    document.getElementById('resetScreen').style.display = 'flex';
+  }
+});
 </script>
 
 <style>
@@ -34,6 +43,9 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
     .login-btn:hover{background:#388bfd;}
     .login-error{color:var(--error);font-size:13px;text-align:center;display:none;}
     .login-loading{color:var(--muted);font-size:13px;text-align:center;display:none;}
+
+    /* RESET PASSWORD */
+    #resetScreen{display:none;align-items:center;justify-content:center;min-height:100vh;background:var(--bg);}
 
     /* APP */
     .wrap{max-width:1400px;margin:0 auto;padding:20px;}
@@ -96,7 +108,7 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 <!-- LOGIN SCREEN -->
 <div id="loginScreen" style="display:none;">
   <div class="login-box">
-    <div class="login-logo">♥ Poker Range ♠</div>
+    <div class="login-logo">&#9829; Poker Range &#9824;</div>
     <div class="login-title">Accedi per visualizzare i range</div>
     <input class="login-input" id="loginEmail" placeholder="Email" type="email"/>
     <input class="login-input" id="loginPassword" placeholder="Password" type="password"/>
@@ -106,19 +118,32 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
   </div>
 </div>
 
+<!-- RESET PASSWORD SCREEN -->
+<div id="resetScreen">
+  <div class="login-box">
+    <div class="login-logo">&#9829; Poker Range &#9824;</div>
+    <div class="login-title">Imposta nuova password</div>
+    <input class="login-input" id="resetPassword" placeholder="Nuova password" type="password"/>
+    <input class="login-input" id="resetPasswordConfirm" placeholder="Conferma password" type="password"/>
+    <button class="login-btn" id="resetBtn">Aggiorna Password</button>
+    <div class="login-error" id="resetError"></div>
+    <div class="login-loading" id="resetLoading">Aggiornamento in corso...</div>
+  </div>
+</div>
+
 <!-- APP SCREEN -->
 <div id="appScreen" style="display:none;">
 <div class="wrap">
 
 <div style="background:linear-gradient(135deg,#1f6feb 0%,#0969da 100%);border:2px solid #388bfd;border-radius:12px;padding:8px 20px;box-shadow:0 4px 12px rgba(31,111,235,0.3);margin-bottom:16px;display:flex;align-items:center;position:relative;">
-  <div style="flex:1;text-align:center;font-size:14px;font-weight:700;color:white;">♥Poker Range ♠ Preflop ♦ Mtt Normal♣</div>
+  <div style="flex:1;text-align:center;font-size:14px;font-weight:700;color:white;">&#9829;Poker Range &#9824; Preflop &#9830; Mtt Normal&#9827;</div>
   <div style="position:absolute;right:20px;display:flex;align-items:center;gap:10px;">
     <span id="userEmail" style="font-size:12px;color:rgba(255,255,255,0.8);"></span>
     <button class="logout-btn" id="logoutBtn" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;">Esci</button>
   </div>
 </div>
 
-<div id="loadingMsg" style="text-align:center;padding:40px;color:var(--muted);font-size:16px;">⏳ Caricamento range in corso...</div>
+<div id="loadingMsg" style="text-align:center;padding:40px;color:var(--muted);font-size:16px;">Caricamento range in corso...</div>
 <div id="errorBanner" class="error-banner" style="display:none;">
   <span id="errorBannerText"></span>
   <button id="retryBtn">Riprova</button>
@@ -210,34 +235,34 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 <div class="card">
 <div class="title" id="headline">RFI/OSHOVE - EP - 25bb</div>
 <div class="switch-buttons-container" id="switchButtonsContainer">
-<button class="switch-btn" id="switchTo3BetNAI">→ Passa a Vs 3Bet NAI</button>
-<button class="switch-btn" id="switchTo3BetAI">→ Passa a Vs 3Bet AI</button>
-<button class="switch-btn" id="switchToIso">→ Passa a SB Limp vs BB ISO</button>
-<button class="switch-btn" id="switchTo4Bet">→ Passa a Vs 4Bet</button>
-<button class="switch-btn" id="switchToVsRFIFlat">→ Passa a Vs RFI e Flat</button>
-<button class="switch-btn" id="switchToBBvsSBLimp">→ Passa a BB vs SB Limp</button>
-<button class="switch-btn" id="switchToVSLimp3BetNAI">→ VS Limp 3Bet NAI</button>
-<button class="switch-btn" id="switchToVSLimp3BetAI">→ VS Limp 3Bet AI</button>
-<button class="switch-btn" id="switchToVsBBIsoNAI">→ vs BB 4Bet NAI</button>
-<button class="switch-btn" id="switchToVsBBIsoAI">→ vs BB 4Bet AI</button>
-<button class="switch-btn" id="switchBackToBaseLimp" style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);">← Indietro</button>
-<button class="switch-btn" id="switchBackToBaseIso" style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);">← Indietro</button>
-<button class="switch-btn" id="switchBackToVsRFI" style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);">← Indietro a Vs RFI</button>
-<button class="switch-btn" id="switchBackToRFI" style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);">← Indietro a RFI/OSHOVE</button>
-<button class="switch-btn" id="switchBackToVsRFIFrom4Bet" style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);">← Indietro a Vs RFI</button>
+<button class="switch-btn" id="switchTo3BetNAI">Passa a Vs 3Bet NAI</button>
+<button class="switch-btn" id="switchTo3BetAI">Passa a Vs 3Bet AI</button>
+<button class="switch-btn" id="switchToIso">Passa a SB Limp vs BB ISO</button>
+<button class="switch-btn" id="switchTo4Bet">Passa a Vs 4Bet</button>
+<button class="switch-btn" id="switchToVsRFIFlat">Passa a Vs RFI e Flat</button>
+<button class="switch-btn" id="switchToBBvsSBLimp">Passa a BB vs SB Limp</button>
+<button class="switch-btn" id="switchToVSLimp3BetNAI">VS Limp 3Bet NAI</button>
+<button class="switch-btn" id="switchToVSLimp3BetAI">VS Limp 3Bet AI</button>
+<button class="switch-btn" id="switchToVsBBIsoNAI">vs BB 4Bet NAI</button>
+<button class="switch-btn" id="switchToVsBBIsoAI">vs BB 4Bet AI</button>
+<button class="switch-btn" id="switchBackToBaseLimp" style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);">Indietro</button>
+<button class="switch-btn" id="switchBackToBaseIso" style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);">Indietro</button>
+<button class="switch-btn" id="switchBackToVsRFI" style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);">Indietro a Vs RFI</button>
+<button class="switch-btn" id="switchBackToRFI" style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);">Indietro a RFI/OSHOVE</button>
+<button class="switch-btn" id="switchBackToVsRFIFrom4Bet" style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);">Indietro a Vs RFI</button>
 </div>
 
 <div class="card-content-wrapper">
 <div class="stats" id="rangeStats"></div>
 <div class="canvasRow">
 <div class="note-panel" id="notePanel">
-  <div class="note-title">📝 Note Strategiche</div>
+  <div class="note-title">Note Strategiche</div>
   <div class="note-content" id="noteContent">Nessuna nota per questa configurazione.</div>
 </div>
 <div class="matrix-container" id="matrix"></div>
 <div class="sidePanel">
   <div class="info-box">
-    <div class="info-title">📊 Info Range</div>
+    <div class="info-title">Info Range</div>
     <div class="info-row">
       <span class="info-label">Range Totali:</span>
       <span class="info-value" id="totalRanges">-</span>
@@ -266,6 +291,41 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 window.DISCLAIMER_CHIUSO = false;
 window.UTENTE_IN_ATTESA = null;
 
+// ===== RESET PASSWORD =====
+document.getElementById('resetBtn').addEventListener('click', async () => {
+  const pwd = document.getElementById('resetPassword').value;
+  const pwd2 = document.getElementById('resetPasswordConfirm').value;
+  const errEl = document.getElementById('resetError');
+  const loadEl = document.getElementById('resetLoading');
+
+  errEl.style.display = 'none';
+  if (pwd.length < 6) {
+    errEl.textContent = 'La password deve essere di almeno 6 caratteri.';
+    errEl.style.display = 'block'; return;
+  }
+  if (pwd !== pwd2) {
+    errEl.textContent = 'Le password non coincidono.';
+    errEl.style.display = 'block'; return;
+  }
+
+  loadEl.style.display = 'block';
+  const { error } = await sb.auth.updateUser({ password: pwd });
+  loadEl.style.display = 'none';
+
+  if (error) {
+    errEl.textContent = 'Errore: ' + error.message;
+    errEl.style.display = 'block';
+  } else {
+    await sb.auth.signOut();
+    document.getElementById('resetScreen').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+    const loginErr = document.getElementById('loginError');
+    loginErr.style.color = 'var(--success)';
+    loginErr.textContent = 'Password aggiornata! Accedi con la nuova password.';
+    loginErr.style.display = 'block';
+  }
+});
+
 // ===== LOGIN =====
 document.getElementById('loginBtn').addEventListener('click', async () => {
   const email = document.getElementById('loginEmail').value.trim();
@@ -277,10 +337,10 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
   const { data, error } = await sb.auth.signInWithPassword({ email, password });
   loadEl.style.display = 'none';
   if (error) {
+    errEl.style.color = 'var(--error)';
     errEl.textContent = 'Email o password errati.';
     errEl.style.display = 'block';
   } else {
-    // Dopo login mostra disclaimer poi app
     document.getElementById('loginScreen').style.display = 'none';
     mostraDisclaimerPoiApp(data.user);
   }
@@ -297,8 +357,6 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
   document.getElementById('appScreen').style.display = 'none';
   document.getElementById('loginScreen').style.display = 'flex';
 });
-
-
 
 function mostraDisclaimerPoiApp(user) {
   const overlay = document.getElementById('disclaimerOverlay');
@@ -498,7 +556,7 @@ document.getElementById('retryBtn').addEventListener('click', () => {
     const chiave=generaChiaveRange();
     document.getElementById('currentRangeKey').textContent=chiave;
     const idRichiesta = ++richiestaInCorsoId;
-    document.getElementById('currentRangeStatus').textContent='⏳';
+    document.getElementById('currentRangeStatus').textContent='...';
     document.getElementById('currentRangeStatus').style.color='var(--muted)';
     document.getElementById('noteContent').textContent='Caricamento...';
     let hands, nota;
@@ -507,16 +565,16 @@ document.getElementById('retryBtn').addEventListener('click', () => {
     } catch(e) {
       if (idRichiesta !== richiestaInCorsoId) return;
       percentualiMani = {};
-      document.getElementById('currentRangeStatus').textContent='❌ Errore';
+      document.getElementById('currentRangeStatus').textContent='Errore';
       document.getElementById('currentRangeStatus').style.color='var(--error)';
       const errBanner = document.getElementById('errorBanner');
       const errText = document.getElementById('errorBannerText');
       if (e instanceof RateLimitError) {
         document.getElementById('noteContent').textContent='Account sospeso per uso anomalo.';
-        errText.textContent='⛔ Account sospeso per troppe richieste.';
+        errText.textContent='Account sospeso per troppe richieste.';
       } else {
         document.getElementById('noteContent').textContent='Errore: ' + e.message;
-        errText.textContent='❌ Errore caricamento: ' + e.message;
+        errText.textContent='Errore caricamento: ' + e.message;
       }
       errBanner.style.display='block';
       aggiornaStatistiche(); aggiornaVisualizzazioneMatrice();
@@ -525,7 +583,7 @@ document.getElementById('retryBtn').addEventListener('click', () => {
     if (idRichiesta !== richiestaInCorsoId) return;
     if (hands) {
       percentualiMani = hands;
-      document.getElementById('currentRangeStatus').textContent='✓ Presente';
+      document.getElementById('currentRangeStatus').textContent='Presente';
       document.getElementById('currentRangeStatus').style.color='var(--success)';
     } else {
       percentualiMani = {};
@@ -546,7 +604,6 @@ document.getElementById('retryBtn').addEventListener('click', () => {
 
     stackButtons.forEach(btn=>{if(!btn.getAttribute('data-orig'))btn.setAttribute('data-orig',btn.textContent.trim());});
 
-    // Label dinamiche
     if(azioneSelezionata==="RFI/OSHOVE"){openerLabel.textContent='RFI:';responderLabel.textContent='Hero:';}
     else if(azioneSelezionata==="Vs 3Bet NAI"||azioneSelezionata==="Vs 3Bet AI"){openerLabel.textContent='Hero:';responderLabel.textContent='3bettor:';}
     else if(azioneSelezionata==="Vs 4Bet"){openerLabel.textContent='Hero/3Bettor:';responderLabel.textContent='4Bettor:';}
@@ -587,7 +644,7 @@ document.getElementById('retryBtn').addEventListener('click', () => {
 
     if(["Vs 3Bet NAI","Vs 3Bet AI"].includes(azioneSelezionata)){const idxO=ordine.indexOf(apritoreSelezionato);document.querySelectorAll('#responderTabs .tab').forEach(t=>{const pos=t.getAttribute('data-pos');if(pos)t.style.display=ordine.indexOf(pos)<=idxO?'none':'inline-block';});if(ordine.indexOf(responderSelezionato)<=idxO){responderSelezionato=ordine.slice(idxO+1)[0]||"BB";document.querySelectorAll('#responderTabs .tab').forEach(t=>{t.classList.remove('active');if(t.getAttribute('data-pos')===responderSelezionato)t.classList.add('active');});}}
 
-    if(azioneSelezionata==="Vs 4Bet"){const idxH=ordine.indexOf(apritoreSelezionato);document.querySelectorAll('#responderTabs .tab').forEach(t=>{const pos=t.getAttribute('data-pos');if(pos)t.style.display=pos===apritoreSelezionato?'none':'inline-block';});}
+    if(azioneSelezionata==="Vs 4Bet"){document.querySelectorAll('#responderTabs .tab').forEach(t=>{const pos=t.getAttribute('data-pos');if(pos)t.style.display=pos===apritoreSelezionato?'none':'inline-block';});}
 
     if(azioneSelezionata==="Vs RFI e Flat"){
       const idxRFI=ordine.indexOf(apritoreSelezionato);
@@ -599,7 +656,6 @@ document.getElementById('retryBtn').addEventListener('click', () => {
       if(responderSelezionato==="NO"||ordine.indexOf(responderSelezionato)<=nuovoIdxFlat){responderSelezionato=ordine.slice(nuovoIdxFlat+1)[0]||"BB";document.querySelectorAll('#responderTabs .tab').forEach(t=>{t.classList.remove('active');if(t.getAttribute('data-pos')===responderSelezionato)t.classList.add('active');});}
     }
 
-    // Titolo
     let titolo;
     if(azioneSelezionata==="RFI/OSHOVE")titolo=responderSelezionato==="NO"?`${azioneSelezionata} - ${apritoreSelezionato} - ${stackSelezionato}`:`${azioneSelezionata} - ${apritoreSelezionato} vs ${responderSelezionato} - ${stackSelezionato}`;
     else if(azioneSelezionata==="Vs RFI e Flat")titolo=`${azioneSelezionata} - ${responderSelezionato} vs ${apritoreSelezionato} - Flat: ${flatPosizioneSelezionata} - ${stackSelezionato}`;
@@ -609,7 +665,6 @@ document.getElementById('retryBtn').addEventListener('click', () => {
     else titolo=`${azioneSelezionata} - ${responderSelezionato} vs ${apritoreSelezionato} - ${stackSelezionato}`;
     document.getElementById('headline').textContent=titolo;
 
-    // Switch buttons
     const sc=document.getElementById('switchButtonsContainer');
     ['switchTo3BetNAI','switchTo3BetAI','switchToIso','switchTo4Bet','switchToVsRFIFlat','switchToBBvsSBLimp','switchToVSLimp3BetNAI','switchToVSLimp3BetAI','switchToVsBBIsoNAI','switchToVsBBIsoAI','switchBackToBaseLimp','switchBackToBaseIso','switchBackToVsRFI','switchBackToRFI','switchBackToVsRFIFrom4Bet'].forEach(id=>document.getElementById(id).style.display='none');
     sc.classList.remove('show');
@@ -659,7 +714,7 @@ document.getElementById('retryBtn').addEventListener('click', () => {
 <div id="disclaimerOverlay" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn 0.3s ease-out;">
   <div style="background:linear-gradient(135deg,#1f2937 0%,#111827 100%);border:2px solid #f59e0b;border-radius:16px;padding:32px;max-width:600px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.5);animation:slideUp 0.4s ease-out;">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid #374151;">
-      <div style="font-size:32px;">⚖️</div>
+      <div style="font-size:32px;">&#9878;</div>
       <h2 style="font-size:22px;font-weight:700;color:#f59e0b;margin:0;">CONDIZIONI D'USO</h2>
     </div>
     <div style="color:#e5e7eb;font-size:15px;line-height:1.8;margin-bottom:24px;">
@@ -667,11 +722,11 @@ document.getElementById('retryBtn').addEventListener('click', () => {
         L'uso in tempo reale durante il gioco VIOLA i "Termini di Servizio" di tutte le piattaforme poker.
       </div>
       <div style="background:rgba(239,68,68,0.1);border:1px solid #ef4444;padding:14px 18px;border-radius:8px;font-weight:700;text-align:center;color:#fca5a5;letter-spacing:0.5px;">
-        L'UTENTE È TOTALMENTE RESPONSABILE DELL'USO CONFORME.
+        L'UTENTE E' TOTALMENTE RESPONSABILE DELL'USO CONFORME.
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:12px;align-items:center;">
-      <button id="disclaimerButton" style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);border:none;color:white;padding:14px 32px;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;width:100%;max-width:300px;">✓ HO COMPRESO</button>
+      <button id="disclaimerButton" style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);border:none;color:white;padding:14px 32px;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;width:100%;max-width:300px;">HO COMPRESO</button>
       <div style="color:#9ca3af;font-size:13px;font-style:italic;">Chiusura automatica tra <span id="countdownSeconds">5</span> secondi...</div>
     </div>
   </div>
