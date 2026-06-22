@@ -336,8 +336,6 @@ function mostraApp(user) {
 
 // ===== SUPABASE DATA =====
 window.APP_AVVIATA = false;
-const cacheRange = {};
-const cacheNota = {};
 
 class RateLimitError extends Error {
   constructor() { super('Account temporaneamente sospeso per troppe richieste.'); }
@@ -349,18 +347,14 @@ function interpretaErrore(error) {
 }
 
 async function fetchRange(chiave) {
-  if (cacheRange.hasOwnProperty(chiave)) return cacheRange[chiave];
   const { data, error } = await sb.rpc('get_range_protetta', { p_range_key: chiave });
   if (error) throw interpretaErrore(error);
-  cacheRange[chiave] = data;
   return data;
 }
 
 async function fetchNota(chiave) {
-  if (cacheNota.hasOwnProperty(chiave)) return cacheNota[chiave];
   const { data, error } = await sb.rpc('get_nota_protetta', { p_range_key: chiave });
   if (error) throw interpretaErrore(error);
-  cacheNota[chiave] = data;
   return data;
 }
 
