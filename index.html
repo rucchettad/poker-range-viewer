@@ -101,7 +101,23 @@ sb.auth.onAuthStateChange(async (event, session) => {
     .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
     .error-banner{background:#2a1414;border:1px solid var(--error);color:#ff9b9b;border-radius:8px;padding:12px 16px;text-align:center;margin-bottom:12px;font-size:13px;}
     .error-banner button{background:var(--error);color:white;border:none;border-radius:6px;padding:6px 14px;margin-left:10px;cursor:pointer;font-weight:600;}
+
+    /* RESPONSIVE SCALING */
+    .wrap{transform-origin:top left;transition:transform 0.2s ease;}
 </style>
+<script>
+  function adattaSchermo() {
+    const wrap = document.querySelector('.wrap');
+    if (!wrap) return;
+    const scala = Math.min(1, window.innerWidth / 1440);
+    wrap.style.transform = `scale(${scala})`;
+    wrap.style.width = '1440px';
+    document.body.style.height = wrap.offsetHeight * scala + 'px';
+    document.body.style.overflow = 'hidden auto';
+  }
+  window.addEventListener('resize', adattaSchermo);
+  window.addEventListener('load', adattaSchermo);
+</script>
 </head>
 <body>
 
