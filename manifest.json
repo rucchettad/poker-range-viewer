@@ -1,0 +1,22 @@
+{
+  "name": "Poker Range Viewer",
+  "short_name": "Poker Range",
+  "description": "Visualizzatore range preflop MTT",
+  "start_url": "/poker-range-viewer/",
+  "display": "standalone",
+  "background_color": "#0b0c10",
+  "theme_color": "#0b0c10",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "https://via.placeholder.com/192x192/1f6feb/ffffff?text=PR",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://via.placeholder.com/512x512/1f6feb/ffffff?text=PR",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
