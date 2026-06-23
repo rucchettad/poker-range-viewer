@@ -511,6 +511,15 @@ document.getElementById('retryBtn').addEventListener('click', () => {
   const ORDINE_AZIONI = ['threebshove','threebbroke','threebfold','open','flat','limpthreebet','limpflat','isotobrokefold','checkback','bbshovebase','shove','callnai','4betbrokenai','4betnaitofold','foldnai','callai','foldai','raisevsiso','shovevsiso','callvsiso','foldvsiso','shovevsbbiso','callvsbbiso','foldvsbbiso','callvsbbisoai','foldvsbbisoai','fold'];
 
   let stackSelezionato = "25bb";
+  let apritoreSelezionato = "EP";
+  let responderSelezionato = "BB";
+  let azioneSelezionata = "RFI/OSHOVE";
+  let flatPosizioneSelezionata = "SB";
+  let bbLimpSubMode = "base";
+  let sbIsoSubMode = "base";
+  let percentualiMani = {};
+  let matrixContainer = null;
+  let richiestaInCorsoId = 0;
 
   function normalizzaNome(nome) { return nome.replace(/\//g,'-').replace(/\s+/g,'_').replace(/\|/g,'_'); }
 
