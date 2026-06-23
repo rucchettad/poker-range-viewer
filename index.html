@@ -112,12 +112,22 @@ sb.auth.onAuthStateChange(async (event, session) => {
       /* Nascondi elementi desktop su mobile */
       #positionsContainer,
       #modeTabs,
-      .card:first-of-type,
       .switch-buttons-container,
       .sidePanel,
       .title,
       #stackGrid,
       #userEmail{display:none !important;}
+
+      /* Nascondi % dentro celle matrice */
+      .action-percentage{display:none !important;}
+
+      /* Statistiche compatte su mobile */
+      #rangeStats{gap:4px;margin:6px 0;}
+      #rangeStats .stat{padding:4px 6px;}
+      #rangeStats .stat-label{font-size:6px;}
+      #rangeStats .stat-value{font-size:10px;}
+      /* Nascondi solo Range Totale Senza Fold */
+      #rangeStats .stat:first-child{display:none !important;}
 
       /* Mostra controlli mobile */
       #mobileControls{display:flex !important;}
@@ -396,7 +406,7 @@ sb.auth.onAuthStateChange(async (event, session) => {
 </div>
 </div>
 
-<div class="card">
+<div class="card" id="stackCard">
 <div class="title">Dimensione Stack</div>
 <div class="tableGrid" id="stackGrid">
 <div class="cellBtn">5bb</div>
