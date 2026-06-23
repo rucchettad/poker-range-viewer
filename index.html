@@ -107,114 +107,78 @@ sb.auth.onAuthStateChange(async (event, session) => {
 
     /* ===== MOBILE STYLES ===== */
     @media (max-width:1023px) {
-      /* Reset scaling su mobile */
-      .wrap{
-        transform:none !important;
-        width:100% !important;
-        max-width:100% !important;
-        padding:8px !important;
-        box-sizing:border-box;
-      }
-      body{
-        height:auto !important;
-        overflow:auto !important;
-      }
+      /* Reset scaling */
+      .wrap{transform:none !important;width:100% !important;max-width:100% !important;padding:8px !important;box-sizing:border-box;}
+      body{height:auto !important;overflow:auto !important;}
 
-      /* Tab più grandi e su più righe */
-      .tab{
-        padding:10px 14px;
-        font-size:14px;
-        min-height:40px;
-        display:inline-flex;
-        align-items:center;
-      }
-      .tabs{gap:6px;margin-right:0;}
-      .label{font-size:15px;}
-      .flat-tab{padding:10px 14px;font-size:14px;}
+      /* Nascondi elementi desktop su mobile */
+      #positionsContainer,
+      #modeTabs,
+      .card:first-of-type,
+      .switch-buttons-container,
+      .sidePanel,
+      .title,
+      #userEmail{display:none !important;}
 
-      /* Stack buttons più grandi */
-      .tableGrid{transform:none;gap:6px;}
-      .cellBtn{padding:10px 8px;font-size:12px;}
+      /* Mostra controlli mobile */
+      #mobileControls{display:flex !important;}
 
-      /* Switch buttons più grandi */
-      .switch-btn{padding:10px 14px;font-size:12px;}
+      /* Topbar compatta */
+      .logout-btn{font-size:11px;padding:5px 10px;}
 
-      /* Layout canvasRow verticale su mobile */
-      .canvasRow{
-        flex-direction:column;
-        align-items:stretch;
-        position:static;
-        gap:12px;
-      }
+      /* Card content */
+      .card{padding:8px;margin-top:4px;}
+      .card-content-wrapper{display:flex;flex-direction:column;}
 
-      /* Matrice: occupa tutta la larghezza scalando proporzionalmente */
+      /* Headline compatto */
+      #headline{font-size:12px;color:var(--muted);margin:4px 0 8px;text-align:center;}
+
+      /* Stats compatte */
+      .stats{gap:6px;margin:8px 0;}
+      .stat{padding:5px 8px;}
+      .stat-label{font-size:7px;}
+      .stat-value{font-size:11px;}
+
+      /* canvasRow verticale */
+      .canvasRow{flex-direction:column;position:static;gap:8px;}
+
+      /* Matrice a schermo intero */
       .matrix-container{
         width:100% !important;
         height:auto !important;
         aspect-ratio:832/728;
         grid-template-columns:repeat(13,1fr) !important;
         grid-template-rows:repeat(13,1fr) !important;
-        overflow:hidden;
       }
-      .hand-cell{
-        width:100% !important;
-        height:100% !important;
-      }
-      .hand-text{font-size:9px !important;}
-      .action-percentage{font-size:6px !important;}
+      .hand-cell{width:100% !important;height:100% !important;}
+      .hand-text{font-size:8px !important;}
+      .action-percentage{font-size:5px !important;}
 
-      /* Note collassabili su mobile */
-      .note-panel{
-        min-width:unset !important;
-        max-width:100% !important;
-        width:100%;
-        order:3;
-      }
-      .note-content{min-height:120px;}
+      /* Note collassabili */
+      .note-panel{min-width:unset !important;max-width:100% !important;width:100%;order:3;}
+      .note-content{min-height:100px;}
       #noteMobileToggle{
-        display:flex;
-        align-items:center;
-        justify-content:space-between;
-        background:var(--panel);
-        border:1px solid var(--line);
-        border-radius:8px;
-        padding:12px 16px;
-        cursor:pointer;
-        color:var(--btn);
-        font-weight:700;
-        font-size:14px;
-        margin-bottom:0;
-        width:100%;
-        box-sizing:border-box;
+        display:flex !important;align-items:center;justify-content:space-between;
+        background:var(--panel);border:1px solid var(--line);border-radius:8px;
+        padding:12px 16px;cursor:pointer;color:var(--btn);font-weight:700;font-size:14px;
+        width:100%;box-sizing:border-box;
       }
-      #noteMobileToggle span{font-size:18px;}
       #noteContentMobile{display:none;}
       #noteContentMobile.aperto{display:block;}
 
-      /* SidePanel sotto la matrice */
-      .sidePanel{
-        position:static !important;
-        min-width:unset !important;
-        max-width:100% !important;
-        width:100%;
-        order:2;
+      /* Dropdown mobile */
+      .mobile-select{
+        width:100%;background:var(--panel);border:1px solid var(--line);
+        border-radius:8px;padding:12px 16px;color:var(--text);font-size:15px;
+        font-weight:600;font-family:system-ui,sans-serif;
+        -webkit-appearance:none;appearance:none;
+        background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23a9b4c2' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+        background-repeat:no-repeat;background-position:right 16px center;
+        cursor:pointer;
       }
-      .info-box{margin-bottom:8px;}
-
-      /* Statistiche compatte */
-      .stats{gap:8px;}
-      .stat{padding:6px 10px;}
-      .stat-label{font-size:8px;}
-      .stat-value{font-size:12px;}
-
-      /* Topbar email nascosta su mobile */
-      #userEmail{display:none;}
-
-      /* Card padding ridotto */
-      .card{padding:8px;}
-
-      /* Row gap ridotto */
-      .row{gap:8px;margin-bottom:6px;}
+      .mobile-select:focus{outline:none;border-color:var(--btn);}
+      .mobile-label{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;}
+      .mobile-control{display:flex;flex-direction:column;gap:4px;}
     }
 </style>
 <link rel="manifest" href="manifest.json"/>
@@ -226,7 +190,6 @@ sb.auth.onAuthStateChange(async (event, session) => {
   function adattaSchermo() {
     const wrap = document.querySelector('.wrap');
     if (!wrap) return;
-    // Solo su desktop applica lo scaling
     if (window.innerWidth >= 1024) {
       const scala = Math.min(1, window.innerWidth / 1440);
       wrap.style.transform = `scale(${scala})`;
@@ -288,6 +251,88 @@ sb.auth.onAuthStateChange(async (event, session) => {
 <div id="errorBanner" class="error-banner" style="display:none;">
   <span id="errorBannerText"></span>
   <button id="retryBtn">Riprova</button>
+</div>
+
+<!-- CONTROLLI MOBILE (solo su telefono) -->
+<div id="mobileControls" style="display:none;flex-direction:column;gap:10px;margin-bottom:8px;">
+  <div class="mobile-control">
+    <div class="mobile-label">Azione</div>
+    <select class="mobile-select" id="mobileAzione">
+      <option value="RFI/OSHOVE">RFI / OSHOVE</option>
+      <option value="Vs 3Bet NAI">Vs 3Bet NAI</option>
+      <option value="Vs 3Bet AI">Vs 3Bet AI</option>
+      <option value="Vs 4Bet">Vs 4Bet</option>
+      <option value="Vs RFI">Vs RFI</option>
+      <option value="Vs RFI e Flat">Vs RFI e Flat</option>
+      <option value="Call Shove">Call Shove</option>
+      <option value="SB Limp vs BB ISO">SB Limp vs BB ISO</option>
+      <option value="BB vs SB Limp">BB vs SB Limp</option>
+    </select>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <div class="mobile-control" style="flex:1;" id="mobileOpenerControl">
+      <div class="mobile-label" id="mobileOpenerLabel">RFI</div>
+      <select class="mobile-select" id="mobileOpener">
+        <option value="EP">EP</option>
+        <option value="EP1">EP1</option>
+        <option value="EP2">EP2</option>
+        <option value="MP1">MP1</option>
+        <option value="MP2">MP2</option>
+        <option value="CO">CO</option>
+        <option value="BTN">BTN</option>
+        <option value="SB">SB</option>
+        <option value="BB">BB</option>
+      </select>
+    </div>
+    <div class="mobile-control" style="flex:1;" id="mobileResponderControl">
+      <div class="mobile-label" id="mobileResponderLabel">Hero</div>
+      <select class="mobile-select" id="mobileResponder">
+        <option value="EP">EP</option>
+        <option value="EP1">EP1</option>
+        <option value="EP2">EP2</option>
+        <option value="MP1">MP1</option>
+        <option value="MP2">MP2</option>
+        <option value="CO">CO</option>
+        <option value="BTN">BTN</option>
+        <option value="SB">SB</option>
+        <option value="BB" selected>BB</option>
+      </select>
+    </div>
+  </div>
+  <div class="mobile-control" id="mobileFlatControl" style="display:none;">
+    <div class="mobile-label">Flat</div>
+    <select class="mobile-select" id="mobileFlat">
+      <option value="EP">EP</option>
+      <option value="EP1">EP1</option>
+      <option value="EP2">EP2</option>
+      <option value="MP1">MP1</option>
+      <option value="MP2">MP2</option>
+      <option value="CO">CO</option>
+      <option value="BTN">BTN</option>
+      <option value="SB" selected>SB</option>
+    </select>
+  </div>
+  <div class="mobile-control">
+    <div class="mobile-label">Stack</div>
+    <select class="mobile-select" id="mobileStack">
+      <option value="5bb">5bb</option>
+      <option value="7bb">7bb</option>
+      <option value="10bb">10bb</option>
+      <option value="13bb">13bb</option>
+      <option value="15bb">15bb</option>
+      <option value="17bb">17bb</option>
+      <option value="20bb">20bb</option>
+      <option value="23bb">23bb</option>
+      <option value="25bb" selected>25bb</option>
+      <option value="32bb">32bb</option>
+      <option value="36bb">36bb</option>
+      <option value="40bb">40bb</option>
+      <option value="50bb">50bb</option>
+      <option value="60bb">60bb</option>
+      <option value="80bb">80bb</option>
+      <option value="100bb">100bb</option>
+    </select>
+  </div>
 </div>
 
 <div id="appContainer" style="display:none;">
@@ -605,9 +650,114 @@ function avviaApp() {
   window.creaMatrice();
   window.impostaEventListener();
   window.aggiornaUI();
+  // Inizializza controlli mobile se necessario
+  if (window.innerWidth < 1024) {
+    inizializzaMobile();
+  }
   fetchConteggio()
     .then(c => { document.getElementById('totalRanges').textContent = c; })
     .catch(() => { document.getElementById('totalRanges').textContent = '-'; });
+}
+
+function inizializzaMobile() {
+  const mc = document.getElementById('mobileControls');
+  if (mc) mc.style.display = 'flex';
+
+  const mAzione = document.getElementById('mobileAzione');
+  const mOpener = document.getElementById('mobileOpener');
+  const mResponder = document.getElementById('mobileResponder');
+  const mFlat = document.getElementById('mobileFlat');
+  const mStack = document.getElementById('mobileStack');
+  const mFlatControl = document.getElementById('mobileFlatControl');
+  const mResponderControl = document.getElementById('mobileResponderControl');
+  const mOpenerLabel = document.getElementById('mobileOpenerLabel');
+  const mResponderLabel = document.getElementById('mobileResponderLabel');
+
+  const ordine = ["EP","EP1","EP2","MP1","MP2","CO","BTN","SB","BB"];
+
+  function aggiornaMobileUI() {
+    const azione = mAzione.value;
+    const openerVal = mOpener.value;
+    const stackVal = mStack.value;
+
+    // Labels dinamiche
+    if(azione==="RFI/OSHOVE"){mOpenerLabel.textContent='RFI';mResponderLabel.textContent='Hero';}
+    else if(azione==="Vs 3Bet NAI"||azione==="Vs 3Bet AI"){mOpenerLabel.textContent='Hero';mResponderLabel.textContent='3bettor';}
+    else if(azione==="Vs 4Bet"){mOpenerLabel.textContent='Hero/3Bettor';mResponderLabel.textContent='4Bettor';}
+    else if(azione==="Call Shove"){mOpenerLabel.textContent='Shove';mResponderLabel.textContent='Hero';}
+    else if(azione==="SB Limp vs BB ISO"){mOpenerLabel.textContent='Hero';mResponderLabel.textContent='Villain';}
+    else if(azione==="BB vs SB Limp"){mOpenerLabel.textContent='Villain';mResponderLabel.textContent='Hero';}
+    else{mOpenerLabel.textContent='RFI';mResponderLabel.textContent='Hero';}
+
+    // Nasconde responder per RFI/OSHOVE
+    if(azione==="RFI/OSHOVE") {
+      mResponderControl.style.display='none';
+    } else {
+      mResponderControl.style.display='flex';
+    }
+
+    // Forza SB/BB per limp
+    if(azione==="SB Limp vs BB ISO"||azione==="BB vs SB Limp") {
+      mOpener.value='SB'; mResponder.value='BB';
+      mOpener.disabled=true; mResponder.disabled=true;
+    } else {
+      mOpener.disabled=false; mResponder.disabled=false;
+    }
+
+    // Mostra flat solo per Vs RFI e Flat
+    mFlatControl.style.display = azione==="Vs RFI e Flat" ? 'flex' : 'none';
+
+    // Filtra stack per azione
+    Array.from(mStack.options).forEach(opt => {
+      const v = opt.value;
+      let nascondi = false;
+      if(azione==="Call Shove"&&!['5bb','7bb','10bb','13bb','15bb','17bb','20bb','23bb','25bb'].includes(v))nascondi=true;
+      if(["SB Limp vs BB ISO","BB vs SB Limp"].includes(azione)&&v==='5bb')nascondi=true;
+      if(["Vs 3Bet NAI","Vs RFI","Vs RFI e Flat","BB vs SB Limp"].includes(azione)&&['5bb','7bb'].includes(v))nascondi=true;
+      if(azione==="Vs 3Bet AI"&&!['10bb','13bb','15bb','17bb','20bb','23bb','25bb','32bb','36bb','40bb','50bb','60bb'].includes(v))nascondi=true;
+      if(azione==="Vs 4Bet"&&['5bb','7bb','10bb','13bb','15bb','17bb'].includes(v))nascondi=true;
+      opt.style.display = nascondi ? 'none' : '';
+    });
+
+    // Sincronizza con i tab desktop (invisibili su mobile ma ancora usati dalla logica)
+    // Seleziona azione
+    document.querySelectorAll('#modeTabs .tab').forEach(t=>{
+      t.classList.remove('active');
+      if(t.textContent===azione)t.classList.add('active');
+    });
+    // Seleziona opener
+    document.querySelectorAll('#openerTabs .tab').forEach(t=>{
+      t.classList.remove('active');
+      if(t.textContent.trim()===mOpener.value)t.classList.add('active');
+    });
+    // Seleziona responder
+    document.querySelectorAll('#responderTabs .tab').forEach(t=>{
+      t.classList.remove('active');
+      if(t.getAttribute('data-pos')===mResponder.value)t.classList.add('active');
+    });
+    // Seleziona stack
+    document.querySelectorAll('#stackGrid .cellBtn').forEach(b=>{
+      b.classList.remove('active');
+      if((b.getAttribute('data-orig')||b.textContent.trim())===mStack.value)b.classList.add('active');
+    });
+    // Seleziona flat
+    document.querySelectorAll('.flat-tab').forEach(t=>{
+      t.classList.remove('active');
+      if(t.getAttribute('data-flat-pos')===mFlat.value)t.classList.add('active');
+    });
+
+    // Chiama aggiornaUI desktop
+    window.aggiornaUI();
+  }
+
+  mAzione.addEventListener('change', aggiornaMobileUI);
+  mOpener.addEventListener('change', aggiornaMobileUI);
+  mResponder.addEventListener('change', aggiornaMobileUI);
+  mFlat.addEventListener('change', aggiornaMobileUI);
+  mStack.addEventListener('change', aggiornaMobileUI);
+
+  // Prima sincronizzazione
+  aggiornaMobileUI();
 }
 
 document.getElementById('retryBtn').addEventListener('click', () => {
