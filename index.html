@@ -122,10 +122,11 @@ sb.auth.onAuthStateChange(async (event, session) => {
       .action-percentage{display:none !important;}
 
       /* Statistiche compatte su mobile */
-      #rangeStats{gap:4px;margin:6px 0;}
-      #rangeStats .stat{padding:4px 6px;}
-      #rangeStats .stat-label{font-size:6px;}
-      #rangeStats .stat-value{font-size:10px;}
+      #rangeStats{gap:4px;margin:4px 0;flex-wrap:wrap;}
+      #rangeStats .stat{padding:3px 5px;gap:4px;}
+      #rangeStats .stat-color{width:10px;height:10px;}
+      #rangeStats .stat-label{font-size:5px;}
+      #rangeStats .stat-value{font-size:9px;}
       /* Nascondi solo Range Totale Senza Fold */
       #rangeStats .stat:first-child{display:none !important;}
 
