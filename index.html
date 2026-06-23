@@ -421,18 +421,24 @@ function interpretaErrore(error) {
 }
 
 async function fetchRange(chiave) {
+  const cached = cacheGet('r:' + chiave);
+  if (cached !== undefined) return cached;
   const { data, error } = await sb.rpc('get_range_protetta', { p_range_key: chiave });
   if (error) throw interpretaErrore(error);
   if (data && data.error) {
     if (data.error === 'RATE_LIMIT_BLOCKED') throw new RateLimitError();
     throw new Error(data.error);
   }
+  cacheSet('r:' + chiave, data);
   return data;
 }
 
 async function fetchNota(chiave) {
+  const cached = cacheGet('n:' + chiave);
+  if (cached !== undefined) return cached;
   const { data, error } = await sb.rpc('get_nota_protetta', { p_range_key: chiave });
   if (error) throw interpretaErrore(error);
+  cacheSet('n:' + chiave, data);
   return data;
 }
 
@@ -503,6 +509,17 @@ document.getElementById('retryBtn').addEventListener('click', () => {
   let percentualiMani = {};
   let matrixContainer = null;
   let richiestaInCorsoId = 0;
+
+  // Cache con TTL 5 minuti
+  const CACHE = {};
+  const CACHE_TTL = 5 * 60 * 1000;
+  function cacheGet(chiave) {
+    const entry = CACHE[chiave];
+    if (!entry) return undefined;
+    if (Date.now() - entry.ts > CACHE_TTL) { delete CACHE[chiave]; return undefined; }
+    return entry.val;
+  }
+  function cacheSet(chiave, val) { CACHE[chiave] = { val, ts: Date.now() }; }
 
   function normalizzaNome(nome) { return nome.replace(/\//g,'-').replace(/\s+/g,'_').replace(/\|/g,'_'); }
 
