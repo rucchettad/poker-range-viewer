@@ -696,11 +696,7 @@ function inizializzaMobile() {
     else{mOpenerLabel.textContent='RFI';mResponderLabel.textContent='Hero';}
 
     // Nasconde responder per RFI/OSHOVE
-    if(azione==="RFI/OSHOVE") {
-      mResponderControl.style.display='none';
-    } else {
-      mResponderControl.style.display='flex';
-    }
+    mResponderControl.style.display = azione==="RFI/OSHOVE" ? 'none' : 'flex';
 
     // Forza SB/BB per limp
     if(azione==="SB Limp vs BB ISO"||azione==="BB vs SB Limp") {
@@ -725,35 +721,31 @@ function inizializzaMobile() {
       opt.style.display = nascondi ? 'none' : '';
     });
 
-    // Sincronizza con i tab desktop (invisibili su mobile ma ancora usati dalla logica)
-    // Seleziona azione
+    // Simula click sui tab nascosti per aggiornare lo stato interno
+    // 1. Azione
     document.querySelectorAll('#modeTabs .tab').forEach(t=>{
-      t.classList.remove('active');
-      if(t.textContent===azione)t.classList.add('active');
+      if(t.textContent===azione) t.click();
     });
-    // Seleziona opener
+    // 2. Opener
     document.querySelectorAll('#openerTabs .tab').forEach(t=>{
-      t.classList.remove('active');
-      if(t.textContent.trim()===mOpener.value)t.classList.add('active');
+      if(t.textContent.trim()===mOpener.value) t.click();
     });
-    // Seleziona responder
-    document.querySelectorAll('#responderTabs .tab').forEach(t=>{
-      t.classList.remove('active');
-      if(t.getAttribute('data-pos')===mResponder.value)t.classList.add('active');
-    });
-    // Seleziona stack
+    // 3. Responder
+    if(azione!=="RFI/OSHOVE") {
+      document.querySelectorAll('#responderTabs .tab').forEach(t=>{
+        if(t.getAttribute('data-pos')===mResponder.value) t.click();
+      });
+    }
+    // 4. Stack
     document.querySelectorAll('#stackGrid .cellBtn').forEach(b=>{
-      b.classList.remove('active');
-      if((b.getAttribute('data-orig')||b.textContent.trim())===mStack.value)b.classList.add('active');
+      if((b.getAttribute('data-orig')||b.textContent.trim())===mStack.value) b.click();
     });
-    // Seleziona flat
-    document.querySelectorAll('.flat-tab').forEach(t=>{
-      t.classList.remove('active');
-      if(t.getAttribute('data-flat-pos')===mFlat.value)t.classList.add('active');
-    });
-
-    // Chiama aggiornaUI desktop
-    window.aggiornaUI();
+    // 5. Flat
+    if(azione==="Vs RFI e Flat") {
+      document.querySelectorAll('.flat-tab').forEach(t=>{
+        if(t.getAttribute('data-flat-pos')===mFlat.value) t.click();
+      });
+    }
   }
 
   mAzione.addEventListener('change', aggiornaMobileUI);
