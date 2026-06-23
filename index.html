@@ -411,6 +411,17 @@ function mostraApp(user) {
 // ===== SUPABASE DATA =====
 window.APP_AVVIATA = false;
 
+// Cache con TTL 5 minuti
+const _CACHE = {};
+const _CACHE_TTL = 5 * 60 * 1000;
+function cacheGet(chiave) {
+  const entry = _CACHE[chiave];
+  if (!entry) return undefined;
+  if (Date.now() - entry.ts > _CACHE_TTL) { delete _CACHE[chiave]; return undefined; }
+  return entry.val;
+}
+function cacheSet(chiave, val) { _CACHE[chiave] = { val, ts: Date.now() }; }
+
 class RateLimitError extends Error {
   constructor() { super('Account temporaneamente sospeso per troppe richieste.'); }
 }
@@ -500,26 +511,6 @@ document.getElementById('retryBtn').addEventListener('click', () => {
   const ORDINE_AZIONI = ['threebshove','threebbroke','threebfold','open','flat','limpthreebet','limpflat','isotobrokefold','checkback','bbshovebase','shove','callnai','4betbrokenai','4betnaitofold','foldnai','callai','foldai','raisevsiso','shovevsiso','callvsiso','foldvsiso','shovevsbbiso','callvsbbiso','foldvsbbiso','callvsbbisoai','foldvsbbisoai','fold'];
 
   let stackSelezionato = "25bb";
-  let apritoreSelezionato = "EP";
-  let responderSelezionato = "BB";
-  let azioneSelezionata = "RFI/OSHOVE";
-  let flatPosizioneSelezionata = "SB";
-  let bbLimpSubMode = "base";
-  let sbIsoSubMode = "base";
-  let percentualiMani = {};
-  let matrixContainer = null;
-  let richiestaInCorsoId = 0;
-
-  // Cache con TTL 5 minuti
-  const CACHE = {};
-  const CACHE_TTL = 5 * 60 * 1000;
-  function cacheGet(chiave) {
-    const entry = CACHE[chiave];
-    if (!entry) return undefined;
-    if (Date.now() - entry.ts > CACHE_TTL) { delete CACHE[chiave]; return undefined; }
-    return entry.val;
-  }
-  function cacheSet(chiave, val) { CACHE[chiave] = { val, ts: Date.now() }; }
 
   function normalizzaNome(nome) { return nome.replace(/\//g,'-').replace(/\s+/g,'_').replace(/\|/g,'_'); }
 
