@@ -102,18 +102,143 @@ sb.auth.onAuthStateChange(async (event, session) => {
     .error-banner{background:#2a1414;border:1px solid var(--error);color:#ff9b9b;border-radius:8px;padding:12px 16px;text-align:center;margin-bottom:12px;font-size:13px;}
     .error-banner button{background:var(--error);color:white;border:none;border-radius:6px;padding:6px 14px;margin-left:10px;cursor:pointer;font-weight:600;}
 
-    /* RESPONSIVE SCALING */
+    /* RESPONSIVE SCALING - solo desktop */
     .wrap{transform-origin:top left;transition:transform 0.2s ease;}
+
+    /* ===== MOBILE STYLES ===== */
+    @media (max-width:1023px) {
+      /* Reset scaling su mobile */
+      .wrap{
+        transform:none !important;
+        width:100% !important;
+        max-width:100% !important;
+        padding:8px !important;
+        box-sizing:border-box;
+      }
+      body{
+        height:auto !important;
+        overflow:auto !important;
+      }
+
+      /* Tab più grandi e su più righe */
+      .tab{
+        padding:10px 14px;
+        font-size:14px;
+        min-height:40px;
+        display:inline-flex;
+        align-items:center;
+      }
+      .tabs{gap:6px;margin-right:0;}
+      .label{font-size:15px;}
+      .flat-tab{padding:10px 14px;font-size:14px;}
+
+      /* Stack buttons più grandi */
+      .tableGrid{transform:none;gap:6px;}
+      .cellBtn{padding:10px 8px;font-size:12px;}
+
+      /* Switch buttons più grandi */
+      .switch-btn{padding:10px 14px;font-size:12px;}
+
+      /* Layout canvasRow verticale su mobile */
+      .canvasRow{
+        flex-direction:column;
+        align-items:stretch;
+        position:static;
+        gap:12px;
+      }
+
+      /* Matrice: occupa tutta la larghezza scalando proporzionalmente */
+      .matrix-container{
+        width:100% !important;
+        height:auto !important;
+        aspect-ratio:832/728;
+        grid-template-columns:repeat(13,1fr) !important;
+        grid-template-rows:repeat(13,1fr) !important;
+        overflow:hidden;
+      }
+      .hand-cell{
+        width:100% !important;
+        height:100% !important;
+      }
+      .hand-text{font-size:9px !important;}
+      .action-percentage{font-size:6px !important;}
+
+      /* Note collassabili su mobile */
+      .note-panel{
+        min-width:unset !important;
+        max-width:100% !important;
+        width:100%;
+        order:3;
+      }
+      .note-content{min-height:120px;}
+      #noteMobileToggle{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        background:var(--panel);
+        border:1px solid var(--line);
+        border-radius:8px;
+        padding:12px 16px;
+        cursor:pointer;
+        color:var(--btn);
+        font-weight:700;
+        font-size:14px;
+        margin-bottom:0;
+        width:100%;
+        box-sizing:border-box;
+      }
+      #noteMobileToggle span{font-size:18px;}
+      #noteContentMobile{display:none;}
+      #noteContentMobile.aperto{display:block;}
+
+      /* SidePanel sotto la matrice */
+      .sidePanel{
+        position:static !important;
+        min-width:unset !important;
+        max-width:100% !important;
+        width:100%;
+        order:2;
+      }
+      .info-box{margin-bottom:8px;}
+
+      /* Statistiche compatte */
+      .stats{gap:8px;}
+      .stat{padding:6px 10px;}
+      .stat-label{font-size:8px;}
+      .stat-value{font-size:12px;}
+
+      /* Topbar email nascosta su mobile */
+      #userEmail{display:none;}
+
+      /* Card padding ridotto */
+      .card{padding:8px;}
+
+      /* Row gap ridotto */
+      .row{gap:8px;margin-bottom:6px;}
+    }
 </style>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#0b0c10"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Poker Range"/>
 <script>
   function adattaSchermo() {
     const wrap = document.querySelector('.wrap');
     if (!wrap) return;
-    const scala = Math.min(1, window.innerWidth / 1440);
-    wrap.style.transform = `scale(${scala})`;
-    wrap.style.width = '1440px';
-    document.body.style.height = wrap.offsetHeight * scala + 'px';
-    document.body.style.overflow = 'hidden auto';
+    // Solo su desktop applica lo scaling
+    if (window.innerWidth >= 1024) {
+      const scala = Math.min(1, window.innerWidth / 1440);
+      wrap.style.transform = `scale(${scala})`;
+      wrap.style.width = '1440px';
+      document.body.style.height = wrap.offsetHeight * scala + 'px';
+      document.body.style.overflow = 'hidden auto';
+    } else {
+      wrap.style.transform = '';
+      wrap.style.width = '';
+      document.body.style.height = '';
+      document.body.style.overflow = '';
+    }
   }
   window.addEventListener('resize', adattaSchermo);
   window.addEventListener('load', adattaSchermo);
@@ -272,8 +397,12 @@ sb.auth.onAuthStateChange(async (event, session) => {
 <div class="stats" id="rangeStats"></div>
 <div class="canvasRow">
 <div class="note-panel" id="notePanel">
-  <div class="note-title">Note Strategiche</div>
-  <div class="note-content" id="noteContent">Nessuna nota per questa configurazione.</div>
+  <div class="note-title" id="noteMobileToggle" onclick="toggleNote()">
+    Note Strategiche <span id="noteArrow">▼</span>
+  </div>
+  <div id="noteContentMobile">
+    <div class="note-content" id="noteContent">Nessuna nota per questa configurazione.</div>
+  </div>
 </div>
 <div class="matrix-container" id="matrix"></div>
 <div class="sidePanel">
@@ -306,6 +435,15 @@ sb.auth.onAuthStateChange(async (event, session) => {
 <script>
 window.DISCLAIMER_CHIUSO = false;
 window.UTENTE_IN_ATTESA = null;
+
+// Toggle note su mobile
+function toggleNote() {
+  const content = document.getElementById('noteContentMobile');
+  const arrow = document.getElementById('noteArrow');
+  if (window.innerWidth >= 1024) return; // Solo mobile
+  content.classList.toggle('aperto');
+  arrow.textContent = content.classList.contains('aperto') ? '▲' : '▼';
+}
 
 // ===== RESET PASSWORD =====
 document.getElementById('resetBtn').addEventListener('click', async () => {
