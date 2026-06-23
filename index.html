@@ -921,7 +921,7 @@ document.getElementById('retryBtn').addEventListener('click', () => {
     aggiornaStatistiche(); aggiornaVisualizzazioneMatrice();
   }
 
-  function aggiornaUI() {
+  window.aggiornaUI = function aggiornaUI() {
     const responderTabs=document.getElementById('responderTabs');
     const flatSection=document.getElementById('flatSection');
     const stackButtons=document.querySelectorAll('#stackGrid .cellBtn');
