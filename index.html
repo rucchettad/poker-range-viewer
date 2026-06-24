@@ -108,87 +108,36 @@ async function apiFetch(endpoint, opts = {}) {
 
     /* ===== MOBILE STYLES ===== */
     @media (max-width:1023px) {
-      /* Reset scaling */
       .wrap{transform:none !important;width:100% !important;max-width:100% !important;padding:8px !important;box-sizing:border-box;}
       body{height:auto !important;overflow:auto !important;}
-
-      /* Nascondi elementi desktop su mobile */
-      #positionsContainer,
-      #modeTabs,
-      .switch-buttons-container,
-      .sidePanel,
-      .title,
-      #stackGrid,
-      #userEmail{display:none !important;}
-
-      /* Nascondi % dentro celle matrice */
+      #positionsContainer,#modeTabs,.switch-buttons-container,.sidePanel,.title,#stackGrid,#userEmail{display:none !important;}
       .action-percentage{display:none !important;}
-
-      /* Statistiche compatte su mobile */
       #rangeStats{gap:4px;margin:4px 0;flex-wrap:wrap;}
       #rangeStats .stat{padding:3px 5px;gap:4px;}
       #rangeStats .stat-color{width:10px;height:10px;}
       #rangeStats .stat-label{font-size:5px;}
       #rangeStats .stat-value{font-size:9px;}
-      /* Nascondi solo Range Totale Senza Fold */
       #rangeStats .stat:first-child{display:none !important;}
-
-      /* Mostra controlli mobile */
       #mobileControls{display:flex !important;}
-
-      /* Topbar compatta */
       .logout-btn{font-size:11px;padding:5px 10px;}
-
-      /* Card content */
       .card{padding:8px;margin-top:4px;}
       .card-content-wrapper{display:flex;flex-direction:column;}
-
-      /* Headline compatto */
       #headline{font-size:12px;color:var(--muted);margin:4px 0 8px;text-align:center;}
-
-      /* Stats compatte */
       .stats{gap:6px;margin:8px 0;}
       .stat{padding:5px 8px;}
       .stat-label{font-size:7px;}
       .stat-value{font-size:11px;}
-
-      /* canvasRow verticale */
       .canvasRow{flex-direction:column;position:static;gap:8px;}
-
-      /* Matrice a schermo intero */
-      .matrix-container{
-        width:100% !important;
-        height:auto !important;
-        aspect-ratio:832/728;
-        grid-template-columns:repeat(13,1fr) !important;
-        grid-template-rows:repeat(13,1fr) !important;
-      }
+      .matrix-container{width:100% !important;height:auto !important;aspect-ratio:832/728;grid-template-columns:repeat(13,1fr) !important;grid-template-rows:repeat(13,1fr) !important;}
       .hand-cell{width:100% !important;height:100% !important;}
       .hand-text{font-size:8px !important;}
       .action-percentage{font-size:5px !important;}
-
-      /* Note collassabili */
       .note-panel{min-width:unset !important;max-width:100% !important;width:100%;order:3;}
       .note-content{min-height:100px;}
-      #noteMobileToggle{
-        display:flex !important;align-items:center;justify-content:space-between;
-        background:var(--panel);border:1px solid var(--line);border-radius:8px;
-        padding:12px 16px;cursor:pointer;color:var(--btn);font-weight:700;font-size:14px;
-        width:100%;box-sizing:border-box;
-      }
+      #noteMobileToggle{display:flex !important;align-items:center;justify-content:space-between;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 16px;cursor:pointer;color:var(--btn);font-weight:700;font-size:14px;width:100%;box-sizing:border-box;}
       #noteContentMobile{display:none;}
       #noteContentMobile.aperto{display:block;}
-
-      /* Dropdown mobile */
-      .mobile-select{
-        width:100%;background:var(--panel);border:1px solid var(--line);
-        border-radius:8px;padding:12px 16px;color:var(--text);font-size:15px;
-        font-weight:600;font-family:system-ui,sans-serif;
-        -webkit-appearance:none;appearance:none;
-        background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23a9b4c2' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-        background-repeat:no-repeat;background-position:right 16px center;
-        cursor:pointer;
-      }
+      .mobile-select{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 16px;color:var(--text);font-size:15px;font-weight:600;font-family:system-ui,sans-serif;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23a9b4c2' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center;cursor:pointer;}
       .mobile-select:focus{outline:none;border-color:var(--btn);}
       .mobile-label{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;}
       .mobile-control{display:flex;flex-direction:column;gap:4px;}
@@ -535,7 +484,7 @@ window.UTENTE_IN_ATTESA = null;
 function toggleNote() {
   const content = document.getElementById('noteContentMobile');
   const arrow = document.getElementById('noteArrow');
-  if (window.innerWidth >= 1024) return; // Solo mobile
+  if (window.innerWidth >= 1024) return;
   content.classList.toggle('aperto');
   arrow.textContent = content.classList.contains('aperto') ? '▲' : '▼';
 }
@@ -586,7 +535,6 @@ document.getElementById('regBtn').addEventListener('click', async () => {
     return;
   }
 
-  // Raccolta room selezionate
   const roomSelezionate = [];
   document.querySelectorAll('.reg-room-cb:checked').forEach(cb => {
     if (cb.value === 'Altre') {
@@ -679,6 +627,8 @@ document.getElementById('resetBtn').addEventListener('click', async () => {
     await apiFetch('/api/nuova-password', { method: 'POST', body: JSON.stringify({ token: _authToken, password: pwd }) });
     loadEl.style.display = 'none';
     _authToken = null;
+    sessionStorage.removeItem('poker_token');
+    sessionStorage.removeItem('poker_email');
     document.getElementById('resetScreen').style.display = 'none';
     document.getElementById('loginScreen').style.display = 'flex';
     const loginErr = document.getElementById('loginError');
@@ -704,6 +654,9 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
     const data = await apiFetch('/api/login', { method: 'POST', body: JSON.stringify({ email, password }) });
     loadEl.style.display = 'none';
     _authToken = data.access_token;
+    // ===== SALVA SESSIONE IN sessionStorage =====
+    sessionStorage.setItem('poker_token', data.access_token);
+    sessionStorage.setItem('poker_email', data.user.email);
     document.getElementById('loginScreen').style.display = 'none';
     mostraDisclaimerPoiApp({ email: data.user.email });
   } catch(e) {
@@ -718,10 +671,14 @@ document.getElementById('loginPassword').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('loginBtn').click();
 });
 
+// ===== LOGOUT =====
 document.getElementById('logoutBtn').addEventListener('click', () => {
   _authToken = null;
   window.APP_AVVIATA = false;
   window.DISCLAIMER_CHIUSO = false;
+  // ===== PULISCI SESSIONE =====
+  sessionStorage.removeItem('poker_token');
+  sessionStorage.removeItem('poker_email');
   document.getElementById('appScreen').style.display = 'none';
   document.getElementById('loginScreen').style.display = 'flex';
 });
@@ -760,6 +717,20 @@ function mostraApp(user) {
   if (!window.APP_AVVIATA) avviaApp();
 }
 
+// ===== RIPRISTINO SESSIONE AL CARICAMENTO PAGINA =====
+(function() {
+  const token = sessionStorage.getItem('poker_token');
+  const email = sessionStorage.getItem('poker_email');
+  if (token && email) {
+    _authToken = token;
+    // Disclaimer già mostrato in questa sessione del browser: lo saltiamo
+    window.DISCLAIMER_CHIUSO = true;
+    mostraApp({ email });
+  } else {
+    document.getElementById('loginScreen').style.display = 'flex';
+  }
+})();
+
 // ===== BACKEND DATA =====
 window.APP_AVVIATA = false;
 
@@ -797,8 +768,6 @@ async function fetchNota(chiave) {
   return result;
 }
 
-
-
 function avviaApp() {
   window.APP_AVVIATA = true;
   document.getElementById('loadingMsg').style.display = 'none';
@@ -807,7 +776,6 @@ function avviaApp() {
   window.creaMatrice();
   window.impostaEventListener();
   window.aggiornaUI();
-  // Inizializza controlli mobile se necessario
   if (window.innerWidth < 1024) {
     inizializzaMobile();
   }
@@ -827,12 +795,10 @@ function inizializzaMobile() {
   const mOpenerLabel = document.getElementById('mobileOpenerLabel');
   const mResponderLabel = document.getElementById('mobileResponderLabel');
 
-  // *** BUG FIX #2: aggiunto try/catch per proteggere da crash silenzioso ***
   function aggiornaMobileUI() {
     try {
       const azione = mAzione.value;
 
-      // Labels dinamiche
       if(azione==="RFI/OSHOVE"){mOpenerLabel.textContent='RFI';mResponderLabel.textContent='Hero';}
       else if(azione==="Vs 3Bet NAI"||azione==="Vs 3Bet AI"){mOpenerLabel.textContent='Hero';mResponderLabel.textContent='3bettor';}
       else if(azione==="Vs 4Bet"){mOpenerLabel.textContent='Hero/3Bettor';mResponderLabel.textContent='4Bettor';}
@@ -841,10 +807,8 @@ function inizializzaMobile() {
       else if(azione==="BB vs SB Limp"){mOpenerLabel.textContent='Villain';mResponderLabel.textContent='Hero';}
       else{mOpenerLabel.textContent='RFI';mResponderLabel.textContent='Hero';}
 
-      // Nasconde responder per RFI/OSHOVE
       mResponderControl.style.display = azione==="RFI/OSHOVE" ? 'none' : 'flex';
 
-      // Forza SB/BB per limp
       if(azione==="SB Limp vs BB ISO"||azione==="BB vs SB Limp") {
         mOpener.value='SB'; mResponder.value='BB';
         mOpener.disabled=true; mResponder.disabled=true;
@@ -852,10 +816,8 @@ function inizializzaMobile() {
         mOpener.disabled=false; mResponder.disabled=false;
       }
 
-      // Mostra flat solo per Vs RFI e Flat
       mFlatControl.style.display = azione==="Vs RFI e Flat" ? 'flex' : 'none';
 
-      // Filtra stack per azione
       Array.from(mStack.options).forEach(opt => {
         const v = opt.value;
         let nascondi = false;
@@ -867,26 +829,20 @@ function inizializzaMobile() {
         opt.style.display = nascondi ? 'none' : '';
       });
 
-      // Simula click sui tab nascosti per aggiornare lo stato interno
-      // 1. Azione
       document.querySelectorAll('#modeTabs .tab').forEach(t=>{
         if(t.textContent===azione) t.click();
       });
-      // 2. Opener
       document.querySelectorAll('#openerTabs .tab').forEach(t=>{
         if(t.textContent.trim()===mOpener.value) t.click();
       });
-      // 3. Responder
       if(azione!=="RFI/OSHOVE") {
         document.querySelectorAll('#responderTabs .tab').forEach(t=>{
           if(t.getAttribute('data-pos')===mResponder.value) t.click();
         });
       }
-      // 4. Stack
       document.querySelectorAll('#stackGrid .cellBtn').forEach(b=>{
         if((b.getAttribute('data-orig')||b.textContent.trim())===mStack.value) b.click();
       });
-      // 5. Flat
       if(azione==="Vs RFI e Flat") {
         document.querySelectorAll('.flat-tab').forEach(t=>{
           if(t.getAttribute('data-flat-pos')===mFlat.value) t.click();
@@ -895,7 +851,6 @@ function inizializzaMobile() {
 
     } catch(err) {
       console.error('[aggiornaMobileUI] Errore:', err);
-      // La UI rimane nell'ultimo stato valido, nessun crash visibile all'utente
     }
   }
 
@@ -905,7 +860,6 @@ function inizializzaMobile() {
   mFlat.addEventListener('change', aggiornaMobileUI);
   mStack.addEventListener('change', aggiornaMobileUI);
 
-  // Prima sincronizzazione
   aggiornaMobileUI();
 }
 
@@ -937,7 +891,7 @@ document.getElementById('retryBtn').addEventListener('click', () => {
   const COLORI = {
     fold:'#87ceeb', flat:'#16a34a', threebfold:'#ffe57f', threebbroke:'#ff6600',
     threebshove:'#dc2626', open:'#ffb347', limpflat:'#9333ea', limpthreebet:'#ffc0cb',
-    isotobrokefold:'#ffe57f', isotobrokefold:'#ffa500', checkback:'#16a34a', bbshovebase:'#dc2626',
+    isotobrokefold:'#ffa500', checkback:'#16a34a', bbshovebase:'#dc2626',
     shove:'#dc2626', callnai:'#16a34a', '4betbrokenai':'#ffa500', '4betnaitofold':'#ffe57f', foldnai:'#87ceeb',
     callai:'#16a34a', foldai:'#87ceeb',
     raisevsiso:'#ffb347', foldvsiso:'#87ceeb', shovevsiso:'#dc2626', callvsiso:'#16a34a',
@@ -1172,7 +1126,7 @@ document.getElementById('retryBtn').addEventListener('click', () => {
 </script>
 
 <!-- DISCLAIMER -->
-<div id="disclaimerOverlay" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn 0.3s ease-out;">
+<div id="disclaimerOverlay" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);z-index:99999;display:none;align-items:center;justify-content:center;padding:20px;">
   <div style="background:linear-gradient(135deg,#1f2937 0%,#111827 100%);border:2px solid #f59e0b;border-radius:16px;padding:32px;max-width:600px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.5);animation:slideUp 0.4s ease-out;">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid #374151;">
       <div style="font-size:32px;">&#9878;</div>
@@ -1202,19 +1156,29 @@ document.getElementById('retryBtn').addEventListener('click', () => {
   const overlay=document.getElementById('disclaimerOverlay');
   const button=document.getElementById('disclaimerButton');
   const countdownEl=document.getElementById('countdownSeconds');
-  let countdown=5;
-  const intervalId=setInterval(()=>{countdown--;countdownEl.textContent=countdown;if(countdown<=0)closeDisclaimer();},1000);
-  function closeDisclaimer(){
-    overlay.style.animation='fadeOut 0.3s ease-out';
-    setTimeout(()=>{
-      overlay.style.display='none';
-      window.DISCLAIMER_CHIUSO = true;
-      if (window.UTENTE_IN_ATTESA) mostraApp(window.UTENTE_IN_ATTESA);
-      else document.getElementById('loginScreen').style.display='flex';
-    },300);
-    clearInterval(intervalId);
-  }
-  button.addEventListener('click',closeDisclaimer);
+  let intervalId = null;
+
+  window.mostraDisclaimer = function(onClose) {
+    countdownEl.textContent = '5';
+    overlay.style.display = 'flex';
+    overlay.style.animation = 'fadeIn 0.3s ease-out';
+    let countdown = 5;
+    if (intervalId) clearInterval(intervalId);
+    intervalId = setInterval(() => {
+      countdown--;
+      countdownEl.textContent = countdown;
+      if (countdown <= 0) { clearInterval(intervalId); chiudi(); }
+    }, 1000);
+    function chiudi() {
+      overlay.style.animation = 'fadeOut 0.3s ease-out';
+      setTimeout(() => {
+        overlay.style.display = 'none';
+        if (onClose) onClose();
+      }, 300);
+      clearInterval(intervalId);
+    }
+    button.onclick = () => { clearInterval(intervalId); chiudi(); };
+  };
 })();
 </script>
 
