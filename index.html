@@ -549,7 +549,7 @@ document.getElementById('forgotBtn').addEventListener('click', async () => {
   }
   loadEl.style.display = 'block';
   const { error } = await sb.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.href
+    redirectTo: 'https://rucchettad.github.io/poker-range-viewer/'
   });
   loadEl.style.display = 'none';
   if (error) {
