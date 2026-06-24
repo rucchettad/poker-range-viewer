@@ -5,22 +5,19 @@
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <title>Poker Range Viewer</title>
 
-<!-- SUPABASE SDK -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const SUPABASE_URL = 'https://abnsmqheydlpoffxjhsx.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFibnNtcWhleWRscG9mZnhqaHN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwMDE3ODYsImV4cCI6MjA5NzU3Nzc4Nn0.Rs6XIs_54FrvAXWkLGSYK1rIfKYwaMn-bV1sFC3WoKc';
-const { createClient } = supabase;
-const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+// ===== BACKEND CONFIG =====
+const API_URL = 'https://poker-range-api-production.up.railway.app';
+let _authToken = null;
 
-// Gestione link reset password
-sb.auth.onAuthStateChange(async (event, session) => {
-  if (event === 'PASSWORD_RECOVERY') {
-    document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('disclaimerOverlay').style.display = 'none';
-    document.getElementById('resetScreen').style.display = 'flex';
-  }
-});
+async function apiFetch(endpoint, opts = {}) {
+  const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+  if (_authToken) headers['Authorization'] = 'Bearer ' + _authToken;
+  const res = await fetch(API_URL + endpoint, { ...opts, headers });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error || 'Errore server');
+  return json;
+}
 </script>
 
 <style>
@@ -94,7 +91,6 @@ sb.auth.onAuthStateChange(async (event, session) => {
     .switch-buttons-container.show{display:flex;}
     .switch-btn{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border:none;color:white;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;transition:all 0.2s ease;box-shadow:0 4px 6px rgba(0,0,0,0.1);}
     .switch-btn:hover{transform:translateY(-2px);box-shadow:0 6px 12px rgba(0,0,0,0.15);}
-    .info-box{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;}
     .info-title{font-size:13px;font-weight:700;color:var(--btn);margin-bottom:8px;text-align:center;}
     .info-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12px;}
     .info-label{color:var(--muted);font-weight:500;}
@@ -483,21 +479,7 @@ sb.auth.onAuthStateChange(async (event, session) => {
 </div>
 <div class="matrix-container" id="matrix"></div>
 <div class="sidePanel">
-  <div class="info-box">
-    <div class="info-title">Info Range</div>
-    <div class="info-row">
-      <span class="info-label">Range Totali:</span>
-      <span class="info-value" id="totalRanges">-</span>
-    </div>
-    <div class="info-row">
-      <span class="info-label">Stato:</span>
-      <span class="info-value" id="currentRangeStatus">-</span>
-    </div>
-    <div class="info-row" style="flex-direction:column;align-items:flex-start;gap:2px;">
-      <span class="info-label">Chiave:</span>
-      <span class="info-value" id="currentRangeKey" style="font-size:10px;word-break:break-all;color:var(--muted);">-</span>
-    </div>
-  </div>
+
 </div>
 </div>
 </div>
@@ -548,20 +530,19 @@ document.getElementById('forgotBtn').addEventListener('click', async () => {
     return;
   }
   loadEl.style.display = 'block';
-  const { error } = await sb.auth.resetPasswordForEmail(email, {
-    redirectTo: 'https://rucchettad.github.io/poker-range-viewer/'
-  });
-  loadEl.style.display = 'none';
-  if (error) {
-    errEl.style.color = 'var(--error)';
-    errEl.textContent = 'Errore: ' + error.message;
-    errEl.style.display = 'block';
-  } else {
+  try {
+    await apiFetch('/api/reset-password', { method: 'POST', body: JSON.stringify({ email }) });
+    loadEl.style.display = 'none';
     errEl.style.color = 'var(--success)';
     errEl.textContent = '✓ Link inviato! Controlla la tua email (anche spam).';
     errEl.style.display = 'block';
     document.getElementById('forgotBtn').disabled = true;
     document.getElementById('forgotBtn').style.opacity = '0.6';
+  } catch(e) {
+    loadEl.style.display = 'none';
+    errEl.style.color = 'var(--error)';
+    errEl.textContent = 'Errore: ' + e.message;
+    errEl.style.display = 'block';
   }
 });
 
@@ -587,20 +568,20 @@ document.getElementById('resetBtn').addEventListener('click', async () => {
   }
 
   loadEl.style.display = 'block';
-  const { error } = await sb.auth.updateUser({ password: pwd });
-  loadEl.style.display = 'none';
-
-  if (error) {
-    errEl.textContent = 'Errore: ' + error.message;
-    errEl.style.display = 'block';
-  } else {
-    await sb.auth.signOut();
+  try {
+    await apiFetch('/api/nuova-password', { method: 'POST', body: JSON.stringify({ token: _authToken, password: pwd }) });
+    loadEl.style.display = 'none';
+    _authToken = null;
     document.getElementById('resetScreen').style.display = 'none';
     document.getElementById('loginScreen').style.display = 'flex';
     const loginErr = document.getElementById('loginError');
     loginErr.style.color = 'var(--success)';
     loginErr.textContent = 'Password aggiornata! Accedi con la nuova password.';
     loginErr.style.display = 'block';
+  } catch(e) {
+    loadEl.style.display = 'none';
+    errEl.textContent = 'Errore: ' + e.message;
+    errEl.style.display = 'block';
   }
 });
 
@@ -612,15 +593,17 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
   const loadEl = document.getElementById('loginLoading');
   errEl.style.display = 'none';
   loadEl.style.display = 'block';
-  const { data, error } = await sb.auth.signInWithPassword({ email, password });
-  loadEl.style.display = 'none';
-  if (error) {
+  try {
+    const data = await apiFetch('/api/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+    loadEl.style.display = 'none';
+    _authToken = data.token;
+    document.getElementById('loginScreen').style.display = 'none';
+    mostraDisclaimerPoiApp({ email: data.email });
+  } catch(e) {
+    loadEl.style.display = 'none';
     errEl.style.color = 'var(--error)';
     errEl.textContent = 'Email o password errati.';
     errEl.style.display = 'block';
-  } else {
-    document.getElementById('loginScreen').style.display = 'none';
-    mostraDisclaimerPoiApp(data.user);
   }
 });
 
@@ -628,8 +611,8 @@ document.getElementById('loginPassword').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('loginBtn').click();
 });
 
-document.getElementById('logoutBtn').addEventListener('click', async () => {
-  await sb.auth.signOut();
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  _authToken = null;
   window.APP_AVVIATA = false;
   window.DISCLAIMER_CHIUSO = false;
   document.getElementById('appScreen').style.display = 'none';
@@ -670,7 +653,7 @@ function mostraApp(user) {
   if (!window.APP_AVVIATA) avviaApp();
 }
 
-// ===== SUPABASE DATA =====
+// ===== BACKEND DATA =====
 window.APP_AVVIATA = false;
 
 // Cache con TTL 5 minuti
@@ -688,20 +671,11 @@ class RateLimitError extends Error {
   constructor() { super('Account temporaneamente sospeso per troppe richieste.'); }
 }
 
-function interpretaErrore(error) {
-  if (error && /RATE_LIMIT_BLOCKED/.test(error.message || '')) return new RateLimitError();
-  return error;
-}
-
 async function fetchRange(chiave) {
   const cached = cacheGet('r:' + chiave);
   if (cached !== undefined) return cached;
-  const { data, error } = await sb.rpc('get_range_protetta', { p_range_key: chiave });
-  if (error) throw interpretaErrore(error);
-  if (data && data.error) {
-    if (data.error === 'RATE_LIMIT_BLOCKED') throw new RateLimitError();
-    throw new Error(data.error);
-  }
+  const data = await apiFetch('/api/range?key=' + encodeURIComponent(chiave));
+  if (data && data.error === 'RATE_LIMIT_BLOCKED') throw new RateLimitError();
   cacheSet('r:' + chiave, data);
   return data;
 }
@@ -709,17 +683,12 @@ async function fetchRange(chiave) {
 async function fetchNota(chiave) {
   const cached = cacheGet('n:' + chiave);
   if (cached !== undefined) return cached;
-  const { data, error } = await sb.rpc('get_nota_protetta', { p_range_key: chiave });
-  if (error) throw interpretaErrore(error);
+  const data = await apiFetch('/api/nota?key=' + encodeURIComponent(chiave));
   cacheSet('n:' + chiave, data);
   return data;
 }
 
-async function fetchConteggio() {
-  const { count, error } = await sb.from('poker_ranges').select('*', { count: 'exact', head: true });
-  if (error) throw error;
-  return count;
-}
+
 
 function avviaApp() {
   window.APP_AVVIATA = true;
@@ -732,10 +701,6 @@ function avviaApp() {
   // Inizializza controlli mobile se necessario
   if (window.innerWidth < 1024) {
     inizializzaMobile();
-  } else {
-    fetchConteggio()
-      .then(c => { document.getElementById('totalRanges').textContent = c; })
-      .catch(() => { document.getElementById('totalRanges').textContent = '-'; });
   }
 }
 
@@ -950,10 +915,7 @@ document.getElementById('retryBtn').addEventListener('click', () => {
 
   async function caricaRangeCorrente() {
     const chiave=generaChiaveRange();
-    document.getElementById('currentRangeKey').textContent=chiave;
     const idRichiesta = ++richiestaInCorsoId;
-    document.getElementById('currentRangeStatus').textContent='...';
-    document.getElementById('currentRangeStatus').style.color='var(--muted)';
     document.getElementById('noteContent').textContent='Caricamento...';
     let hands, nota;
     try {
@@ -961,8 +923,6 @@ document.getElementById('retryBtn').addEventListener('click', () => {
     } catch(e) {
       if (idRichiesta !== richiestaInCorsoId) return;
       percentualiMani = {};
-      document.getElementById('currentRangeStatus').textContent='Errore';
-      document.getElementById('currentRangeStatus').style.color='var(--error)';
       const errBanner = document.getElementById('errorBanner');
       const errText = document.getElementById('errorBannerText');
       if (e instanceof RateLimitError) {
@@ -979,12 +939,8 @@ document.getElementById('retryBtn').addEventListener('click', () => {
     if (idRichiesta !== richiestaInCorsoId) return;
     if (hands) {
       percentualiMani = hands;
-      document.getElementById('currentRangeStatus').textContent='Presente';
-      document.getElementById('currentRangeStatus').style.color='var(--success)';
     } else {
       percentualiMani = {};
-      document.getElementById('currentRangeStatus').textContent='Vuoto';
-      document.getElementById('currentRangeStatus').style.color='var(--muted)';
     }
     document.getElementById('noteContent').textContent = nota || 'Nessuna nota per questa configurazione.';
     aggiornaStatistiche(); aggiornaVisualizzazioneMatrice();
@@ -1144,11 +1100,8 @@ document.getElementById('retryBtn').addEventListener('click', () => {
     setTimeout(()=>{
       overlay.style.display='none';
       window.DISCLAIMER_CHIUSO = true;
-      sb.auth.getSession().then(({ data: { session } }) => {
-        if (session) mostraApp(session.user);
-        else if (window.UTENTE_IN_ATTESA) mostraApp(window.UTENTE_IN_ATTESA);
-        else document.getElementById('loginScreen').style.display='flex';
-      });
+      if (window.UTENTE_IN_ATTESA) mostraApp(window.UTENTE_IN_ATTESA);
+      else document.getElementById('loginScreen').style.display='flex';
     },300);
     clearInterval(intervalId);
   }
