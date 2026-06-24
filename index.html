@@ -596,9 +596,9 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
   try {
     const data = await apiFetch('/api/login', { method: 'POST', body: JSON.stringify({ email, password }) });
     loadEl.style.display = 'none';
-    _authToken = data.token;
+    _authToken = data.access_token;
     document.getElementById('loginScreen').style.display = 'none';
-    mostraDisclaimerPoiApp({ email: data.email });
+    mostraDisclaimerPoiApp({ email: data.user.email });
   } catch(e) {
     loadEl.style.display = 'none';
     errEl.style.color = 'var(--error)';
@@ -674,18 +674,20 @@ class RateLimitError extends Error {
 async function fetchRange(chiave) {
   const cached = cacheGet('r:' + chiave);
   if (cached !== undefined) return cached;
-  const data = await apiFetch('/api/range?key=' + encodeURIComponent(chiave));
+  const data = await apiFetch('/api/range', { method: 'POST', body: JSON.stringify({ access_token: _authToken, range_key: chiave }) });
   if (data && data.error === 'RATE_LIMIT_BLOCKED') throw new RateLimitError();
-  cacheSet('r:' + chiave, data);
-  return data;
+  const result = data.hands || null;
+  cacheSet('r:' + chiave, result);
+  return result;
 }
 
 async function fetchNota(chiave) {
   const cached = cacheGet('n:' + chiave);
   if (cached !== undefined) return cached;
-  const data = await apiFetch('/api/nota?key=' + encodeURIComponent(chiave));
-  cacheSet('n:' + chiave, data);
-  return data;
+  const data = await apiFetch('/api/nota', { method: 'POST', body: JSON.stringify({ access_token: _authToken, range_key: chiave }) });
+  const result = data.note || null;
+  cacheSet('n:' + chiave, result);
+  return result;
 }
 
 
