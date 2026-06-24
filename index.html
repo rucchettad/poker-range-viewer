@@ -723,9 +723,7 @@ window.addEventListener('DOMContentLoaded', function() {
   const email = sessionStorage.getItem('poker_email');
   if (token && email) {
     _authToken = token;
-    // Disclaimer già mostrato in questa sessione del browser: lo saltiamo
-    window.DISCLAIMER_CHIUSO = true;
-    mostraApp({ email });
+    mostraDisclaimerPoiApp({ email });
   } else {
     document.getElementById('loginScreen').style.display = 'flex';
   }
