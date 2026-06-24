@@ -718,7 +718,7 @@ function mostraApp(user) {
 }
 
 // ===== RIPRISTINO SESSIONE AL CARICAMENTO PAGINA =====
-(function() {
+window.addEventListener('DOMContentLoaded', function() {
   const token = sessionStorage.getItem('poker_token');
   const email = sessionStorage.getItem('poker_email');
   if (token && email) {
@@ -729,7 +729,7 @@ function mostraApp(user) {
   } else {
     document.getElementById('loginScreen').style.display = 'flex';
   }
-})();
+});
 
 // ===== BACKEND DATA =====
 window.APP_AVVIATA = false;
