@@ -719,6 +719,22 @@ function mostraApp(user) {
 
 // ===== RIPRISTINO SESSIONE AL CARICAMENTO PAGINA =====
 window.addEventListener('DOMContentLoaded', function() {
+  // Controlla se c'e' un token di recovery nell'URL (link email reset password)
+  const hash = window.location.hash;
+  const params = new URLSearchParams(hash.replace('#', '?'));
+  const tipo = params.get('type');
+  const accessToken = params.get('access_token');
+
+  if (tipo === 'recovery' && accessToken) {
+    // Pulisce l'URL senza ricaricare la pagina
+    history.replaceState(null, '', window.location.pathname);
+    _authToken = accessToken;
+    // Mostra schermata reset password
+    document.getElementById('resetScreen').style.display = 'flex';
+    return;
+  }
+
+  // Ripristino sessione normale
   const token = sessionStorage.getItem('poker_token');
   const email = sessionStorage.getItem('poker_email');
   if (token && email) {
