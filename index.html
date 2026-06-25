@@ -678,10 +678,16 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
     await apiFetch('/api/check-status', { method: 'POST', body: JSON.stringify({ access_token: loginData.access_token }) });
   } catch(e) {
     if (e instanceof RateLimitError) {
-      document.getElementById('appScreen').style.display = 'block';
-      document.getElementById('appContainer').style.display = 'block';
-      document.getElementById('loadingMsg').style.display = 'none';
-      mostraBannerRateLimitAlCaricamento();
+      // Account bloccato: pulisci sessione e mostra messaggio nella schermata login
+      _authToken = null;
+      sessionStorage.removeItem('poker_token');
+      sessionStorage.removeItem('poker_email');
+      document.getElementById('loginScreen').style.display = 'flex';
+      const errEl = document.getElementById('loginError');
+      errEl.style.color = 'var(--error)';
+      errEl.innerHTML = '🚫 Il tuo account è stato sospeso per uso anomalo.<br>Contatta l'assistenza: <a href="mailto:rucchettad@gmail.com" style="color:var(--btn);">rucchettad@gmail.com</a>';
+      errEl.style.display = 'block';
+      loadEl.style.display = 'none';
       return;
     }
   }
@@ -800,10 +806,17 @@ async function ripristinaSessione() {
 // Chiamata al caricamento normale
 window.addEventListener('DOMContentLoaded', ripristinaSessione);
 
-// Chiamata quando la pagina viene ripristinata dalla bfcache (back/forward cache)
+// Quando la pagina viene ripristinata dalla bfcache (back/forward cache): logout automatico
 window.addEventListener('pageshow', function(event) {
   if (event.persisted) {
-    ripristinaSessione();
+    // Forza logout per obbligare a rifare login (e quindi check-status)
+    _authToken = null;
+    window.APP_AVVIATA = false;
+    window.DISCLAIMER_CHIUSO = false;
+    sessionStorage.removeItem('poker_token');
+    sessionStorage.removeItem('poker_email');
+    document.getElementById('appScreen').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
   }
 });
 
