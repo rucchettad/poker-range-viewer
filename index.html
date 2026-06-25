@@ -663,6 +663,18 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
     sessionStorage.setItem('poker_token', data.access_token);
     sessionStorage.setItem('poker_email', data.user.email);
     document.getElementById('loginScreen').style.display = 'none';
+    // ===== CHECK BLOCCO PRIMA DEL DISCLAIMER =====
+    try {
+      await apiFetch('/api/check-status', { method: 'POST', body: JSON.stringify({ access_token: data.access_token }) });
+    } catch(e) {
+      if (e instanceof RateLimitError) {
+        document.getElementById('appScreen').style.display = 'block';
+        document.getElementById('appContainer').style.display = 'block';
+        document.getElementById('loadingMsg').style.display = 'none';
+        mostraBannerRateLimitAlCaricamento();
+        return;
+      }
+    }
     mostraDisclaimerPoiApp({ email: data.user.email });
   } catch(e) {
     loadEl.style.display = 'none';
