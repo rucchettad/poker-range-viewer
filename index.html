@@ -9,6 +9,7 @@
 // ===== BACKEND CONFIG =====
 const API_URL = 'https://poker-range-api-production.up.railway.app';
 let _authToken = null;
+var _rateLimitBloccato = false;
 
 async function apiFetch(endpoint, opts = {}) {
   const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
@@ -1012,6 +1013,7 @@ document.getElementById('retryBtn').addEventListener('click', () => {
         errText.textContent = msg;
         errBanner.classList.add('rate-limit');
         retryBtn.style.display = 'none';
+        _rateLimitBloccato = true;
       } else {
         document.getElementById('noteContent').textContent='Errore: ' + e.message;
         errText.textContent='Errore caricamento: ' + e.message;
@@ -1031,6 +1033,7 @@ document.getElementById('retryBtn').addEventListener('click', () => {
   }
 
   window.aggiornaUI = function aggiornaUI() {
+    if (_rateLimitBloccato) return;
     const responderTabs=document.getElementById('responderTabs');
     const flatSection=document.getElementById('flatSection');
     const stackButtons=document.querySelectorAll('#stackGrid .cellBtn');
