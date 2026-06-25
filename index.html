@@ -15,7 +15,7 @@ async function apiFetch(endpoint, opts = {}) {
   if (_authToken) headers['Authorization'] = 'Bearer ' + _authToken;
   const res = await fetch(API_URL + endpoint, { ...opts, headers });
   const json = await res.json();
-  if (!res.ok) throw new Error(json.error || 'Errore server');
+  if (!res.ok && json.error !== 'RATE_LIMIT_BLOCKED') throw new Error(json.error || 'Errore server');
   return json;
 }
 </script>
@@ -562,19 +562,8 @@ document.getElementById('regBtn').addEventListener('click', async () => {
   } catch(e) {
     loadEl.style.display = 'none';
     errEl.style.color = 'var(--error)';
-    if ((e.message || '').includes('già registrata')) {
-      errEl.innerHTML = 'Email già registrata. <span id="regRecoveryLink" style="text-decoration:underline;cursor:pointer;color:var(--btn);">Hai dimenticato la password?</span>';
-      errEl.style.display = 'block';
-      document.getElementById('regRecoveryLink').addEventListener('click', () => {
-        document.getElementById('registrazioneScreen').style.display = 'none';
-        document.getElementById('forgotScreen').style.display = 'flex';
-        document.getElementById('forgotEmail').value = email;
-        document.getElementById('forgotError').style.display = 'none';
-      });
-    } else {
-      errEl.textContent = e.message || 'Errore durante la registrazione.';
-      errEl.style.display = 'block';
-    }
+    errEl.textContent = e.message || 'Errore durante la registrazione.';
+    errEl.style.display = 'block';
   }
 });
 
@@ -687,8 +676,6 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
   _authToken = null;
   window.APP_AVVIATA = false;
   window.DISCLAIMER_CHIUSO = false;
-  _rateLimitBloccato = false;
-  svuotaCache();
   // ===== PULISCI SESSIONE =====
   sessionStorage.removeItem('poker_token');
   sessionStorage.removeItem('poker_email');
@@ -776,37 +763,20 @@ class RateLimitError extends Error {
   constructor() { super('Account temporaneamente sospeso per troppe richieste.'); }
 }
 
-let _rateLimitBloccato = false;
-
-function svuotaCache() {
-  Object.keys(_CACHE).forEach(k => delete _CACHE[k]);
-}
-
 async function fetchRange(chiave) {
-  if (_rateLimitBloccato) throw new RateLimitError();
   const cached = cacheGet('r:' + chiave);
   if (cached !== undefined) return cached;
   const data = await apiFetch('/api/range', { method: 'POST', body: JSON.stringify({ access_token: _authToken, range_key: chiave }) });
-  if (data && data.error === 'RATE_LIMIT_BLOCKED') {
-    _rateLimitBloccato = true;
-    svuotaCache();
-    throw new RateLimitError();
-  }
+  if (data && data.error === 'RATE_LIMIT_BLOCKED') throw new RateLimitError();
   const result = data.hands || null;
   cacheSet('r:' + chiave, result);
   return result;
 }
 
 async function fetchNota(chiave) {
-  if (_rateLimitBloccato) throw new RateLimitError();
   const cached = cacheGet('n:' + chiave);
   if (cached !== undefined) return cached;
   const data = await apiFetch('/api/nota', { method: 'POST', body: JSON.stringify({ access_token: _authToken, range_key: chiave }) });
-  if (data && data.error === 'RATE_LIMIT_BLOCKED') {
-    _rateLimitBloccato = true;
-    svuotaCache();
-    throw new RateLimitError();
-  }
   const result = data.note || null;
   cacheSet('n:' + chiave, result);
   return result;
@@ -1033,8 +1003,8 @@ document.getElementById('retryBtn').addEventListener('click', () => {
       const errBanner = document.getElementById('errorBanner');
       const errText = document.getElementById('errorBannerText');
       if (e instanceof RateLimitError) {
-        document.getElementById('noteContent').textContent='⚠️ Rallenta!\nHai effettuato troppe richieste in poco tempo. Se stavi semplicemente navigando, ricorda di effettuare meno richieste consecutive in rapida successione.\nAttendi che il monitoraggio si concluda — potrebbe richiedere fino a 10 minuti — dopodiché potrai accedere nuovamente.\nL\'accesso anomalo ai dati è monitorato e può comportare la sospensione permanente dell\'account.';
-        errText.textContent='⚠️ Rallenta! Hai effettuato troppe richieste in poco tempo. Attendi fino a 10 minuti prima di riprovare. L\'accesso anomalo ai dati è monitorato e può comportare la sospensione permanente dell\'account.';
+        document.getElementById('noteContent').textContent='Account sospeso per uso anomalo.';
+        errText.textContent='Account sospeso per troppe richieste.';
       } else {
         document.getElementById('noteContent').textContent='Errore: ' + e.message;
         errText.textContent='Errore caricamento: ' + e.message;
