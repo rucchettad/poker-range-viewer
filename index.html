@@ -685,7 +685,7 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
       document.getElementById('loginScreen').style.display = 'flex';
       const errEl = document.getElementById('loginError');
       errEl.style.color = 'var(--error)';
-      errEl.innerHTML = '🚫 Il tuo account è stato sospeso per uso anomalo.<br>Contatta l'assistenza: <a href="mailto:rucchettad@gmail.com" style="color:var(--btn);">rucchettad@gmail.com</a>';
+      errEl.innerHTML = '🚫 Il tuo account è stato sospeso per uso anomalo.<br>Contatta: <a href="mailto:rucchettad@gmail.com" style="color:var(--btn);">rucchettad@gmail.com</a>';
       errEl.style.display = 'block';
       loadEl.style.display = 'none';
       return;
