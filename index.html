@@ -818,7 +818,8 @@ async function fetchNota(chiave) {
   cacheSet('n:' + chiave, result);
   return result;
 }
-  document.getElementById('loadingMsg').style.display = 'none';
+function avviaApp() {
+  window.APP_AVVIATA = true;
   document.getElementById('errorBanner').style.display = 'none';
   document.getElementById('appContainer').style.display = 'block';
   window.creaMatrice();
