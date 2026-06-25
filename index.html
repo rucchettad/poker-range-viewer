@@ -757,7 +757,7 @@ function mostraBannerRateLimitAlCaricamento() {
 }
 
 // ===== RIPRISTINO SESSIONE AL CARICAMENTO PAGINA =====
-window.addEventListener('DOMContentLoaded', async function() {
+async function ripristinaSessione() {
   // Controlla se c'e' un token di recovery nell'URL (link email reset password)
   const hash = window.location.hash;
   const params = new URLSearchParams(hash.replace('#', '?'));
@@ -794,6 +794,16 @@ window.addEventListener('DOMContentLoaded', async function() {
     mostraDisclaimerPoiApp({ email });
   } else {
     document.getElementById('loginScreen').style.display = 'flex';
+  }
+}
+
+// Chiamata al caricamento normale
+window.addEventListener('DOMContentLoaded', ripristinaSessione);
+
+// Chiamata quando la pagina viene ripristinata dalla bfcache (back/forward cache)
+window.addEventListener('pageshow', function(event) {
+  if (event.persisted) {
+    ripristinaSessione();
   }
 });
 
