@@ -21,10 +21,10 @@ function mostraBloccoRateLimit(email) {
   document.getElementById('appContainer').style.display = 'none';
   const errBanner = document.getElementById('errorBanner');
   const errText = document.getElementById('errorBannerText');
-  errText.textContent = `⚠️ Rallenta!\nHai effettuato troppe richieste in poco tempo. Se stavi semplicemente navigando, ricorda di effettuare meno richieste consecutive in rapida successione.\nAttendi che il monitoraggio si concluda — potrebbe richiedere fino a 10 minuti — dopodiché potrai accedere nuovamente.\nL’accesso anomalo ai dati è monitorato e può comportare la sospensione permanente dell’account.`;
-Hai effettuato troppe richieste in poco tempo. Se stavi semplicemente navigando, ricorda di effettuare meno richieste consecutive in rapida successione.
-Attendi che il monitoraggio si concluda — potrebbe richiedere fino a 10 minuti — dopodiché potrai accedere nuovamente.
-L’accesso anomalo ai dati è monitorato e può comportare la sospensione permanente dell’account.`;
+  errText.textContent = '⚠️ Rallenta!\n' +
+    'Hai effettuato troppe richieste in poco tempo. Se stavi semplicemente navigando, ricorda di effettuare meno richieste consecutive in rapida successione.\n' +
+    'Attendi che il monitoraggio si concluda — potrebbe richiedere fino a 10 minuti — dopodiché potrai accedere nuovamente.\n' +
+    'L\u2019accesso anomalo ai dati \u00e8 monitorato e pu\u00f2 comportare la sospensione permanente dell\u2019account.';
   errBanner.classList.add('rate-limit');
   document.getElementById('retryBtn').style.display = 'none';
   errBanner.style.display = 'block';
@@ -786,7 +786,7 @@ window.APP_AVVIATA = false;
 
 // Cache con TTL 5 minuti
 function cacheGet(chiave) {
-  const entry = _CACHE[chiave];
+  const entry = _CACHE_OBJ[chiave];
   if (!entry) return undefined;
   if (Date.now() - entry.ts > _CACHE_TTL) { delete _CACHE_OBJ[chiave]; return undefined; }
   return entry.val;
