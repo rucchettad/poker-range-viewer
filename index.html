@@ -9,10 +9,10 @@
 // ===== BACKEND CONFIG =====
 const API_URL = 'https://poker-range-api-production.up.railway.app';
 let _authToken = null;
-let _rateLimitBloccato = false;
-const _CACHE = {};
+var _rateLimitBloccato = false;
+var _CACHE_OBJ = {};
 const _CACHE_TTL = 5 * 60 * 1000;
-function svuotaCache() { Object.keys(_CACHE).forEach(k => delete _CACHE[k]); }
+function svuotaCache() { Object.keys(_CACHE_OBJ).forEach(k => delete _CACHE_OBJ[k]); }
 function mostraBloccoRateLimit(email) {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appScreen').style.display = 'block';
@@ -788,10 +788,10 @@ window.APP_AVVIATA = false;
 function cacheGet(chiave) {
   const entry = _CACHE[chiave];
   if (!entry) return undefined;
-  if (Date.now() - entry.ts > _CACHE_TTL) { delete _CACHE[chiave]; return undefined; }
+  if (Date.now() - entry.ts > _CACHE_TTL) { delete _CACHE_OBJ[chiave]; return undefined; }
   return entry.val;
 }
-function cacheSet(chiave, val) { _CACHE[chiave] = { val, ts: Date.now() }; }
+function cacheSet(chiave, val) { _CACHE_OBJ[chiave] = { val, ts: Date.now() }; }
 
 class RateLimitError extends Error {
   constructor() { super('Account temporaneamente sospeso per troppe richieste.'); }
