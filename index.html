@@ -9,13 +9,33 @@
 // ===== BACKEND CONFIG =====
 const API_URL = 'https://poker-range-api-production.up.railway.app';
 let _authToken = null;
+let _rateLimitBloccato = false;
+const _CACHE = {};
+const _CACHE_TTL = 5 * 60 * 1000;
+function svuotaCache() { Object.keys(_CACHE).forEach(k => delete _CACHE[k]); }
+function mostraBloccoRateLimit(email) {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'block';
+  if (email) document.getElementById('userEmail').textContent = email;
+  document.getElementById('loadingMsg').style.display = 'none';
+  document.getElementById('appContainer').style.display = 'none';
+  const errBanner = document.getElementById('errorBanner');
+  const errText = document.getElementById('errorBannerText');
+  errText.textContent = `⚠️ Rallenta!\nHai effettuato troppe richieste in poco tempo. Se stavi semplicemente navigando, ricorda di effettuare meno richieste consecutive in rapida successione.\nAttendi che il monitoraggio si concluda — potrebbe richiedere fino a 10 minuti — dopodiché potrai accedere nuovamente.\nL’accesso anomalo ai dati è monitorato e può comportare la sospensione permanente dell’account.`;
+Hai effettuato troppe richieste in poco tempo. Se stavi semplicemente navigando, ricorda di effettuare meno richieste consecutive in rapida successione.
+Attendi che il monitoraggio si concluda — potrebbe richiedere fino a 10 minuti — dopodiché potrai accedere nuovamente.
+L’accesso anomalo ai dati è monitorato e può comportare la sospensione permanente dell’account.`;
+  errBanner.classList.add('rate-limit');
+  document.getElementById('retryBtn').style.display = 'none';
+  errBanner.style.display = 'block';
+}
 
 async function apiFetch(endpoint, opts = {}) {
   const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
   if (_authToken) headers['Authorization'] = 'Bearer ' + _authToken;
   const res = await fetch(API_URL + endpoint, { ...opts, headers });
   const json = await res.json();
-  if (!res.ok && json.error !== 'RATE_LIMIT_BLOCKED') throw new Error(json.error || 'Errore server');
+  if (!res.ok) throw new Error(json.error || 'Errore server');
   return json;
 }
 </script>
@@ -102,7 +122,6 @@ async function apiFetch(endpoint, opts = {}) {
     .logout-btn:hover{color:var(--error);border-color:var(--error);}
     .error-banner{background:#2a1414;border:1px solid var(--error);color:#ff9b9b;border-radius:8px;padding:12px 16px;text-align:center;margin-bottom:12px;font-size:13px;}
     .error-banner button{background:var(--error);color:white;border:none;border-radius:6px;padding:6px 14px;margin-left:10px;cursor:pointer;font-weight:600;}
-    .error-banner.rate-limit{text-align:left;line-height:1.7;white-space:pre-wrap;}
 
     /* RESPONSIVE SCALING - solo desktop */
     .wrap{transform-origin:top left;transition:transform 0.2s ease;}
@@ -264,7 +283,7 @@ async function apiFetch(endpoint, opts = {}) {
 <div id="loadingMsg" style="text-align:center;padding:40px;color:var(--muted);font-size:16px;">Caricamento range in corso...</div>
 <div id="errorBanner" class="error-banner" style="display:none;">
   <span id="errorBannerText"></span>
-  <button id="retryBtn" style="display:none;">Riprova</button>
+  <button id="retryBtn">Riprova</button>
 </div>
 
 <!-- CONTROLLI MOBILE (solo su telefono) -->
@@ -679,11 +698,7 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
   window.DISCLAIMER_CHIUSO = false;
   _rateLimitBloccato = false;
   svuotaCache();
-  // Riabilita UI
-  document.querySelectorAll('.tab, .flat-tab, .cellBtn, .switch-btn').forEach(el => {
-    el.style.pointerEvents = '';
-    el.style.opacity = '';
-  });
+  document.getElementById('appContainer').style.display = 'none';
   // ===== PULISCI SESSIONE =====
   sessionStorage.removeItem('poker_token');
   sessionStorage.removeItem('poker_email');
@@ -727,27 +742,22 @@ function mostraApp(user) {
 
 // ===== RIPRISTINO SESSIONE AL CARICAMENTO PAGINA =====
 window.addEventListener('DOMContentLoaded', async function() {
-  // Controlla se c'e' un token di recovery nell'URL (link email reset password)
   const hash = window.location.hash;
   const params = new URLSearchParams(hash.replace('#', '?'));
   const tipo = params.get('type');
   const accessToken = params.get('access_token');
 
   if (tipo === 'recovery' && accessToken) {
-    // Pulisce l'URL senza ricaricare la pagina
     history.replaceState(null, '', window.location.pathname);
     _authToken = accessToken;
-    // Mostra schermata reset password
     document.getElementById('resetScreen').style.display = 'flex';
     return;
   }
 
-  // Ripristino sessione normale
   const token = sessionStorage.getItem('poker_token');
   const email = sessionStorage.getItem('poker_email');
   if (token && email) {
     _authToken = token;
-    // Controlla se bloccato prima di mostrare l'app
     try {
       const statusRes = await fetch(API_URL + '/api/check-status', {
         method: 'POST',
@@ -758,18 +768,7 @@ window.addEventListener('DOMContentLoaded', async function() {
       if (statusData.error === 'RATE_LIMIT_BLOCKED') {
         _rateLimitBloccato = true;
         svuotaCache();
-        // Mostra solo la schermata di blocco, niente app
-        document.getElementById('loginScreen').style.display = 'none';
-        document.getElementById('appScreen').style.display = 'block';
-        document.getElementById('userEmail').textContent = email;
-        document.getElementById('loadingMsg').style.display = 'none';
-        document.getElementById('appContainer').style.display = 'none';
-        const errBanner = document.getElementById('errorBanner');
-        const errText = document.getElementById('errorBannerText');
-        errText.textContent = `⚠️ Rallenta!\nHai effettuato troppe richieste in poco tempo. Se stavi semplicemente navigando, ricorda di effettuare meno richieste consecutive in rapida successione.\nAttendi che il monitoraggio si concluda — potrebbe richiedere fino a 10 minuti — dopodiché potrai accedere nuovamente.\nL'accesso anomalo ai dati è monitorato e può comportare la sospensione permanente dell'account.`;
-        errBanner.classList.add('rate-limit');
-        document.getElementById('retryBtn').style.display = 'none';
-        errBanner.style.display = 'block';
+        mostraBloccoRateLimit(email);
       } else {
         mostraDisclaimerPoiApp({ email });
       }
@@ -781,12 +780,11 @@ window.addEventListener('DOMContentLoaded', async function() {
   }
 });
 
+
 // ===== BACKEND DATA =====
 window.APP_AVVIATA = false;
 
 // Cache con TTL 5 minuti
-const _CACHE = {};
-const _CACHE_TTL = 5 * 60 * 1000;
 function cacheGet(chiave) {
   const entry = _CACHE[chiave];
   if (!entry) return undefined;
@@ -795,38 +793,24 @@ function cacheGet(chiave) {
 }
 function cacheSet(chiave, val) { _CACHE[chiave] = { val, ts: Date.now() }; }
 
-let _rateLimitBloccato = false;
-function svuotaCache() { Object.keys(_CACHE).forEach(k => delete _CACHE[k]); }
-
 class RateLimitError extends Error {
   constructor() { super('Account temporaneamente sospeso per troppe richieste.'); }
 }
 
 async function fetchRange(chiave) {
-  if (_rateLimitBloccato) throw new RateLimitError();
   const cached = cacheGet('r:' + chiave);
   if (cached !== undefined) return cached;
   const data = await apiFetch('/api/range', { method: 'POST', body: JSON.stringify({ access_token: _authToken, range_key: chiave }) });
-  if (data && data.error === 'RATE_LIMIT_BLOCKED') {
-    _rateLimitBloccato = true;
-    svuotaCache();
-    throw new RateLimitError();
-  }
+  if (data && data.error === 'RATE_LIMIT_BLOCKED') throw new RateLimitError();
   const result = data.hands || null;
   cacheSet('r:' + chiave, result);
   return result;
 }
 
 async function fetchNota(chiave) {
-  if (_rateLimitBloccato) throw new RateLimitError();
   const cached = cacheGet('n:' + chiave);
   if (cached !== undefined) return cached;
   const data = await apiFetch('/api/nota', { method: 'POST', body: JSON.stringify({ access_token: _authToken, range_key: chiave }) });
-  if (data && data.error === 'RATE_LIMIT_BLOCKED') {
-    _rateLimitBloccato = true;
-    svuotaCache();
-    throw new RateLimitError();
-  }
   const result = data.note || null;
   cacheSet('n:' + chiave, result);
   return result;
@@ -928,7 +912,6 @@ function inizializzaMobile() {
 }
 
 document.getElementById('retryBtn').addEventListener('click', () => {
-  if (_rateLimitBloccato) return;
   document.getElementById('errorBanner').style.display = 'none';
   aggiornaUI();
 });
@@ -1053,24 +1036,15 @@ document.getElementById('retryBtn').addEventListener('click', () => {
       percentualiMani = {};
       const errBanner = document.getElementById('errorBanner');
       const errText = document.getElementById('errorBannerText');
-      const retryBtn = document.getElementById('retryBtn');
       if (e instanceof RateLimitError) {
-        document.getElementById('noteContent').textContent='⚠️ Rallenta!\nHai effettuato troppe richieste in poco tempo. Se stavi semplicemente navigando, ricorda di effettuare meno richieste consecutive in rapida successione.\nAttendi che il monitoraggio si concluda — potrebbe richiedere fino a 10 minuti — dopodiché potrai accedere nuovamente.\nL\'accesso anomalo ai dati è monitorato e può comportare la sospensione permanente dell\'account.';
-        errText.textContent='⚠️ Rallenta!\nHai effettuato troppe richieste in poco tempo. Se stavi semplicemente navigando, ricorda di effettuare meno richieste consecutive in rapida successione.\nAttendi che il monitoraggio si concluda \u2014 potrebbe richiedere fino a 10 minuti \u2014 dopodiché potrai accedere nuovamente.\nL\'accesso anomalo ai dati è monitorato e può comportare la sospensione permanente dell\'account.';
-        errBanner.classList.add('rate-limit');
-        retryBtn.style.display = 'none';
-        // Disabilita tutti i tab e pulsanti
-        document.querySelectorAll('.tab, .flat-tab, .cellBtn, .switch-btn').forEach(el => {
-          el.style.pointerEvents = 'none';
-          el.style.opacity = '0.4';
-        });
+        mostraBloccoRateLimit(null);
       } else {
         document.getElementById('noteContent').textContent='Errore: ' + e.message;
         errText.textContent='Errore caricamento: ' + e.message;
-        retryBtn.style.display = 'inline-block';
+        document.getElementById('retryBtn').style.display = 'inline-block';
         errBanner.classList.remove('rate-limit');
+        errBanner.style.display='block';
       }
-      errBanner.style.display='block';
       aggiornaStatistiche(); aggiornaVisualizzazioneMatrice();
       return;
     }
