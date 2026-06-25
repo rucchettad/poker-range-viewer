@@ -10,11 +10,16 @@
 const API_URL = 'https://poker-range-api-production.up.railway.app';
 let _authToken = null;
 
+class RateLimitError extends Error {
+  constructor() { super('Account temporaneamente sospeso per troppe richieste.'); }
+}
+
 async function apiFetch(endpoint, opts = {}) {
   const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
   if (_authToken) headers['Authorization'] = 'Bearer ' + _authToken;
   const res = await fetch(API_URL + endpoint, { ...opts, headers });
   const json = await res.json();
+  if (res.status === 429 || (json && json.error === 'RATE_LIMIT_BLOCKED')) throw new RateLimitError();
   if (!res.ok) throw new Error(json.error || 'Errore server');
   return json;
 }
@@ -758,17 +763,16 @@ window.addEventListener('DOMContentLoaded', async function() {
     _authToken = token;
     // Controlla se l'utente e' bloccato PRIMA di mostrare l'app
     try {
-      const status = await apiFetch('/api/check-status');
-      if (status && status.blocked === true) {
-        // Utente bloccato: mostra solo il banner, non avviare l'app
+      await apiFetch('/api/check-status', { method: 'POST', body: JSON.stringify({ access_token: token }) });
+    } catch(e) {
+      if (e instanceof RateLimitError) {
         document.getElementById('appScreen').style.display = 'block';
         document.getElementById('appContainer').style.display = 'block';
         document.getElementById('loadingMsg').style.display = 'none';
         mostraBannerRateLimitAlCaricamento();
         return;
       }
-    } catch(e) {
-      // Se check-status fallisce, procedi normalmente (non bloccare l'utente per un errore di rete)
+      // Altri errori (rete, token scaduto ecc): procedi normalmente
     }
     mostraDisclaimerPoiApp({ email });
   } else {
@@ -793,10 +797,6 @@ function svuotaCache() { Object.keys(_CACHE).forEach(k => delete _CACHE[k]); }
 
 // Flag rate limit globale
 let _RATE_LIMITED = false;
-
-class RateLimitError extends Error {
-  constructor() { super('Account temporaneamente sospeso per troppe richieste.'); }
-}
 
 async function fetchRange(chiave) {
   const cached = cacheGet('r:' + chiave);
