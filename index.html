@@ -663,7 +663,11 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
   } catch(e) {
     loadEl.style.display = 'none';
     errEl.style.color = 'var(--error)';
-    errEl.textContent = 'Email o password errati.';
+    if (e.message && (e.message.includes('sospeso') || e.message.includes('coach') || e.message.includes('scaduto'))) {
+      errEl.innerHTML = '🚫 Accesso negato.<br>Per assistenza: <a href="mailto:rucchettad@gmail.com" style="color:var(--btn);">rucchettad@gmail.com</a>';
+    } else {
+      errEl.textContent = 'Email o password errati.';
+    }
     errEl.style.display = 'block';
     return;
   }
