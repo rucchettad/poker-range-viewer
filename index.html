@@ -1014,8 +1014,8 @@ document.getElementById('retryBtn').addEventListener('click', () => {
       const errBanner = document.getElementById('errorBanner');
       const errText = document.getElementById('errorBannerText');
       if (e instanceof RateLimitError) {
-        document.getElementById('noteContent').textContent='Account sospeso per uso anomalo.';
-        errText.textContent='Account sospeso per troppe richieste.';
+        document.getElementById('noteContent').textContent='⚠️ Rallenta!\nHai effettuato troppe richieste in poco tempo. Se stavi semplicemente navigando, ricorda di effettuare meno richieste consecutive in rapida successione.\nAttendi che il monitoraggio si concluda — potrebbe richiedere fino a 10 minuti — dopodiché potrai accedere nuovamente.\nL\'accesso anomalo ai dati è monitorato e può comportare la sospensione permanente dell\'account.';
+        errText.textContent='⚠️ Rallenta! Hai effettuato troppe richieste in poco tempo. Attendi fino a 10 minuti prima di riprovare. L\'accesso anomalo ai dati è monitorato e può comportare la sospensione permanente dell\'account.';
       } else {
         document.getElementById('noteContent').textContent='Errore: ' + e.message;
         errText.textContent='Errore caricamento: ' + e.message;
