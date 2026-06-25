@@ -932,6 +932,7 @@ function inizializzaMobile() {
 }
 
 document.getElementById('retryBtn').addEventListener('click', () => {
+  if (_rateLimitBloccato) return;
   document.getElementById('errorBanner').style.display = 'none';
   aggiornaUI();
 });
@@ -1088,6 +1089,7 @@ document.getElementById('retryBtn').addEventListener('click', () => {
   }
 
   window.aggiornaUI = function aggiornaUI() {
+    if (_rateLimitBloccato) return;
     const responderTabs=document.getElementById('responderTabs');
     const flatSection=document.getElementById('flatSection');
     const stackButtons=document.querySelectorAll('#stackGrid .cellBtn');
