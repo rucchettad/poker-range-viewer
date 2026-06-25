@@ -655,33 +655,38 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
   const loadEl = document.getElementById('loginLoading');
   errEl.style.display = 'none';
   loadEl.style.display = 'block';
+
+  // STEP 1: login separato
+  let loginData;
   try {
-    const data = await apiFetch('/api/login', { method: 'POST', body: JSON.stringify({ email, password }) });
-    loadEl.style.display = 'none';
-    _authToken = data.access_token;
-    // ===== SALVA SESSIONE IN sessionStorage =====
-    sessionStorage.setItem('poker_token', data.access_token);
-    sessionStorage.setItem('poker_email', data.user.email);
-    document.getElementById('loginScreen').style.display = 'none';
-    // ===== CHECK BLOCCO PRIMA DEL DISCLAIMER =====
-    try {
-      await apiFetch('/api/check-status', { method: 'POST', body: JSON.stringify({ access_token: data.access_token }) });
-    } catch(e) {
-      if (e instanceof RateLimitError) {
-        document.getElementById('appScreen').style.display = 'block';
-        document.getElementById('appContainer').style.display = 'block';
-        document.getElementById('loadingMsg').style.display = 'none';
-        mostraBannerRateLimitAlCaricamento();
-        return;
-      }
-    }
-    mostraDisclaimerPoiApp({ email: data.user.email });
+    loginData = await apiFetch('/api/login', { method: 'POST', body: JSON.stringify({ email, password }) });
   } catch(e) {
     loadEl.style.display = 'none';
     errEl.style.color = 'var(--error)';
     errEl.textContent = 'Email o password errati.';
     errEl.style.display = 'block';
+    return;
   }
+  loadEl.style.display = 'none';
+  _authToken = loginData.access_token;
+  sessionStorage.setItem('poker_token', loginData.access_token);
+  sessionStorage.setItem('poker_email', loginData.user.email);
+  document.getElementById('loginScreen').style.display = 'none';
+
+  // STEP 2: check-status separato
+  try {
+    await apiFetch('/api/check-status', { method: 'POST', body: JSON.stringify({ access_token: loginData.access_token }) });
+  } catch(e) {
+    if (e instanceof RateLimitError) {
+      document.getElementById('appScreen').style.display = 'block';
+      document.getElementById('appContainer').style.display = 'block';
+      document.getElementById('loadingMsg').style.display = 'none';
+      mostraBannerRateLimitAlCaricamento();
+      return;
+    }
+  }
+
+  mostraDisclaimerPoiApp({ email: loginData.user.email });
 });
 
 document.getElementById('loginPassword').addEventListener('keydown', e => {
