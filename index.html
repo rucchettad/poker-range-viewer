@@ -221,6 +221,34 @@ async function apiFetch(endpoint, opts = {}) {
   </div>
 </div>
 
+<!-- TRIAL SCADUTO SCREEN -->
+<div id="trialScadutoScreen" style="display:none;align-items:center;justify-content:center;min-height:100vh;background:var(--bg);">
+  <div class="login-box" style="width:400px;max-width:100%;gap:16px;">
+    <div class="login-logo">&#9829; Poker Range &#9824;</div>
+    <div style="text-align:center;font-size:28px;">⏰</div>
+    <div style="text-align:center;font-size:18px;font-weight:700;color:white;">Periodo di prova terminato</div>
+    <div style="text-align:center;font-size:14px;color:var(--muted);line-height:1.6;">
+      I tuoi 15 giorni gratuiti sono scaduti.<br>
+      Abbonati per continuare ad accedere ai range.
+    </div>
+    <div style="background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:13px;color:var(--muted);">Primo mese</span>
+        <span style="font-size:18px;font-weight:700;color:white;">4,99€</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:13px;color:var(--muted);">Dal secondo mese</span>
+        <span style="font-size:14px;font-weight:600;color:var(--muted);">8,99€/mese</span>
+      </div>
+      <div style="font-size:11px;color:var(--muted);border-top:1px solid var(--line);padding-top:8px;margin-top:4px;">Rinnovo automatico mensile. Cancella quando vuoi.</div>
+    </div>
+    <button class="login-btn" id="trialCheckoutBtn" style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);">Abbonati ora — 4,99€</button>
+    <div class="login-loading" id="trialLoading" style="display:none;">Reindirizzamento al pagamento...</div>
+    <div class="login-error" id="trialError" style="display:none;"></div>
+    <button class="login-link" id="trialLogoutLink" style="margin-top:4px;">← Torna al login</button>
+  </div>
+</div>
+
 <!-- REGISTRAZIONE SCREEN -->
 <div id="registrazioneScreen" style="display:none;align-items:center;justify-content:center;min-height:100vh;background:var(--bg);padding:20px;box-sizing:border-box;">
   <div class="login-box" style="width:400px;max-width:100%;">
@@ -663,7 +691,14 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
   } catch(e) {
     loadEl.style.display = 'none';
     errEl.style.color = 'var(--error)';
-    if (e.message && (e.message.includes('sospeso') || e.message.includes('coach') || e.message.includes('scaduto'))) {
+    if (e.message === 'TRIAL_EXPIRED') {
+      // Trial scaduto: mostra schermata pagamento Stripe
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('trialScadutoScreen').style.display = 'flex';
+      // Salva email per uso nel checkout
+      window._TRIAL_EMAIL = email;
+      return;
+    } else if (e.message && (e.message.includes('sospeso') || e.message.includes('coach') || e.message.includes('scaduto'))) {
       errEl.innerHTML = '🚫 Accesso negato.<br>Per assistenza: <a href="mailto:rucchettad@gmail.com" style="color:var(--btn);">rucchettad@gmail.com</a>';
     } else {
       errEl.textContent = 'Email o password errati.';
@@ -701,6 +736,43 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
 
 document.getElementById('loginPassword').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('loginBtn').click();
+});
+
+// ===== TRIAL SCADUTO — CHECKOUT STRIPE =====
+document.getElementById('trialCheckoutBtn').addEventListener('click', async () => {
+  const loadEl = document.getElementById('trialLoading');
+  const errEl = document.getElementById('trialError');
+  loadEl.style.display = 'block';
+  errEl.style.display = 'none';
+
+  // Dobbiamo fare login veloce per ottenere il token (anche se scaduto, serve l'user_id)
+  // Usiamo l'email salvata e facciamo una richiesta dedicata al backend
+  try {
+    const email = window._TRIAL_EMAIL || document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+
+    // Ri-login per ottenere token (il backend risponde TRIAL_EXPIRED ma ci serve il token)
+    // Usiamo un endpoint dedicato: /api/crea-checkout accetta solo il token
+    // Facciamo login diretto a Supabase per ottenere il token anche se trial scaduto
+    // Alternativa più semplice: passiamo email+password a /api/crea-checkout
+    const res = await fetch(API_URL + '/api/crea-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.checkout_url) throw new Error(data.error || 'Errore pagamento');
+    window.location.href = data.checkout_url;
+  } catch(e) {
+    loadEl.style.display = 'none';
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+  }
+});
+
+document.getElementById('trialLogoutLink').addEventListener('click', () => {
+  document.getElementById('trialScadutoScreen').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
 });
 
 // ===== LOGOUT =====
@@ -768,6 +840,23 @@ function mostraBannerRateLimitAlCaricamento() {
 
 // ===== RIPRISTINO SESSIONE AL CARICAMENTO PAGINA =====
 async function ripristinaSessione() {
+  // Controlla se ritorno da pagamento Stripe riuscito
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('payment') === 'success') {
+    history.replaceState(null, '', window.location.pathname);
+    // Mostra messaggio successo nel login
+    document.getElementById('loginScreen').style.display = 'flex';
+    const errEl = document.getElementById('loginError');
+    errEl.style.color = 'var(--success)';
+    errEl.textContent = '✓ Pagamento completato! Accedi con le tue credenziali.';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (urlParams.get('payment') === 'cancel') {
+    history.replaceState(null, '', window.location.pathname);
+    document.getElementById('loginScreen').style.display = 'flex';
+    return;
+  }
   // Controlla se c'e' un token di recovery nell'URL (link email reset password)
   const hash = window.location.hash;
   const params = new URLSearchParams(hash.replace('#', '?'));
