@@ -783,24 +783,38 @@ function cacheGet(chiave) {
 }
 function cacheSet(chiave, val) { _CACHE[chiave] = { val, ts: Date.now() }; }
 
+let _rateLimitBloccato = false;
+function svuotaCache() { Object.keys(_CACHE).forEach(k => delete _CACHE[k]); }
+
 class RateLimitError extends Error {
   constructor() { super('Account temporaneamente sospeso per troppe richieste.'); }
 }
 
 async function fetchRange(chiave) {
+  if (_rateLimitBloccato) throw new RateLimitError();
   const cached = cacheGet('r:' + chiave);
   if (cached !== undefined) return cached;
   const data = await apiFetch('/api/range', { method: 'POST', body: JSON.stringify({ access_token: _authToken, range_key: chiave }) });
-  if (data && data.error === 'RATE_LIMIT_BLOCKED') throw new RateLimitError();
+  if (data && data.error === 'RATE_LIMIT_BLOCKED') {
+    _rateLimitBloccato = true;
+    svuotaCache();
+    throw new RateLimitError();
+  }
   const result = data.hands || null;
   cacheSet('r:' + chiave, result);
   return result;
 }
 
 async function fetchNota(chiave) {
+  if (_rateLimitBloccato) throw new RateLimitError();
   const cached = cacheGet('n:' + chiave);
   if (cached !== undefined) return cached;
   const data = await apiFetch('/api/nota', { method: 'POST', body: JSON.stringify({ access_token: _authToken, range_key: chiave }) });
+  if (data && data.error === 'RATE_LIMIT_BLOCKED') {
+    _rateLimitBloccato = true;
+    svuotaCache();
+    throw new RateLimitError();
+  }
   const result = data.note || null;
   cacheSet('n:' + chiave, result);
   return result;
