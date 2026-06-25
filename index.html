@@ -9,7 +9,6 @@
 // ===== BACKEND CONFIG =====
 const API_URL = 'https://poker-range-api-production.up.railway.app';
 let _authToken = null;
-var _rateLimitBloccato = false;
 
 async function apiFetch(endpoint, opts = {}) {
   const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
@@ -101,9 +100,8 @@ async function apiFetch(endpoint, opts = {}) {
     .canvasRow{order:1;}
     .logout-btn{background:var(--panel);border:1px solid var(--line);color:var(--muted);padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;}
     .logout-btn:hover{color:var(--error);border-color:var(--error);}
-    .error-banner{background:#2a1414;border:1px solid var(--error);color:#ff9b9b;border-radius:8px;padding:12px 16px;text-align:center;margin-bottom:12px;font-size:13px;}
-    .error-banner button{background:var(--error);color:white;border:none;border-radius:6px;padding:6px 14px;margin-left:10px;cursor:pointer;font-weight:600;}
-    .error-banner.rate-limit{text-align:left;line-height:1.7;white-space:pre-wrap;}
+    .error-banner{background:#2a1414;border:1px solid var(--error);color:#ff9b9b;border-radius:8px;padding:12px 16px;text-align:center;margin-bottom:12px;font-size:13px;white-space:pre-line;line-height:1.6;}
+    .error-banner button{background:var(--error);color:white;border:none;border-radius:6px;padding:6px 14px;margin-left:10px;cursor:pointer;font-weight:600;margin-top:8px;}
 
     /* RESPONSIVE SCALING - solo desktop */
     .wrap{transform-origin:top left;transition:transform 0.2s ease;}
@@ -265,7 +263,7 @@ async function apiFetch(endpoint, opts = {}) {
 <div id="loadingMsg" style="text-align:center;padding:40px;color:var(--muted);font-size:16px;">Caricamento range in corso...</div>
 <div id="errorBanner" class="error-banner" style="display:none;">
   <span id="errorBannerText"></span>
-  <button id="retryBtn" style="display:none;">Riprova</button>
+  <button id="retryBtn">Riprova</button>
 </div>
 
 <!-- CONTROLLI MOBILE (solo su telefono) -->
@@ -719,8 +717,25 @@ function mostraApp(user) {
   if (!window.APP_AVVIATA) avviaApp();
 }
 
+// ===== BANNER RATE LIMIT AL CARICAMENTO (prima che l'app sia avviata) =====
+function mostraBannerRateLimitAlCaricamento() {
+  _RATE_LIMITED = true;
+  const MSG = "⚠️ Rallenta!\nHai effettuato troppe richieste in poco tempo. Se stavi semplicemente navigando, ricorda di effettuare meno richieste consecutive in rapida successione.\nAttendi che il monitoraggio si concluda — potrebbe richiedere fino a 10 minuti — dopodiché potrai accedere nuovamente.\nL'accesso anomalo ai dati è monitorato e può comportare la sospensione permanente dell'account.";
+  const errBanner = document.getElementById('errorBanner');
+  const errText = document.getElementById('errorBannerText');
+  const retryBtn = document.getElementById('retryBtn');
+  errText.textContent = MSG;
+  retryBtn.style.display = 'none';
+  errBanner.style.display = 'block';
+  // Blocca i tab: tutti i click non fanno nulla
+  document.querySelectorAll('.tab, .flat-tab, .cellBtn').forEach(el => {
+    el.style.pointerEvents = 'none';
+    el.style.opacity = '0.4';
+  });
+}
+
 // ===== RIPRISTINO SESSIONE AL CARICAMENTO PAGINA =====
-window.addEventListener('DOMContentLoaded', function() {
+window.addEventListener('DOMContentLoaded', async function() {
   // Controlla se c'e' un token di recovery nell'URL (link email reset password)
   const hash = window.location.hash;
   const params = new URLSearchParams(hash.replace('#', '?'));
@@ -741,6 +756,20 @@ window.addEventListener('DOMContentLoaded', function() {
   const email = sessionStorage.getItem('poker_email');
   if (token && email) {
     _authToken = token;
+    // Controlla se l'utente e' bloccato PRIMA di mostrare l'app
+    try {
+      const status = await apiFetch('/api/check-status');
+      if (status && status.blocked === true) {
+        // Utente bloccato: mostra solo il banner, non avviare l'app
+        document.getElementById('appScreen').style.display = 'block';
+        document.getElementById('appContainer').style.display = 'block';
+        document.getElementById('loadingMsg').style.display = 'none';
+        mostraBannerRateLimitAlCaricamento();
+        return;
+      }
+    } catch(e) {
+      // Se check-status fallisce, procedi normalmente (non bloccare l'utente per un errore di rete)
+    }
     mostraDisclaimerPoiApp({ email });
   } else {
     document.getElementById('loginScreen').style.display = 'flex';
@@ -760,6 +789,10 @@ function cacheGet(chiave) {
   return entry.val;
 }
 function cacheSet(chiave, val) { _CACHE[chiave] = { val, ts: Date.now() }; }
+function svuotaCache() { Object.keys(_CACHE).forEach(k => delete _CACHE[k]); }
+
+// Flag rate limit globale
+let _RATE_LIMITED = false;
 
 class RateLimitError extends Error {
   constructor() { super('Account temporaneamente sospeso per troppe richieste.'); }
@@ -992,6 +1025,23 @@ document.getElementById('retryBtn').addEventListener('click', () => {
     document.getElementById('rangeStats').innerHTML=html;
   }
 
+  const MSG_RATE_LIMIT = "⚠️ Rallenta!\nHai effettuato troppe richieste in poco tempo. Se stavi semplicemente navigando, ricorda di effettuare meno richieste consecutive in rapida successione.\nAttendi che il monitoraggio si concluda — potrebbe richiedere fino a 10 minuti — dopodiché potrai accedere nuovamente.\nL'accesso anomalo ai dati è monitorato e può comportare la sospensione permanente dell'account.";
+
+  function mostraBannerRateLimit() {
+    _RATE_LIMITED = true;
+    svuotaCache();
+    const errBanner = document.getElementById('errorBanner');
+    const errText = document.getElementById('errorBannerText');
+    const retryBtn = document.getElementById('retryBtn');
+    errText.textContent = MSG_RATE_LIMIT;
+    retryBtn.style.display = 'none';
+    errBanner.style.display = 'block';
+    document.getElementById('noteContent').textContent = 'Account sospeso per uso anomalo.';
+    percentualiMani = {};
+    aggiornaStatistiche();
+    aggiornaVisualizzazioneMatrice();
+  }
+
   async function caricaRangeCorrente() {
     const chiave=generaChiaveRange();
     const idRichiesta = ++richiestaInCorsoId;
@@ -1001,25 +1051,19 @@ document.getElementById('retryBtn').addEventListener('click', () => {
       [hands, nota] = await Promise.all([fetchRange(chiave), fetchNota(chiave)]);
     } catch(e) {
       if (idRichiesta !== richiestaInCorsoId) return;
-      percentualiMani = {};
-      const errBanner = document.getElementById('errorBanner');
-      const errText = document.getElementById('errorBannerText');
       if (e instanceof RateLimitError) {
-        var msg = '⚠️ Rallenta!\n' +
-          'Hai effettuato troppe richieste in poco tempo. Se stavi semplicemente navigando, ricorda di effettuare meno richieste consecutive in rapida successione.\n' +
-          'Attendi che il monitoraggio si concluda — potrebbe richiedere fino a 10 minuti — dopodiché potrai accedere nuovamente.\n' +
-          'L\u2019accesso anomalo ai dati \u00e8 monitorato e pu\u00f2 comportare la sospensione permanente dell\u2019account.';
-        document.getElementById('noteContent').textContent = msg;
-        errText.textContent = msg;
-        errBanner.classList.add('rate-limit');
-        retryBtn.style.display = 'none';
-        _rateLimitBloccato = true;
+        mostraBannerRateLimit();
       } else {
+        percentualiMani = {};
+        const errBanner = document.getElementById('errorBanner');
+        const errText = document.getElementById('errorBannerText');
+        const retryBtn = document.getElementById('retryBtn');
         document.getElementById('noteContent').textContent='Errore: ' + e.message;
         errText.textContent='Errore caricamento: ' + e.message;
+        retryBtn.style.display = 'inline-block';
+        errBanner.style.display='block';
+        aggiornaStatistiche(); aggiornaVisualizzazioneMatrice();
       }
-      errBanner.style.display='block';
-      aggiornaStatistiche(); aggiornaVisualizzazioneMatrice();
       return;
     }
     if (idRichiesta !== richiestaInCorsoId) return;
@@ -1033,7 +1077,7 @@ document.getElementById('retryBtn').addEventListener('click', () => {
   }
 
   window.aggiornaUI = function aggiornaUI() {
-    if (_rateLimitBloccato) return;
+    if (_RATE_LIMITED) return;
     const responderTabs=document.getElementById('responderTabs');
     const flatSection=document.getElementById('flatSection');
     const stackButtons=document.querySelectorAll('#stackGrid .cellBtn');
