@@ -562,8 +562,19 @@ document.getElementById('regBtn').addEventListener('click', async () => {
   } catch(e) {
     loadEl.style.display = 'none';
     errEl.style.color = 'var(--error)';
-    errEl.textContent = e.message || 'Errore durante la registrazione.';
-    errEl.style.display = 'block';
+    if ((e.message || '').includes('già registrata')) {
+      errEl.innerHTML = 'Email già registrata. <span id="regRecoveryLink" style="text-decoration:underline;cursor:pointer;color:var(--btn);">Hai dimenticato la password?</span>';
+      errEl.style.display = 'block';
+      document.getElementById('regRecoveryLink').addEventListener('click', () => {
+        document.getElementById('registrazioneScreen').style.display = 'none';
+        document.getElementById('forgotScreen').style.display = 'flex';
+        document.getElementById('forgotEmail').value = email;
+        document.getElementById('forgotError').style.display = 'none';
+      });
+    } else {
+      errEl.textContent = e.message || 'Errore durante la registrazione.';
+      errEl.style.display = 'block';
+    }
   }
 });
 
