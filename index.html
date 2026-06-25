@@ -10,21 +10,25 @@
 const API_URL = 'https://poker-range-api-production.up.railway.app';
 let _authToken = null;
 var _rateLimitBloccato = false;
-var _CACHE_OBJ = {};
-const _CACHE_TTL = 5 * 60 * 1000;
-function svuotaCache() { Object.keys(_CACHE_OBJ).forEach(k => delete _CACHE_OBJ[k]); }
+
+function svuotaCache() { Object.keys(_CACHE_OBJ).forEach(function(k){ delete _CACHE_OBJ[k]; }); }
+
 function mostraBloccoRateLimit(email) {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appScreen').style.display = 'block';
   if (email) document.getElementById('userEmail').textContent = email;
   document.getElementById('loadingMsg').style.display = 'none';
   document.getElementById('appContainer').style.display = 'none';
-  const errBanner = document.getElementById('errorBanner');
-  const errText = document.getElementById('errorBannerText');
-  errText.textContent = '⚠️ Rallenta!\n' +
-    'Hai effettuato troppe richieste in poco tempo. Se stavi semplicemente navigando, ricorda di effettuare meno richieste consecutive in rapida successione.\n' +
-    'Attendi che il monitoraggio si concluda — potrebbe richiedere fino a 10 minuti — dopodiché potrai accedere nuovamente.\n' +
-    'L\u2019accesso anomalo ai dati \u00e8 monitorato e pu\u00f2 comportare la sospensione permanente dell\u2019account.';
+  var errBanner = document.getElementById('errorBanner');
+  var errText = document.getElementById('errorBannerText');
+  var msg = '⚠️ Rallenta!
+' +
+    'Hai effettuato troppe richieste in poco tempo. Se stavi semplicemente navigando, ricorda di effettuare meno richieste consecutive in rapida successione.
+' +
+    'Attendi che il monitoraggio si concluda — potrebbe richiedere fino a 10 minuti — dopodiché potrai accedere nuovamente.
+' +
+    "L'accesso anomalo ai dati è monitorato e può comportare la sospensione permanente dell'account.";
+  errText.textContent = msg;
   errBanner.classList.add('rate-limit');
   document.getElementById('retryBtn').style.display = 'none';
   errBanner.style.display = 'block';
@@ -122,6 +126,7 @@ async function apiFetch(endpoint, opts = {}) {
     .logout-btn:hover{color:var(--error);border-color:var(--error);}
     .error-banner{background:#2a1414;border:1px solid var(--error);color:#ff9b9b;border-radius:8px;padding:12px 16px;text-align:center;margin-bottom:12px;font-size:13px;}
     .error-banner button{background:var(--error);color:white;border:none;border-radius:6px;padding:6px 14px;margin-left:10px;cursor:pointer;font-weight:600;}
+    .error-banner.rate-limit{text-align:left;line-height:1.7;white-space:pre-wrap;}
 
     /* RESPONSIVE SCALING - solo desktop */
     .wrap{transform-origin:top left;transition:transform 0.2s ease;}
@@ -698,7 +703,6 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
   window.DISCLAIMER_CHIUSO = false;
   _rateLimitBloccato = false;
   svuotaCache();
-  document.getElementById('appContainer').style.display = 'none';
   // ===== PULISCI SESSIONE =====
   sessionStorage.removeItem('poker_token');
   sessionStorage.removeItem('poker_email');
@@ -742,10 +746,10 @@ function mostraApp(user) {
 
 // ===== RIPRISTINO SESSIONE AL CARICAMENTO PAGINA =====
 window.addEventListener('DOMContentLoaded', async function() {
-  const hash = window.location.hash;
-  const params = new URLSearchParams(hash.replace('#', '?'));
-  const tipo = params.get('type');
-  const accessToken = params.get('access_token');
+  var hash = window.location.hash;
+  var params = new URLSearchParams(hash.replace('#', '?'));
+  var tipo = params.get('type');
+  var accessToken = params.get('access_token');
 
   if (tipo === 'recovery' && accessToken) {
     history.replaceState(null, '', window.location.pathname);
@@ -754,37 +758,38 @@ window.addEventListener('DOMContentLoaded', async function() {
     return;
   }
 
-  const token = sessionStorage.getItem('poker_token');
-  const email = sessionStorage.getItem('poker_email');
+  var token = sessionStorage.getItem('poker_token');
+  var email = sessionStorage.getItem('poker_email');
   if (token && email) {
     _authToken = token;
     try {
-      const statusRes = await fetch(API_URL + '/api/check-status', {
+      var statusRes = await fetch(API_URL + '/api/check-status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ access_token: token })
       });
-      const statusData = await statusRes.json();
+      var statusData = await statusRes.json();
       if (statusData.error === 'RATE_LIMIT_BLOCKED') {
         _rateLimitBloccato = true;
         svuotaCache();
         mostraBloccoRateLimit(email);
       } else {
-        mostraDisclaimerPoiApp({ email });
+        mostraDisclaimerPoiApp({ email: email });
       }
     } catch(e) {
-      mostraDisclaimerPoiApp({ email });
+      mostraDisclaimerPoiApp({ email: email });
     }
   } else {
     document.getElementById('loginScreen').style.display = 'flex';
   }
 });
 
-
 // ===== BACKEND DATA =====
 window.APP_AVVIATA = false;
 
 // Cache con TTL 5 minuti
+var _CACHE_OBJ = {};
+const _CACHE_TTL = 5 * 60 * 1000;
 function cacheGet(chiave) {
   const entry = _CACHE_OBJ[chiave];
   if (!entry) return undefined;
@@ -818,8 +823,10 @@ async function fetchNota(chiave) {
   cacheSet('n:' + chiave, result);
   return result;
 }
+
 function avviaApp() {
   window.APP_AVVIATA = true;
+  document.getElementById('loadingMsg').style.display = 'none';
   document.getElementById('errorBanner').style.display = 'none';
   document.getElementById('appContainer').style.display = 'block';
   window.creaMatrice();
@@ -917,6 +924,7 @@ document.getElementById('retryBtn').addEventListener('click', () => {
   document.getElementById('errorBanner').style.display = 'none';
   aggiornaUI();
 });
+
 // ===== APP LOGIC =====
 (function() {
   'use strict';
