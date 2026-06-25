@@ -1004,13 +1004,10 @@ document.getElementById('retryBtn').addEventListener('click', () => {
       const errBanner = document.getElementById('errorBanner');
       const errText = document.getElementById('errorBannerText');
       if (e instanceof RateLimitError) {
-        var msg = '⚠️ Rallenta!
-' +
-          'Hai effettuato troppe richieste in poco tempo. Se stavi semplicemente navigando, ricorda di effettuare meno richieste consecutive in rapida successione.
-' +
-          'Attendi che il monitoraggio si concluda — potrebbe richiedere fino a 10 minuti — dopodiché potrai accedere nuovamente.
-' +
-          "L'accesso anomalo ai dati è monitorato e può comportare la sospensione permanente dell'account.";
+        var msg = '⚠️ Rallenta!\n' +
+          'Hai effettuato troppe richieste in poco tempo. Se stavi semplicemente navigando, ricorda di effettuare meno richieste consecutive in rapida successione.\n' +
+          'Attendi che il monitoraggio si concluda — potrebbe richiedere fino a 10 minuti — dopodiché potrai accedere nuovamente.\n' +
+          'L\u2019accesso anomalo ai dati \u00e8 monitorato e pu\u00f2 comportare la sospensione permanente dell\u2019account.';
         document.getElementById('noteContent').textContent = msg;
         errText.textContent = msg;
         errBanner.classList.add('rate-limit');
