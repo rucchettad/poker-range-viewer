@@ -677,6 +677,13 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
   _authToken = null;
   window.APP_AVVIATA = false;
   window.DISCLAIMER_CHIUSO = false;
+  _rateLimitBloccato = false;
+  svuotaCache();
+  // Riabilita UI
+  document.querySelectorAll('.tab, .flat-tab, .cellBtn, .switch-btn').forEach(el => {
+    el.style.pointerEvents = '';
+    el.style.opacity = '';
+  });
   // ===== PULISCI SESSIONE =====
   sessionStorage.removeItem('poker_token');
   sessionStorage.removeItem('poker_email');
@@ -740,7 +747,23 @@ window.addEventListener('DOMContentLoaded', function() {
   const email = sessionStorage.getItem('poker_email');
   if (token && email) {
     _authToken = token;
-    mostraDisclaimerPoiApp({ email });
+    // Controlla se bloccato prima di mostrare l'app
+    try {
+      const statusData = await fetch(API_URL + '/api/check-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token: token })
+      }).then(r => r.json());
+      if (statusData.error === 'RATE_LIMIT_BLOCKED') {
+        _rateLimitBloccato = true;
+        svuotaCache();
+        mostraDisclaimerPoiApp({ email });
+      } else {
+        mostraDisclaimerPoiApp({ email });
+      }
+    } catch(e) {
+      mostraDisclaimerPoiApp({ email });
+    }
   } else {
     document.getElementById('loginScreen').style.display = 'flex';
   }
@@ -1009,6 +1032,11 @@ document.getElementById('retryBtn').addEventListener('click', () => {
         errText.textContent='⚠️ Rallenta!\nHai effettuato troppe richieste in poco tempo. Se stavi semplicemente navigando, ricorda di effettuare meno richieste consecutive in rapida successione.\nAttendi che il monitoraggio si concluda \u2014 potrebbe richiedere fino a 10 minuti \u2014 dopodiché potrai accedere nuovamente.\nL\'accesso anomalo ai dati è monitorato e può comportare la sospensione permanente dell\'account.';
         errBanner.classList.add('rate-limit');
         retryBtn.style.display = 'none';
+        // Disabilita tutti i tab e pulsanti
+        document.querySelectorAll('.tab, .flat-tab, .cellBtn, .switch-btn').forEach(el => {
+          el.style.pointerEvents = 'none';
+          el.style.opacity = '0.4';
+        });
       } else {
         document.getElementById('noteContent').textContent='Errore: ' + e.message;
         errText.textContent='Errore caricamento: ' + e.message;
