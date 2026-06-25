@@ -283,7 +283,7 @@ async function apiFetch(endpoint, opts = {}) {
 <div id="loadingMsg" style="text-align:center;padding:40px;color:var(--muted);font-size:16px;">Caricamento range in corso...</div>
 <div id="errorBanner" class="error-banner" style="display:none;">
   <span id="errorBannerText"></span>
-  <button id="retryBtn">Riprova</button>
+  <button id="retryBtn" style="display:none;">Riprova</button>
 </div>
 
 <!-- CONTROLLI MOBILE (solo su telefono) -->
@@ -798,26 +798,26 @@ class RateLimitError extends Error {
 }
 
 async function fetchRange(chiave) {
+  if (_rateLimitBloccato) throw new RateLimitError();
   const cached = cacheGet('r:' + chiave);
   if (cached !== undefined) return cached;
   const data = await apiFetch('/api/range', { method: 'POST', body: JSON.stringify({ access_token: _authToken, range_key: chiave }) });
-  if (data && data.error === 'RATE_LIMIT_BLOCKED') throw new RateLimitError();
+  if (data && data.error === 'RATE_LIMIT_BLOCKED') { _rateLimitBloccato = true; svuotaCache(); throw new RateLimitError(); }
   const result = data.hands || null;
   cacheSet('r:' + chiave, result);
   return result;
 }
 
 async function fetchNota(chiave) {
+  if (_rateLimitBloccato) throw new RateLimitError();
   const cached = cacheGet('n:' + chiave);
   if (cached !== undefined) return cached;
   const data = await apiFetch('/api/nota', { method: 'POST', body: JSON.stringify({ access_token: _authToken, range_key: chiave }) });
+  if (data && data.error === 'RATE_LIMIT_BLOCKED') { _rateLimitBloccato = true; svuotaCache(); throw new RateLimitError(); }
   const result = data.note || null;
   cacheSet('n:' + chiave, result);
   return result;
 }
-
-function avviaApp() {
-  window.APP_AVVIATA = true;
   document.getElementById('loadingMsg').style.display = 'none';
   document.getElementById('errorBanner').style.display = 'none';
   document.getElementById('appContainer').style.display = 'block';
@@ -912,10 +912,10 @@ function inizializzaMobile() {
 }
 
 document.getElementById('retryBtn').addEventListener('click', () => {
+  if (_rateLimitBloccato) return;
   document.getElementById('errorBanner').style.display = 'none';
   aggiornaUI();
 });
-
 // ===== APP LOGIC =====
 (function() {
   'use strict';
