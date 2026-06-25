@@ -758,22 +758,21 @@ window.addEventListener('DOMContentLoaded', async function() {
       if (statusData.error === 'RATE_LIMIT_BLOCKED') {
         _rateLimitBloccato = true;
         svuotaCache();
-        // Mostra schermata bloccata senza accesso ai range
+        // Mostra solo la schermata di blocco, niente app
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('appScreen').style.display = 'block';
         document.getElementById('userEmail').textContent = email;
         document.getElementById('loadingMsg').style.display = 'none';
-        document.getElementById('appContainer').style.display = 'block';
+        document.getElementById('appContainer').style.display = 'none';
         const errBanner = document.getElementById('errorBanner');
         const errText = document.getElementById('errorBannerText');
-        errText.textContent = '⚠️ Rallenta!\nHai effettuato troppe richieste in poco tempo. Se stavi semplicemente navigando, ricorda di effettuare meno richieste consecutive in rapida successione.\nAttendi che il monitoraggio si concluda \u2014 potrebbe richiedere fino a 10 minuti \u2014 dopodiché potrai accedere nuovamente.\nL\u2019accesso anomalo ai dati \u00e8 monitorato e pu\u00f2 comportare la sospensione permanente dell\u2019account.';
+        errText.textContent = '⚠️ Rallenta!
+Hai effettuato troppe richieste in poco tempo. Se stavi semplicemente navigando, ricorda di effettuare meno richieste consecutive in rapida successione.
+Attendi che il monitoraggio si concluda — potrebbe richiedere fino a 10 minuti — dopodiché potrai accedere nuovamente.
+L’accesso anomalo ai dati è monitorato e può comportare la sospensione permanente dell’account.';
         errBanner.classList.add('rate-limit');
         document.getElementById('retryBtn').style.display = 'none';
         errBanner.style.display = 'block';
-        document.querySelectorAll('.tab, .flat-tab, .cellBtn, .switch-btn').forEach(el => {
-          el.style.pointerEvents = 'none';
-          el.style.opacity = '0.4';
-        });
       } else {
         mostraDisclaimerPoiApp({ email });
       }
