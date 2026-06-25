@@ -102,6 +102,7 @@ async function apiFetch(endpoint, opts = {}) {
     .logout-btn:hover{color:var(--error);border-color:var(--error);}
     .error-banner{background:#2a1414;border:1px solid var(--error);color:#ff9b9b;border-radius:8px;padding:12px 16px;text-align:center;margin-bottom:12px;font-size:13px;}
     .error-banner button{background:var(--error);color:white;border:none;border-radius:6px;padding:6px 14px;margin-left:10px;cursor:pointer;font-weight:600;}
+    .error-banner.rate-limit{text-align:left;line-height:1.7;white-space:pre-wrap;}
 
     /* RESPONSIVE SCALING - solo desktop */
     .wrap{transform-origin:top left;transition:transform 0.2s ease;}
@@ -263,7 +264,7 @@ async function apiFetch(endpoint, opts = {}) {
 <div id="loadingMsg" style="text-align:center;padding:40px;color:var(--muted);font-size:16px;">Caricamento range in corso...</div>
 <div id="errorBanner" class="error-banner" style="display:none;">
   <span id="errorBannerText"></span>
-  <button id="retryBtn">Riprova</button>
+  <button id="retryBtn" style="display:none;">Riprova</button>
 </div>
 
 <!-- CONTROLLI MOBILE (solo su telefono) -->
@@ -1003,8 +1004,17 @@ document.getElementById('retryBtn').addEventListener('click', () => {
       const errBanner = document.getElementById('errorBanner');
       const errText = document.getElementById('errorBannerText');
       if (e instanceof RateLimitError) {
-        document.getElementById('noteContent').textContent='Account sospeso per uso anomalo.';
-        errText.textContent='Account sospeso per troppe richieste.';
+        var msg = '⚠️ Rallenta!
+' +
+          'Hai effettuato troppe richieste in poco tempo. Se stavi semplicemente navigando, ricorda di effettuare meno richieste consecutive in rapida successione.
+' +
+          'Attendi che il monitoraggio si concluda — potrebbe richiedere fino a 10 minuti — dopodiché potrai accedere nuovamente.
+' +
+          "L'accesso anomalo ai dati è monitorato e può comportare la sospensione permanente dell'account.";
+        document.getElementById('noteContent').textContent = msg;
+        errText.textContent = msg;
+        errBanner.classList.add('rate-limit');
+        retryBtn.style.display = 'none';
       } else {
         document.getElementById('noteContent').textContent='Errore: ' + e.message;
         errText.textContent='Errore caricamento: ' + e.message;
