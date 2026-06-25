@@ -274,7 +274,31 @@ async function apiFetch(endpoint, opts = {}) {
       <div style="font-size:11px;color:var(--muted);margin-top:10px;font-style:italic;">I dati forniti sono usati solo per proporti offerte personalizzate e non vengono condivisi con terze parti.</div>
     </div>
 
+    <!-- GDPR -->
+    <div style="margin-top:8px;">
+      <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px;color:var(--muted);line-height:1.5;">
+        <input type="checkbox" id="regGdprChk" style="accent-color:var(--btn);width:16px;height:16px;margin-top:2px;flex-shrink:0;">
+        <span>Ho letto e accetto la <button type="button" onclick="document.getElementById('privacyModal').style.display='flex'" style="background:none;border:none;color:var(--btn);cursor:pointer;font-size:13px;padding:0;text-decoration:underline;font-family:inherit;">Privacy Policy</button>. I miei dati saranno utilizzati esclusivamente per la gestione dell'accesso al servizio e non verranno ceduti a terzi.</span>
+      </label>
+    </div>
+
     <button class="login-btn" id="regBtn" style="margin-top:8px;">Invia richiesta</button>
+
+    <!-- MODAL PRIVACY POLICY -->
+    <div id="privacyModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:99999;align-items:center;justify-content:center;padding:20px;">
+      <div style="background:#1f2937;border:1px solid #374151;border-radius:16px;padding:28px;max-width:500px;width:100%;max-height:80vh;overflow-y:auto;">
+        <h3 style="color:var(--btn);margin:0 0 16px;font-size:16px;">Privacy Policy — Poker Range Viewer</h3>
+        <div style="font-size:13px;color:#d1d5db;line-height:1.8;display:flex;flex-direction:column;gap:10px;">
+          <div><strong style="color:white;">Titolare del trattamento:</strong><br>Danilo Rucchetta — rucchettad@gmail.com</div>
+          <div><strong style="color:white;">Dati raccolti:</strong><br>Nome, indirizzo email, piattaforme di gioco selezionate.</div>
+          <div><strong style="color:white;">Finalità:</strong><br>Gestione dell'accesso al servizio Poker Range Viewer e, se applicabile, gestione dell'abbonamento.</div>
+          <div><strong style="color:white;">Conservazione:</strong><br>I dati sono conservati per la durata del rapporto contrattuale e fino a eventuale richiesta di cancellazione.</div>
+          <div><strong style="color:white;">Cessione a terzi:</strong><br>I dati non vengono ceduti a terzi, ad eccezione di Stripe per la gestione dei pagamenti (se applicabile).</div>
+          <div><strong style="color:white;">Diritti:</strong><br>Puoi richiedere accesso, modifica o cancellazione dei tuoi dati scrivendo a rucchettad@gmail.com.</div>
+        </div>
+        <button onclick="document.getElementById('privacyModal').style.display='none'" style="margin-top:20px;width:100%;background:var(--btn);border:none;color:white;padding:10px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">Chiudi</button>
+      </div>
+    </div>
     <button class="login-link" id="backToLoginFromReg">← Torna al login</button>
     <div class="login-error" id="regError"></div>
     <div class="login-loading" id="regLoading">Invio in corso...</div>
@@ -555,6 +579,12 @@ document.getElementById('regBtn').addEventListener('click', async () => {
   const loadEl = document.getElementById('regLoading');
   errEl.style.display = 'none';
 
+  if (!document.getElementById('regGdprChk').checked) {
+    errEl.style.color = 'var(--error)';
+    errEl.textContent = 'Devi accettare la Privacy Policy per procedere.';
+    errEl.style.display = 'block';
+    return;
+  }
   if (!nome || !email || !password) {
     errEl.style.color = 'var(--error)';
     errEl.textContent = 'Compila tutti i campi obbligatori.';
