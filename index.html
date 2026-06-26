@@ -659,10 +659,18 @@ document.getElementById('regBtn').addEventListener('click', async () => {
     })});
     loadEl.style.display = 'none';
     errEl.style.color = 'var(--success)';
-    errEl.textContent = '✓ Registrazione completata! Controlla la tua email.';
+    errEl.textContent = '✓ Registrazione completata! Controlla la tua email. Reindirizzamento al login...';
     errEl.style.display = 'block';
     document.getElementById('regBtn').disabled = true;
     document.getElementById('regBtn').style.opacity = '0.6';
+    setTimeout(() => {
+      document.getElementById('registrazioneScreen').style.display = 'none';
+      document.getElementById('loginScreen').style.display = 'flex';
+      document.getElementById('loginEmail').value = email;
+      document.getElementById('loginError').style.color = 'var(--success)';
+      document.getElementById('loginError').textContent = '✓ Account creato! Inserisci la password per accedere.';
+      document.getElementById('loginError').style.display = 'block';
+    }, 3000);
   } catch(e) {
     loadEl.style.display = 'none';
     errEl.style.color = 'var(--error)';
