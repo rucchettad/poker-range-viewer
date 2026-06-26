@@ -832,7 +832,7 @@ function buildPrizesGrid() {
 const API_URL = 'https://poker-range-api-production.up.railway.app';
 
 function getToken() {
-  return sessionStorage.getItem('access_token') || localStorage.getItem('access_token') || '';
+  return sessionStorage.getItem('poker_token') || sessionStorage.getItem('access_token') || '';
 }
 
 // ─── CALCULATE ───────────────────────────────────────────
