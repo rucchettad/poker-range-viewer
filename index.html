@@ -1065,6 +1065,28 @@ function avviaApp() {
   if (window.innerWidth < 1024) {
     inizializzaMobile();
   }
+  // Polling sessione ogni 30 secondi
+  setInterval(async () => {
+    const token = sessionStorage.getItem('poker_token');
+    const sessionToken = sessionStorage.getItem('poker_session');
+    if (!token || !sessionToken) return;
+    try {
+      await apiFetch('/api/check-status', { method: 'POST', body: JSON.stringify({ access_token: token, session_token: sessionToken }) });
+    } catch(e) {
+      if (e.message === 'SESSION_DUPLICATE') {
+        _authToken = null;
+        sessionStorage.removeItem('poker_token');
+        sessionStorage.removeItem('poker_email');
+        sessionStorage.removeItem('poker_session');
+        document.getElementById('appScreen').style.display = 'none';
+        document.getElementById('loginScreen').style.display = 'flex';
+        const errEl = document.getElementById('loginError');
+        errEl.style.color = 'var(--error)';
+        errEl.textContent = '⚠️ Sessione non valida. Un altro dispositivo ha effettuato l\'accesso con questo account.';
+        errEl.style.display = 'block';
+      }
+    }
+  }, 30000);
 }
 
 function inizializzaMobile() {
