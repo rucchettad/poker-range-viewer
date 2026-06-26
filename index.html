@@ -304,13 +304,13 @@ async function apiFetch(endpoint, opts = {}) {
 <div id="appScreen" style="display:none;">
 <div class="wrap">
 
-<!-- IFRAME OVERLAY TOOL -->
+<!-- TOOL OVERLAY -->
 <div id="toolOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:var(--bg);flex-direction:column;">
-  <div style="display:flex;align-items:center;gap:12px;padding:10px 16px;background:linear-gradient(135deg,#1f6feb 0%,#0969da 100%);border-bottom:2px solid #388bfd;">
+  <div style="display:flex;align-items:center;gap:12px;padding:10px 16px;background:linear-gradient(135deg,#1f6feb 0%,#0969da 100%);border-bottom:2px solid #388bfd;flex-shrink:0;">
     <button onclick="chiudiTool()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;padding:6px 14px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;">← Range</button>
     <span id="toolOverlayTitle" style="font-size:14px;font-weight:700;color:white;"></span>
   </div>
-  <iframe id="toolFrame" src="" style="flex:1;border:none;width:100%;height:100%;"></iframe>
+  <div id="toolContent" style="flex:1;overflow:auto;"></div>
 </div>
 
 <div style="background:linear-gradient(135deg,#1f6feb 0%,#0969da 100%);border:2px solid #388bfd;border-radius:12px;padding:8px 20px;box-shadow:0 4px 12px rgba(31,111,235,0.3);margin-bottom:16px;display:flex;align-items:center;position:relative;">
@@ -1417,23 +1417,48 @@ document.getElementById('retryBtn').addEventListener('click', () => {
 </script>
 
 <script>
-function apriTool(url, titolo) {
+async function apriTool(url, titolo) {
   const overlay = document.getElementById('toolOverlay');
-  const frame = document.getElementById('toolFrame');
+  const content = document.getElementById('toolContent');
   const title = document.getElementById('toolOverlayTitle');
-  frame.src = url;
   title.textContent = titolo;
+  content.innerHTML = '<div style="text-align:center;padding:40px;color:#a9b4c2;">Caricamento...</div>';
   overlay.style.display = 'flex';
   document.body.style.overflow = 'hidden';
+  try {
+    const resp = await fetch(url);
+    const html = await resp.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    content.innerHTML = '';
+    // Inietta stili
+    doc.querySelectorAll('style').forEach(s => {
+      const clone = document.createElement('style');
+      clone.textContent = s.textContent;
+      content.appendChild(clone);
+    });
+    // Inietta body
+    const div = document.createElement('div');
+    div.innerHTML = doc.body.innerHTML;
+    content.appendChild(div);
+    // Esegui script
+    div.querySelectorAll('script').forEach(s => {
+      const newScript = document.createElement('script');
+      newScript.textContent = s.textContent;
+      document.body.appendChild(newScript);
+      s.remove();
+    });
+  } catch(e) {
+    content.innerHTML = '<div style="text-align:center;padding:40px;color:#dc2626;">Errore caricamento tool.</div>';
+  }
 }
 
 function chiudiTool() {
-  const overlay = document.getElementById('toolOverlay');
-  const frame = document.getElementById('toolFrame');
-  overlay.style.display = 'none';
-  frame.src = '';
+  document.getElementById('toolOverlay').style.display = 'none';
+  document.getElementById('toolContent').innerHTML = '';
   document.body.style.overflow = '';
 }
 </script>
+
 </body>
 </html>
