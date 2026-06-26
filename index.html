@@ -1519,7 +1519,7 @@ async function apriTool(url, titolo) {
   overlay.style.display = 'flex';
   document.body.style.overflow = 'hidden';
   try {
-    const resp = await fetch(url);
+    const resp = await fetch(url + '?v=' + Date.now());
     const html = await resp.text();
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
