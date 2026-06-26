@@ -186,7 +186,7 @@ async function apiFetch(endpoint, opts = {}) {
     <button class="login-link" id="forgotPasswordLink">Hai dimenticato la password?</button>
     <div style="border-top:1px solid var(--line);margin-top:4px;padding-top:16px;text-align:center;">
       <div style="font-size:13px;color:var(--muted);margin-bottom:8px;">Non hai ancora un account?</div>
-      <button class="login-link" id="registrazioneLink" style="color:var(--btn);font-weight:700;">Richiedi accesso →</button>
+      <button class="login-link" id="registrazioneLink" style="color:var(--btn);font-weight:700;">Registrati →</button>
     </div>
     <div class="login-error" id="loginError"></div>
     <div class="login-loading" id="loginLoading">Accesso in corso...</div>
@@ -248,7 +248,7 @@ async function apiFetch(endpoint, opts = {}) {
 <div id="registrazioneScreen" style="display:none;align-items:center;justify-content:center;min-height:100vh;background:var(--bg);padding:20px;box-sizing:border-box;">
   <div class="login-box" style="width:400px;max-width:100%;">
     <div class="login-logo">&#9829; Poker Range &#9824;</div>
-    <div class="login-title">Richiedi accesso</div>
+    <div class="login-title">Registrati</div>
     <input class="login-input" id="regNome" placeholder="Nome e cognome *" type="text"/>
     <input class="login-input" id="regEmail" placeholder="Email *" type="email"/>
     <input class="login-input" id="regPassword" placeholder="Password (min. 6 caratteri) *" type="password"/>
@@ -659,7 +659,7 @@ document.getElementById('regBtn').addEventListener('click', async () => {
     })});
     loadEl.style.display = 'none';
     errEl.style.color = 'var(--success)';
-    errEl.textContent = '✓ Richiesta inviata! Riceverai accesso al più presto.';
+    errEl.textContent = '✓ Registrazione completata! Controlla la tua email.';
     errEl.style.display = 'block';
     document.getElementById('regBtn').disabled = true;
     document.getElementById('regBtn').style.opacity = '0.6';
