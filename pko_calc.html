@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>PKO Bounty Calculator</title>
+<style>
+  :root {
+    --bg: #0b0c10; --panel: #11131a; --line: #1d2330; --text: #e6eef7;
+    --muted: #a9b4c2; --btn: #1f6feb; --success: #10b981; --warning: #f59e0b; --error: #dc2626;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; padding: 24px; }
+  h2 { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+  .subtitle { font-size: 12px; color: var(--muted); margin-bottom: 20px; }
+  .section-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+  .section-sep { border: none; border-top: 1px solid var(--line); margin: 16px 0 12px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 5px; }
+  .tip { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; border-radius: 50%; background: #1d2330; color: var(--muted); font-size: 9px; font-weight: 700; cursor: help; position: relative; flex-shrink: 0; text-transform: none; letter-spacing: 0; }
+  .tip:hover::after { content: attr(data-tip); position: absolute; left: 18px; top: 50%; transform: translateY(-50%); background: #1a2236; border: 1px solid var(--btn); color: var(--text); font-size: 11px; font-weight: 400; padding: 6px 10px; border-radius: 6px; z-index: 999; width: 220px; line-height: 1.5; letter-spacing: 0; text-transform: none; white-space: normal; }
+  .field input {
+    background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px 14px; color: var(--text); font-size: 14px; outline: none; transition: border-color 0.2s;
+  }
+  .field input:focus { border-color: var(--btn); }
+  .field input:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  .villain-block {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    padding: 14px; margin-bottom: 10px;
+  }
+  .villain-header {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
+  }
+  .villain-title { font-size: 13px; font-weight: 700; color: var(--text); }
+  .villain-toggle {
+    background: none; border: 1px solid var(--line); color: var(--muted);
+    border-radius: 6px; padding: 4px 10px; font-size: 11px; cursor: pointer; font-weight: 600;
+  }
+  .villain-toggle.active { border-color: var(--btn); color: var(--btn); }
+  .villain-fields { display: none; }
+  .villain-fields.show { display: block; }
+
+  .calc-btn {
+    background: var(--btn); color: white; border: none; border-radius: 8px;
+    padding: 12px; font-size: 14px; font-weight: 700; cursor: pointer; width: 100%;
+    margin: 16px 0; transition: background 0.2s;
+  }
+  .calc-btn:hover { background: #388bfd; }
+
+  .risultati { display: none; flex-direction: column; gap: 12px; }
+  .risultati.show { display: flex; }
+  .res-row { display: flex; gap: 10px; }
+  .res-box {
+    flex: 1; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px;
+  }
+  .res-box.highlight { border-color: var(--btn); background: #0d1929; }
+  .res-box.good { border-color: var(--success); background: #061a12; }
+  .res-box.info { border-color: #374151; background: #0f1117; }
+  .res-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+  .res-value { font-size: 20px; font-weight: 700; color: var(--text); }
+  .res-value.blue { color: var(--btn); }
+  .res-value.green { color: var(--success); }
+  .res-value.warning { color: var(--warning); }
+  .res-value.muted { color: var(--muted); font-size: 15px; }
+
+  .coverage-info {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+    font-size: 12px; color: var(--muted); line-height: 1.8;
+  }
+  .coverage-info span.ok { color: var(--success); font-weight: 700; }
+  .coverage-info span.no { color: var(--error); font-weight: 700; }
+
+  .bf-table-wrap { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .bf-table-title { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+  .bf-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .bf-table th { padding: 8px 12px; text-align: left; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; border-bottom: 1px solid var(--line); }
+  .bf-table td { padding: 7px 12px; border-bottom: 1px solid #111620; }
+  .bf-table tr:last-child td { border-bottom: none; }
+  .bf-table tr.active-row td { background: #0d1929; color: var(--btn); font-weight: 700; }
+  .bf-table tr.active-row td:last-child { color: var(--success); }
+  .tag-bf { display: inline-block; background: var(--btn); color: white; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-left: 6px; }
+</style>
+</head>
+<body>
+
+<h2>🎯 PKO Bounty Calculator</h2>
+<p class="subtitle">Calcola le Pot Odds aggiustate — scenario call all-in (fino a 3 villain)</p>
+
+<p class="section-label">Dati torneo</p>
+<div class="grid2">
+  <div class="field"><label>Buy-in (€) <span class="tip" data-tip="Importo totale del buy-in del torneo (es. 50€)">?</span></label><input type="number" id="buyin" placeholder="Es. 50" step="0.01"/></div>
+  <div class="field"><label>Taglia iniziale (€) <span class="tip" data-tip="Valore base del bounty assegnato a ogni giocatore a inizio torneo">?</span></label><input type="number" id="taglia" placeholder="Es. 11.25" step="0.01"/></div>
+  <div class="field"><label>Stack iniziale torneo (chips) <span class="tip" data-tip="Stack in chips con cui ogni giocatore inizia il torneo">?</span></label><input type="number" id="stackIniziale" placeholder="Es. 10000"/></div>
+  <div class="field"><label>Stack Hero (chips) <span class="tip" data-tip="Il tuo stack attuale al momento della decisione. Serve solo per capire chi copri.">?</span></label><input type="number" id="stackHero" placeholder="Es. 80000"/></div>
+</div>
+
+<div class="field" style="margin-bottom:12px;">
+  <label>Pot attuale prima della tua azione (chips) <span class="tip" data-tip="Tutto ciò che è già nel mezzo prima che tu agisca: ante, blind, shove dell'avversario, eventuali call precedenti">?</span></label>
+  <input type="number" id="potAttuale" placeholder="Es. 25000"/>
+</div>
+
+<hr class="section-sep"/>
+<p class="section-label">Villain nel pot</p>
+
+<!-- VILLAIN 1 — sempre visibile -->
+<div class="villain-block">
+  <div class="villain-header">
+    <span class="villain-title">Villain 1</span>
+    <span style="font-size:11px;color:var(--muted);">obbligatorio</span>
+  </div>
+  <div class="villain-fields show">
+    <div class="grid2">
+      <div class="field"><label>Stack Villain 1 (chips) <span class="tip" data-tip="Stack del villain che ha shovato. Se coperto da Hero, determina il call effettivo.">?</span></label><input type="number" id="sv1" placeholder="Es. 60000"/></div>
+      <div class="field"><label>Bounty Villain 1 (€) <span class="tip" data-tip="Importo del bounty attuale del villain. Lo vinci se lo elimini.">?</span></label><input type="number" id="bv1" placeholder="Es. 22.50" step="0.01"/></div>
+    </div>
+  </div>
+</div>
+
+<!-- VILLAIN 2 — opzionale -->
+<div class="villain-block">
+  <div class="villain-header">
+    <span class="villain-title">Villain 2</span>
+    <button class="villain-toggle" id="toggle2" onclick="toggleVillain(2)">+ Aggiungi</button>
+  </div>
+  <div class="villain-fields" id="fields2">
+    <div class="grid2">
+      <div class="field"><label>Stack Villain 2 (chips) <span class="tip" data-tip="Stack del secondo villain nel pot. Inserisci solo se ha già agito prima di te.">?</span></label><input type="number" id="sv2" placeholder="Es. 40000"/></div>
+      <div class="field"><label>Bounty Villain 2 (€) <span class="tip" data-tip="Bounty del secondo villain. Incluso nel calcolo solo se Hero lo copre.">?</span></label><input type="number" id="bv2" placeholder="Es. 15.00" step="0.01"/></div>
+    </div>
+  </div>
+</div>
+
+<!-- VILLAIN 3 — opzionale -->
+<div class="villain-block">
+  <div class="villain-header">
+    <span class="villain-title">Villain 3</span>
+    <button class="villain-toggle" id="toggle3" onclick="toggleVillain(3)">+ Aggiungi</button>
+  </div>
+  <div class="villain-fields" id="fields3">
+    <div class="grid2">
+      <div class="field"><label>Stack Villain 3 (chips) <span class="tip" data-tip="Stack del terzo villain nel pot. Inserisci solo se ha già agito prima di te.">?</span></label><input type="number" id="sv3" placeholder="Es. 30000"/></div>
+      <div class="field"><label>Bounty Villain 3 (€) <span class="tip" data-tip="Bounty del terzo villain. Incluso nel calcolo solo se Hero lo copre.">?</span></label><input type="number" id="bv3" placeholder="Es. 10.00" step="0.01"/></div>
+    </div>
+  </div>
+</div>
+
+<button class="calc-btn" onclick="calcola()">Calcola</button>
+
+<div class="risultati" id="risultati">
+
+  <div class="res-row">
+    <div class="res-box info">
+      <span class="res-label">Call effettivo</span>
+      <span class="res-value muted" id="rCallEff">—</span>
+    </div>
+    <div class="res-box info">
+      <span class="res-label">Pot totale</span>
+      <span class="res-value muted" id="rPotTot">—</span>
+    </div>
+    <div class="res-box info">
+      <span class="res-label">Bounty totale coperto</span>
+      <span class="res-value muted" id="rBountyTot">—</span>
+    </div>
+  </div>
+
+  <div class="coverage-info" id="coverageInfo"></div>
+
+  <div class="res-row">
+    <div class="res-box">
+      <span class="res-label">N° Taglie</span>
+      <span class="res-value blue" id="rNTaglie">—</span>
+    </div>
+    <div class="res-box">
+      <span class="res-label">N° Stack</span>
+      <span class="res-value blue" id="rNStack">—</span>
+    </div>
+    <div class="res-box highlight">
+      <span class="res-label">Bounty Factor</span>
+      <span class="res-value blue" id="rBF">—</span>
+    </div>
+  </div>
+
+  <div class="res-row">
+    <div class="res-box">
+      <span class="res-label">Pot Odds</span>
+      <span class="res-value" id="rPO">—</span>
+    </div>
+    <div class="res-box">
+      <span class="res-label">Bounty Discount</span>
+      <span class="res-value warning" id="rDiscount">—</span>
+    </div>
+    <div class="res-box good">
+      <span class="res-label">Pot Odds Aggiustate</span>
+      <span class="res-value green" id="rPOAdj">—</span>
+    </div>
+  </div>
+
+  <div class="bf-table-wrap">
+    <div class="bf-table-title">Tabella Bounty Discount — riferimento completo</div>
+    <table class="bf-table">
+      <thead><tr><th>Bounty Factor</th><th>Bounty Discount</th><th>Pot Odds Aggiustate</th></tr></thead>
+      <tbody id="bfBody"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+const BF_TABLE = [
+  {bf:0.3,d:1.0},{bf:0.4,d:1.7},{bf:0.5,d:3.0},{bf:0.75,d:4.2},
+  {bf:1.0,d:5.4},{bf:1.25,d:6.2},{bf:1.5,d:7.4},{bf:1.75,d:8.5},
+  {bf:2.0,d:9.4},{bf:2.5,d:11.1},{bf:3.0,d:12.7},{bf:4.0,d:15.5},
+  {bf:5.0,d:17.5},{bf:10.0,d:25.0},{bf:20.0,d:32.0},{bf:50.0,d:40.0},{bf:100.0,d:50.0}
+];
+
+const villainActive = { 2: false, 3: false };
+
+function toggleVillain(n) {
+  villainActive[n] = !villainActive[n];
+  const fields = document.getElementById('fields' + n);
+  const btn = document.getElementById('toggle' + n);
+  if (villainActive[n]) {
+    fields.classList.add('show');
+    btn.textContent = '− Rimuovi';
+    btn.classList.add('active');
+  } else {
+    fields.classList.remove('show');
+    btn.textContent = '+ Aggiungi';
+    btn.classList.remove('active');
+    document.getElementById('sv' + n).value = '';
+    document.getElementById('bv' + n).value = '';
+  }
+}
+
+function getClosest(bf) {
+  let c = BF_TABLE[0], min = Math.abs(bf - BF_TABLE[0].bf);
+  for (const r of BF_TABLE) { const d = Math.abs(bf - r.bf); if (d < min) { min = d; c = r; } }
+  return c;
+}
+
+function fmt(n) { return n.toLocaleString('it-IT'); }
+
+const API_URL = 'https://poker-range-api-production.up.railway.app';
+
+function getToken() {
+  return sessionStorage.getItem('access_token') || localStorage.getItem('access_token') || '';
+}
+
+async function calcola() {
+  const buyin         = parseFloat(document.getElementById('buyin').value);
+  const taglia        = parseFloat(document.getElementById('taglia').value);
+  const stackIniziale = parseFloat(document.getElementById('stackIniziale').value);
+  const stackHero     = parseFloat(document.getElementById('stackHero').value);
+  const potAttuale    = parseFloat(document.getElementById('potAttuale').value);
+  const sv1           = parseFloat(document.getElementById('sv1').value);
+  const bv1           = parseFloat(document.getElementById('bv1').value);
+
+  if ([buyin, taglia, stackIniziale, stackHero, potAttuale, sv1, bv1].some(isNaN)) {
+    alert('Compila tutti i campi obbligatori.'); return;
+  }
+
+  const villains = [{ stack: sv1, bounty: bv1, label: 'Villain 1' }];
+  for (const n of [2, 3]) {
+    if (villainActive[n]) {
+      const sv = parseFloat(document.getElementById('sv' + n).value);
+      const bv = parseFloat(document.getElementById('bv' + n).value);
+      if (isNaN(sv) || isNaN(bv)) { alert(`Compila i dati di Villain ${n} o rimuovilo.`); return; }
+      villains.push({ stack: sv, bounty: bv, label: 'Villain ' + n });
+    }
+  }
+
+  const token = getToken();
+  if (!token) {
+    alert('Sessione scaduta. Effettua nuovamente il login.');
+    return;
+  }
+
+  try {
+    const resp = await fetch(`${API_URL}/api/pko`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ access_token: token, buyin, taglia, stackIniziale, stackHero, potAttuale, villains })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json();
+      alert(err.error || 'Errore server.');
+      return;
+    }
+
+    const d = await resp.json();
+
+    // Coverage info
+    let covHtml = '';
+    for (const v of d.coperti)    covHtml += `<span class="ok">✓</span> ${v.label}: ${fmt(v.stack)} chips — bounty ${v.bounty.toFixed(2)}€ <span class="ok">(coperto)</span><br>`;
+    for (const v of d.nonCoperti) covHtml += `<span class="no">✗</span> ${v.label}: ${fmt(v.stack)} chips — bounty ${v.bounty.toFixed(2)}€ <span class="no">(non coperto, escluso dal calcolo)</span><br>`;
+    document.getElementById('coverageInfo').innerHTML = covHtml;
+
+    // Risultati
+    document.getElementById('rCallEff').textContent   = fmt(d.callEff) + ' chips';
+    document.getElementById('rPotTot').textContent    = fmt(d.potTot) + ' chips';
+    document.getElementById('rBountyTot').textContent = d.bountyTot.toFixed(2) + '€';
+    document.getElementById('rNTaglie').textContent   = d.nTaglie.toFixed(2);
+    document.getElementById('rNStack').textContent    = d.nStack.toFixed(2);
+    document.getElementById('rBF').textContent        = d.bFactor.toFixed(2);
+    document.getElementById('rPO').textContent        = d.potOdds.toFixed(1) + '%';
+    document.getElementById('rDiscount').textContent  = '-' + d.closest.d.toFixed(1) + '%';
+    document.getElementById('rPOAdj').textContent     = d.potOddsAdj.toFixed(1) + '%';
+
+    // Tabella completa
+    const tbody = document.getElementById('bfBody');
+    tbody.innerHTML = '';
+    for (const row of d.bfTableOut) {
+      const tr = document.createElement('tr');
+      if (row.isActive) tr.className = 'active-row';
+      tr.innerHTML = `
+        <td>${row.bf.toString().replace('.', ',')}${row.isActive ? '<span class="tag-bf">↑ tu</span>' : ''}</td>
+        <td>${row.d.toString().replace('.', ',')}%</td>
+        <td>${row.potOddsAdj.toFixed(1)}%</td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    document.getElementById('risultati').classList.add('show');
+
+  } catch (err) {
+    console.error('[pko_calc] Errore fetch:', err);
+    alert('Errore di connessione. Verifica la tua connessione e riprova.');
+  }
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Enter') calcola(); });
+</script>
+</body>
+</html>
