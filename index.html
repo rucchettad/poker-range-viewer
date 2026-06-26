@@ -45,7 +45,6 @@ async function apiFetch(endpoint, opts = {}) {
     .login-error{color:var(--error);font-size:13px;text-align:center;display:none;}
     .login-loading{color:var(--muted);font-size:13px;text-align:center;display:none;}
 
-    .login-input{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px 16px;color:var(--text);font-size:14px;width:100%;outline:none;box-sizing:border-box;}
     .login-link{text-align:center;font-size:13px;color:var(--muted);cursor:pointer;text-decoration:underline;background:none;border:none;padding:0;font-family:inherit;width:100%;}
     .login-link:hover{color:var(--btn);}
 
@@ -233,16 +232,12 @@ async function apiFetch(endpoint, opts = {}) {
     </div>
     <div style="background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px;">
       <div style="display:flex;justify-content:space-between;align-items:center;">
-        <span style="font-size:13px;color:var(--muted);">Primo mese</span>
-        <span style="font-size:18px;font-weight:700;color:white;">4,99€</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <span style="font-size:13px;color:var(--muted);">Dal secondo mese</span>
-        <span style="font-size:14px;font-weight:600;color:var(--muted);">8,99€/mese</span>
+        <span style="font-size:13px;color:var(--muted);">Abbonamento mensile</span>
+        <span style="font-size:18px;font-weight:700;color:white;">7,99€</span>
       </div>
       <div style="font-size:11px;color:var(--muted);border-top:1px solid var(--line);padding-top:8px;margin-top:4px;">Rinnovo automatico mensile. Cancella quando vuoi.</div>
     </div>
-    <button class="login-btn" id="trialCheckoutBtn" style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);">Abbonati ora — 4,99€</button>
+    <button class="login-btn" id="trialCheckoutBtn" style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);">Abbonati ora — 7,99€</button>
     <div class="login-loading" id="trialLoading" style="display:none;">Reindirizzamento al pagamento...</div>
     <div class="login-error" id="trialError" style="display:none;"></div>
     <button class="login-link" id="trialLogoutLink" style="margin-top:4px;">← Torna al login</button>
@@ -535,7 +530,6 @@ async function apiFetch(endpoint, opts = {}) {
 
 <script>
 window.DISCLAIMER_CHIUSO = false;
-window.UTENTE_IN_ATTESA = null;
 
 // Toggle note su mobile
 function toggleNote() {
@@ -781,10 +775,6 @@ document.getElementById('trialCheckoutBtn').addEventListener('click', async () =
     const email = window._TRIAL_EMAIL || document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPassword').value;
 
-    // Ri-login per ottenere token (il backend risponde TRIAL_EXPIRED ma ci serve il token)
-    // Usiamo un endpoint dedicato: /api/crea-checkout accetta solo il token
-    // Facciamo login diretto a Supabase per ottenere il token anche se trial scaduto
-    // Alternativa più semplice: passiamo email+password a /api/crea-checkout
     const res = await fetch(API_URL + '/api/crea-checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -842,7 +832,6 @@ function mostraDisclaimerPoiApp(user) {
 
 function mostraApp(user) {
   if (!window.DISCLAIMER_CHIUSO) {
-    window.UTENTE_IN_ATTESA = user;
     return;
   }
   document.getElementById('loginScreen').style.display = 'none';
