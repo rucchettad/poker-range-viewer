@@ -354,6 +354,7 @@
 
 </div>
 <script>
+(function() {
 let tagliaMode = 'diretta';
 
 
@@ -462,6 +463,11 @@ function toggleRpInfo() {
   const el = document.getElementById('rp-info');
   el.style.display = el.style.display === 'none' ? '' : 'none';
 }
+
+// Expose public functions
+window.calcola = calcola;
+window.toggleRpInfo = toggleRpInfo;
+})();
 </script>
 </body>
 </html>

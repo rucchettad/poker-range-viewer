@@ -211,6 +211,7 @@
 </div>
 
 <script>
+(function() {
 const BF_TABLE = [
   {bf:0.3,d:1.0},{bf:0.4,d:1.7},{bf:0.5,d:3.0},{bf:0.75,d:4.2},
   {bf:1.0,d:5.4},{bf:1.25,d:6.2},{bf:1.5,d:7.4},{bf:1.75,d:8.5},
@@ -335,6 +336,11 @@ async function calcola() {
 }
 
 document.addEventListener('keydown', e => { if (e.key === 'Enter') calcola(); });
+
+// Expose public functions
+window.toggleVillain = toggleVillain;
+window.calcola = calcola;
+})();
 </script>
 </body>
 </html>
