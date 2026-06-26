@@ -1512,13 +1512,16 @@ async function apriTool(url, titolo) {
     const div = document.createElement('div');
     div.innerHTML = doc.body.innerHTML;
     content.appendChild(div);
-    // Esegui script
-    div.querySelectorAll('script').forEach(s => {
-      const newScript = document.createElement('script');
-      newScript.textContent = s.textContent;
-      document.body.appendChild(newScript);
-      s.remove();
-    });
+    // Esegui script dopo che il DOM è stato inserito
+    const scripts = div.querySelectorAll('script');
+    scripts.forEach(s => s.remove());
+    setTimeout(() => {
+      scripts.forEach(s => {
+        const newScript = document.createElement('script');
+        newScript.textContent = s.textContent;
+        document.body.appendChild(newScript);
+      });
+    }, 50);
   } catch(e) {
     content.innerHTML = '<div style="text-align:center;padding:40px;color:#dc2626;">Errore caricamento tool.</div>';
   }
