@@ -227,16 +227,36 @@
 
     <div class="divider"></div>
 
-    <div class="grid">
-      <div class="field" id="f-bounty-tot">
-        <label>Bounty totali in gioco <span class="hint">(€)</span></label>
-        <input type="number" id="bounty-tot" placeholder="3333" min="1" step="0.01">
-        <span class="field-error">Campo obbligatorio</span>
+    <!-- Toggle modalità bounty -->
+    <div class="sub-toggle" style="margin-bottom:12px;">
+      <button id="btn-mode-diretta" class="active" onclick="setTagliaMode('diretta')">Media diretta</button>
+      <button id="btn-mode-calcolata" onclick="setTagliaMode('calcolata')">Da totale + giocatori</button>
+    </div>
+
+    <!-- Modalità diretta: bounty media -->
+    <div id="mode-diretta">
+      <div class="grid">
+        <div class="field" id="f-bounty-media">
+          <label>Bounty media <span class="hint">(€ — es. PokerStars te la mostra direttamente)</span></label>
+          <input type="number" id="bounty-media" placeholder="55.55" min="0.01" step="0.01">
+          <span class="field-error">Campo obbligatorio</span>
+        </div>
       </div>
-      <div class="field" id="f-players">
-        <label>Giocatori rimasti</label>
-        <input type="number" id="players" placeholder="60" min="1">
-        <span class="field-error">Campo obbligatorio</span>
+    </div>
+
+    <!-- Modalità calcolata: totale + giocatori -->
+    <div id="mode-calcolata" style="display:none;">
+      <div class="grid">
+        <div class="field" id="f-bounty-tot">
+          <label>Bounty totali in gioco <span class="hint">(€ — es. iPoker)</span></label>
+          <input type="number" id="bounty-tot" placeholder="3333" min="1" step="0.01">
+          <span class="field-error">Campo obbligatorio</span>
+        </div>
+        <div class="field" id="f-players">
+          <label>Giocatori rimasti</label>
+          <input type="number" id="players" placeholder="60" min="1">
+          <span class="field-error">Campo obbligatorio</span>
+        </div>
       </div>
     </div>
   </div>
@@ -357,8 +377,13 @@
 (function() {
 let tagliaMode = 'diretta';
 
-
-
+function setTagliaMode(mode) {
+  tagliaMode = mode;
+  document.getElementById('mode-diretta').style.display   = mode === 'diretta'   ? '' : 'none';
+  document.getElementById('mode-calcolata').style.display = mode === 'calcolata' ? '' : 'none';
+  document.getElementById('btn-mode-diretta').classList.toggle('active', mode === 'diretta');
+  document.getElementById('btn-mode-calcolata').classList.toggle('active', mode === 'calcolata');
+}
 
 
 function v(id) { return parseFloat(document.getElementById(id).value); }
@@ -390,9 +415,19 @@ async function calcola() {
   if (isNaN(stack) || stack <= 0) { setError('stack', true); errors = true; }
   if (isNaN(buyin) || buyin <= 0) { setError('buyin', true); errors = true; }
 
-  const bt = v('bounty-tot'), pl = v('players');
-  if (isNaN(bt) || bt <= 0) { setError('bounty-tot', true); errors = true; }
-  if (isNaN(pl) || pl < 1)  { setError('players',    true); errors = true; }
+  let totalBountiesCalc, playersLeftCalc;
+  if (tagliaMode === 'diretta') {
+    const bm = v('bounty-media');
+    if (isNaN(bm) || bm <= 0) { setError('bounty-media', true); errors = true; }
+    totalBountiesCalc = bm; // verrà passato come avgBounty direttamente
+    playersLeftCalc = 1;    // avgBounty = totalBounties / playersLeft → se pl=1, avg=bm
+  } else {
+    const bt = v('bounty-tot'), pl = v('players');
+    if (isNaN(bt) || bt <= 0) { setError('bounty-tot', true); errors = true; }
+    if (isNaN(pl) || pl < 1)  { setError('players',    true); errors = true; }
+    totalBountiesCalc = bt;
+    playersLeftCalc = pl;
+  }
 
   const potInput  = v('pot');
   const callInput = v('call');
@@ -415,8 +450,8 @@ async function calcola() {
         access_token: token,
         call: callInput,
         pot: potInput,
-        totalBounties: bt,
-        playersLeft: pl,
+        totalBounties: totalBountiesCalc,
+        playersLeft: playersLeftCalc,
         startStack: stack,
         buyIn: buyin,
         riskPremium: risk / 100
@@ -467,6 +502,7 @@ function toggleRpInfo() {
 // Expose public functions
 window.calcola = calcola;
 window.toggleRpInfo = toggleRpInfo;
+window.setTagliaMode = setTagliaMode;
 })();
 </script>
 </body>
