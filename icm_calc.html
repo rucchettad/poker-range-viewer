@@ -649,6 +649,7 @@
 </div>
 
 <script>
+(function() {
 // ─── STATE ───────────────────────────────────────────────
 let icmEquities = []; // equity ICM per giocatore (€)
 let playerNames = [];
@@ -1073,6 +1074,18 @@ function resetAll() {
 
 // ─── INIT ─────────────────────────────────────────────────
 buildPlayersGrid();
+
+// ─── EXPOSE PUBLIC FUNCTIONS ──────────────────────────────
+window.buildPlayersGrid = buildPlayersGrid;
+window.setHero = setHero;
+window.buildHeroSelect = buildHeroSelect;
+window.buildPrizesGrid = buildPrizesGrid;
+window.calculate = calculate;
+window.simulateCall = simulateCall;
+window.updateSimVillain = updateSimVillain;
+window.buildSimSelects = buildSimSelects;
+window.resetAll = resetAll;
+})();
 </script>
 </body>
 </html>
