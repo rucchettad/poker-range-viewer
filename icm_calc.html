@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICM Final Table Calculator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0f14;
+    --surface: #161920;
+    --surface2: #1e2230;
+    --border: #2a2f3d;
+    --accent: #c8a84b;
+    --accent2: #4bc8a0;
+    --danger: #e05a5a;
+    --text: #e8eaf0;
+    --muted: #7a8099;
+    --radius: 8px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+    padding: 20px 16px 40px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+
+  header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: var(--accent);
+  }
+
+  header p {
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 4px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .card-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 14px;
+  }
+
+  .row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+
+  label {
+    color: var(--muted);
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  input[type="number"], select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 14px;
+    padding: 7px 10px;
+    outline: none;
+    width: 100%;
+    transition: border-color 0.15s;
+  }
+
+  input[type="number"]:focus, select:focus {
+    border-color: var(--accent);
+  }
+
+  input[type="number"]::-webkit-inner-spin-button { opacity: 0.4; }
+
+  .field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 80px;
+  }
+
+  /* Player table */
+  .players-grid {
+    display: grid;
+    grid-template-columns: 36px 52px 1fr 1fr;
+    gap: 6px 8px;
+    align-items: center;
+  }
+
+  .players-grid .col-header {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 2px;
+  }
+
+  .player-num {
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+    font-weight: 700;
+  }
+
+  .player-num.hero-marker {
+    color: var(--accent);
+  }
+
+  .btn-remove {
+    background: none;
+    border: none;
+    color: var(--danger);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px;
+    line-height: 1;
+    opacity: 0.6;
+    transition: opacity 0.15s;
+  }
+
+  .btn-remove:hover { opacity: 1; }
+
+  /* Prizes */
+  .prizes-grid {
+    display: grid;
+    grid-template-columns: 28px 1fr auto;
+    gap: 6px 8px;
+    align-items: center;
+  }
+
+  .prize-pos {
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+  }
+
+  .btn {
+    padding: 9px 16px;
+    border-radius: 6px;
+    border: none;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+
+  .btn:active { transform: scale(0.97); }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #0d0f14;
+    flex: 1;
+  }
+
+  .btn-secondary {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .btn-add {
+    background: none;
+    border: 1px dashed var(--border);
+    color: var(--muted);
+    width: 100%;
+    padding: 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    margin-top: 6px;
+    transition: border-color 0.15s, color 0.15s;
+  }
+
+  .btn-add:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* Results */
+  #results { display: none; }
+
+  .result-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .result-table th {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-align: right;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .result-table th:first-child { text-align: left; }
+
+  .result-table td {
+    padding: 8px 8px;
+    text-align: right;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .result-table td:first-child { text-align: left; }
+
+  .result-table tr:last-child td { border-bottom: none; }
+
+  .result-table tr.hero-row td { color: var(--accent); }
+
+  .equity-val { font-weight: 700; }
+
+  /* Simulation section */
+  .sim-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .sim-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px;
+    text-align: center;
+  }
+
+  .sim-box.win { border-color: var(--accent2); }
+  .sim-box.lose { border-color: var(--danger); }
+
+  .sim-box .sim-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .sim-box.win .sim-label { color: var(--accent2); }
+  .sim-box.lose .sim-label { color: var(--danger); }
+
+  .sim-equity {
+    font-size: 20px;
+    font-weight: 800;
+    margin-bottom: 2px;
+  }
+
+  .sim-box.win .sim-equity { color: var(--accent2); }
+  .sim-box.lose .sim-equity { color: var(--danger); }
+
+  .sim-delta {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* BF / RP metrics */
+  .metrics-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .metric-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    text-align: center;
+  }
+
+  .metric-label {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .metric-value {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--accent);
+  }
+
+  .metric-sub {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* Tooltip */
+  .tooltip-wrap { position: relative; display: inline-block; }
+  .tooltip-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 10px;
+    cursor: help;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+  .tooltip-box {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%; transform: translateX(-50%);
+    background: #2a2f3d;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 11px;
+    color: var(--text);
+    width: 220px;
+    z-index: 10;
+    line-height: 1.5;
+  }
+  .tooltip-wrap:hover .tooltip-box { display: block; }
+
+  .hero-select-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .section-sep {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 14px 0;
+  }
+
+  .info-text {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 10px;
+  }
+
+  .tag {
+    display: inline-block;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 10px;
+    color: var(--muted);
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+
+  .error-msg {
+    color: var(--danger);
+    font-size: 12px;
+    margin-top: 6px;
+    display: none;
+  }
+
+  /* Hero row selection */
+  .player-row {
+    display: contents;
+    cursor: pointer;
+  }
+  .player-row > * {
+    padding: 6px 4px;
+    border-radius: 4px;
+    transition: background 0.1s;
+    cursor: pointer;
+  }
+  .player-row:hover > * {
+    background: var(--surface2);
+  }
+  .player-row.is-hero > * {
+    background: rgba(200, 168, 75, 0.12);
+  }
+  .player-row.is-hero .player-num {
+    color: var(--accent);
+  }
+  .hero-badge {
+    display: inline-block;
+    background: var(--accent);
+    color: #0d0f14;
+    font-size: 9px;
+    font-weight: 800;
+    padding: 1px 5px;
+    border-radius: 3px;
+    letter-spacing: 0.05em;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>ICM Final Table</h1>
+  <p>Malmuth-Harville · fino a 9 giocatori</p>
+</header>
+
+<!-- STEP 1: Giocatori -->
+<div class="card">
+  <div class="card-title">1 — Giocatori &amp; Stack</div>
+
+  <div style="margin-bottom:12px;">
+    <div style="max-width:160px;margin-bottom:10px;">
+      <label style="color:var(--muted);font-size:12px;display:block;margin-bottom:4px;">N. giocatori</label>
+      <select id="numPlayers" onchange="buildPlayersGrid()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;padding:7px 10px;width:100%;outline:none;">
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+        <option value="7">7</option>
+        <option value="8">8</option>
+        <option value="9" selected>9</option>
+      </select>
+    </div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px 12px;font-size:11px;color:var(--muted);line-height:1.8;">
+      👆 Tocca il <span style="color:var(--accent);font-weight:700;">seat</span> per selezionarti come <span style="color:var(--accent);font-weight:700;">HERO</span><br>
+      <span style="color:var(--accent);font-weight:700;">0</span> BTN &nbsp;·&nbsp;
+      <span style="color:var(--accent);font-weight:700;">1</span> SB &nbsp;·&nbsp;
+      <span style="color:var(--accent);font-weight:700;">2</span> BB &nbsp;·&nbsp;
+      <span style="color:var(--accent);font-weight:700;">3</span> UTG &nbsp;·&nbsp;
+      <span style="color:var(--accent);font-weight:700;">4</span> UTG+1 &nbsp;·&nbsp;
+      <span style="color:var(--accent);font-weight:700;">5</span> MP &nbsp;·&nbsp;
+      <span style="color:var(--accent);font-weight:700;">6</span> MP+1 &nbsp;·&nbsp;
+      <span style="color:var(--accent);font-weight:700;">7</span> HJ &nbsp;·&nbsp;
+      <span style="color:var(--accent);font-weight:700;">8</span> CO
+    </div>
+  </div>
+
+  <input type="hidden" id="heroSelect" value="8">
+
+  <div class="players-grid" id="playersGrid">
+    <span class="col-header">Seat</span>
+    <span class="col-header">Pos</span>
+    <span class="col-header">Nick</span>
+    <span class="col-header">Stack (chips)</span>
+  </div>
+</div>
+
+<!-- STEP 2: Premi -->
+<div class="card">
+  <div class="card-title">2 — Struttura Premi (€)</div>
+  <p class="info-text">Inserisci i premi dal 1° posto in giù. Il numero di premi può essere inferiore ai giocatori rimasti (situazione bolla).</p>
+
+  <div class="row" style="margin-bottom:12px;">
+    <div class="field-group" style="max-width:160px;">
+      <label>Posti pagati</label>
+      <select id="numPrizes" onchange="buildPrizesGrid()">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+        <option value="7">7</option>
+        <option value="8">8</option>
+        <option value="9" selected>9</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="prizes-grid" id="prizesGrid">
+    <span class="col-header">#</span>
+    <span class="col-header">Premio (€)</span>
+    <span class="col-header" style="opacity:0">·</span>
+  </div>
+
+  <div class="error-msg" id="errorMsg">⚠ Controlla i valori inseriti.</div>
+</div>
+
+<!-- CALCOLA -->
+<div class="controls">
+  <button class="btn btn-primary" onclick="calculate()">Calcola ICM</button>
+  <button class="btn btn-secondary" onclick="resetAll()">Reset</button>
+</div>
+
+<!-- RESULTS -->
+<div id="results">
+
+  <!-- Equity attuale -->
+  <div class="card" style="margin-top:16px;">
+    <div class="card-title">Equity attuale</div>
+    <table class="result-table" id="equityTable"></table>
+  </div>
+
+  <!-- Deal comparison -->
+  <div class="card">
+    <div class="card-title">Confronto Deal</div>
+    <table class="result-table" id="dealTable"></table>
+    <div style="margin-top:10px;display:flex;gap:16px;flex-wrap:wrap;">
+      <span style="font-size:11px;color:var(--muted);">
+        <span style="color:var(--accent);font-weight:700;">ICM Deal</span> — equity reale (Malmuth-Harville)
+      </span>
+      <span style="font-size:11px;color:var(--muted);">
+        <span style="color:var(--accent2);font-weight:700;">Chip Chop</span> — proporzione chips lineare
+      </span>
+      <span style="font-size:11px;color:var(--muted);">
+        <span style="color:#a084e8;font-weight:700;">Equal Chop</span> — divisione uguale
+      </span>
+    </div>
+  </div>
+
+  <!-- Simulazione call -->
+  <div class="card">
+    <div class="card-title">Simulazione All-in
+      <span class="tooltip-wrap">
+        <span class="tooltip-icon">?</span>
+        <span class="tooltip-box">Seleziona Hero e Villain. Il calcolatore simula cosa succede alla tua equity ICM se vinci o perdi l'all-in, poi calcola BF e Risk Premium.</span>
+      </span>
+    </div>
+
+    <div class="hero-select-row">
+      <div class="field-group">
+        <label>Hero</label>
+        <select id="simHero" onchange="updateSimVillain()"></select>
+      </div>
+      <div class="field-group">
+        <label>Villain</label>
+        <select id="simVillain"></select>
+      </div>
+    </div>
+
+    <div class="row" style="margin-bottom:12px;">
+      <div class="field-group">
+        <label>Chips da chiamare (call)</label>
+        <input type="number" id="callAmount" placeholder="es. 80000" min="0">
+      </div>
+      <div class="field-group">
+        <label>Pot prima del call (escluso call)</label>
+        <input type="number" id="potAmount" placeholder="es. 100000" min="0">
+      </div>
+    </div>
+
+    <button class="btn btn-primary" style="width:100%; margin-bottom:14px;" onclick="simulateCall()">Simula Call</button>
+
+    <div id="simResults" style="display:none;">
+      <hr class="section-sep">
+
+      <div class="sim-row">
+        <div class="sim-box win">
+          <div class="sim-label">✓ Vinci</div>
+          <div class="sim-equity" id="simWinEq">—</div>
+          <div class="sim-delta" id="simWinDelta">—</div>
+        </div>
+        <div class="sim-box lose">
+          <div class="sim-label">✗ Perdi</div>
+          <div class="sim-equity" id="simLoseEq">—</div>
+          <div class="sim-delta" id="simLoseDelta">—</div>
+        </div>
+      </div>
+
+      <div class="metrics-row">
+        <div class="metric-box">
+          <div class="metric-label">Pot Odds chip
+            <span class="tooltip-wrap">
+              <span class="tooltip-icon">?</span>
+              <span class="tooltip-box">Equity minima per chiamare in termini di chips puri (cash game). Call / (Pot + Call).</span>
+            </span>
+          </div>
+          <div class="metric-value" id="metricChipOdds">—</div>
+          <div class="metric-sub">equity minima cEV</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">Bubble Factor
+            <span class="tooltip-wrap">
+              <span class="tooltip-icon">?</span>
+              <span class="tooltip-box">Equity ICM rischiata / Equity ICM guadagnabile. BF &gt; 1 significa che le chips perse valgono più di quelle vinte.</span>
+            </span>
+          </div>
+          <div class="metric-value" id="metricBF">—</div>
+          <div class="metric-sub">rischio / ricompensa</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">Equity min ($EV)
+            <span class="tooltip-wrap">
+              <span class="tooltip-icon">?</span>
+              <span class="tooltip-box">Equity minima reale tenendo conto dell'ICM. BF / (BF + 1). Sempre superiore alle pot odds pure.</span>
+            </span>
+          </div>
+          <div class="metric-value" id="metricMinEq">—</div>
+          <div class="metric-sub">BF / (BF+1)</div>
+        </div>
+      </div>
+
+      <div class="metrics-row" style="grid-template-columns:1fr 1fr; margin-top:8px;">
+        <div class="metric-box">
+          <div class="metric-label">Risk Premium
+            <span class="tooltip-wrap">
+              <span class="tooltip-icon">?</span>
+              <span class="tooltip-box">Equity extra richiesta rispetto alle pot odds pure a causa dell'ICM. Minima equity $EV − Pot odds chip.</span>
+            </span>
+          </div>
+          <div class="metric-value" id="metricRP">—</div>
+          <div class="metric-sub">punti % extra vs cEV</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">Fold equity attuale</div>
+          <div class="metric-value" id="metricFoldEq">—</div>
+          <div class="metric-sub">se foldi mantieni</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────
+let icmEquities = []; // equity ICM per giocatore (€)
+let playerNames = [];
+let playerStacks = [];
+let prizes = [];
+
+// ─── BUILD UI ────────────────────────────────────────────
+const POSITIONS = ['BTN','SB','BB','UTG','UTG+1','MP','MP+1','HJ','CO'];
+
+const PRELOADED = {
+  names:  ['jbarrils','br4viv0i','INDOTHEMAX1','zampa82','GG69GL','Ema91985','chrychry90','5732488','SK1LLB1LL2'],
+  stacks: [78408, 53363, 121568, 70564, 40598, 195265, 157401, 244484, 145940],
+  heroIdx: 8, // SK1LLB1LL2 = CO = seat 8
+  prizes: [1260, 821, 479, 308, 206, 137, 96.17, 96.17, 71.51]
+};
+
+function buildPlayersGrid() {
+  const n = parseInt(document.getElementById('numPlayers').value);
+  const grid = document.getElementById('playersGrid');
+
+  // salva valori correnti se esistono, altrimenti usa preloaded
+  const existingNames = Array.from(grid.querySelectorAll('.p-name')).map(el => el.value);
+  const existingStacks = Array.from(grid.querySelectorAll('.p-stack')).map(el => el.value);
+  const currentHero = parseInt(document.getElementById('heroSelect').value);
+
+  const headers = Array.from(grid.children).slice(0, 4);
+  grid.innerHTML = '';
+  headers.forEach(h => grid.appendChild(h));
+
+  const positions = getPositions(n);
+
+  for (let i = 0; i < n; i++) {
+    const isHero = i === currentHero;
+
+    const seatEl = document.createElement('span');
+    seatEl.className = 'player-num';
+    seatEl.innerHTML = `${i}${isHero ? '<span class="hero-badge">HERO</span>' : ''}`;
+    if (isHero) seatEl.style.color = 'var(--accent)';
+
+    const posEl = document.createElement('span');
+    posEl.style.cssText = 'font-size:11px;color:var(--accent);font-weight:700;cursor:pointer;';
+    posEl.textContent = positions[i];
+
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.className = 'p-name';
+    nameInput.placeholder = 'nick (opzionale)';
+    nameInput.value = existingNames[i] !== undefined && existingNames[i] !== ''
+      ? existingNames[i]
+      : (PRELOADED.names[i] || '');
+    nameInput.style.cssText = `background:${isHero ? 'rgba(200,168,75,0.08)' : 'var(--surface2)'};border:1px solid ${isHero ? 'var(--accent)' : 'var(--border)'};border-radius:6px;color:var(--text);font-size:14px;padding:7px 10px;width:100%;outline:none;`;
+
+    const stackInput = document.createElement('input');
+    stackInput.type = 'number';
+    stackInput.className = 'p-stack';
+    stackInput.placeholder = 'chips';
+    stackInput.min = 0;
+    stackInput.value = existingStacks[i] !== undefined && existingStacks[i] !== ''
+      ? existingStacks[i]
+      : (PRELOADED.stacks[i] || '');
+    if (isHero) stackInput.style.cssText = 'background:rgba(200,168,75,0.08);border:1px solid var(--accent);border-radius:6px;';
+
+    // click su seat o pos → hero
+    [seatEl, posEl].forEach(el => {
+      el.style.cursor = 'pointer';
+      el.addEventListener('click', () => setHero(i));
+    });
+
+    grid.appendChild(seatEl);
+    grid.appendChild(posEl);
+    grid.appendChild(nameInput);
+    grid.appendChild(stackInput);
+  }
+
+  buildPrizesGrid();
+}
+
+function setHero(idx) {
+  // salva nomi e stack correnti PRIMA di ricostruire
+  const names = Array.from(document.querySelectorAll('.p-name')).map(el => el.value);
+  const stacks = Array.from(document.querySelectorAll('.p-stack')).map(el => el.value);
+  document.getElementById('heroSelect').value = idx;
+
+  // ricostruisce con valori salvati
+  const n = parseInt(document.getElementById('numPlayers').value);
+  const grid = document.getElementById('playersGrid');
+  const positions = getPositions(n);
+  const headers = Array.from(grid.children).slice(0, 4);
+  grid.innerHTML = '';
+  headers.forEach(h => grid.appendChild(h));
+
+  for (let i = 0; i < n; i++) {
+    const isHero = i === idx;
+
+    const seatEl = document.createElement('span');
+    seatEl.className = 'player-num';
+    seatEl.innerHTML = `${i}${isHero ? '<span class="hero-badge">HERO</span>' : ''}`;
+    if (isHero) seatEl.style.color = 'var(--accent)';
+
+    const posEl = document.createElement('span');
+    posEl.style.cssText = 'font-size:11px;color:var(--accent);font-weight:700;cursor:pointer;';
+    posEl.textContent = positions[i];
+
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.className = 'p-name';
+    nameInput.placeholder = 'nick (opzionale)';
+    nameInput.value = names[i] || '';
+    nameInput.style.cssText = `background:${isHero ? 'rgba(200,168,75,0.08)' : 'var(--surface2)'};border:1px solid ${isHero ? 'var(--accent)' : 'var(--border)'};border-radius:6px;color:var(--text);font-size:14px;padding:7px 10px;width:100%;outline:none;`;
+
+    const stackInput = document.createElement('input');
+    stackInput.type = 'number';
+    stackInput.className = 'p-stack';
+    stackInput.placeholder = 'chips';
+    stackInput.min = 0;
+    stackInput.value = stacks[i] || '';
+    if (isHero) stackInput.style.cssText = 'background:rgba(200,168,75,0.08);border:1px solid var(--accent);border-radius:6px;';
+
+    [seatEl, posEl].forEach(el => {
+      el.style.cursor = 'pointer';
+      el.addEventListener('click', () => setHero(i));
+    });
+
+    grid.appendChild(seatEl);
+    grid.appendChild(posEl);
+    grid.appendChild(nameInput);
+    grid.appendChild(stackInput);
+  }
+}
+
+function getPositions(n) {
+  // 0=BTN, 1=SB, 2=BB, then UTG... CO
+  const all = ['BTN','SB','BB','UTG','UTG+1','MP','MP+1','HJ','CO'];
+  if (n <= 3) return ['BTN','SB','BB'].slice(0, n);
+  // for n players: BTN SB BB then fill middle, last is CO
+  const middle = all.slice(3, 8); // UTG UTG+1 MP MP+1 HJ
+  const needed = n - 3; // how many between BB and CO
+  const mid = middle.slice(middle.length - (needed - 1));
+  return ['BTN','SB','BB', ...mid, 'CO'].slice(0, n);
+}
+
+function buildHeroSelect() {
+  // hero selection is now done by clicking a row — no dropdown needed
+}
+
+function buildPrizesGrid() {
+  const np = parseInt(document.getElementById('numPrizes').value);
+  const grid = document.getElementById('prizesGrid');
+
+  const existingVals = [];
+  grid.querySelectorAll('.p-prize').forEach(el => existingVals.push(el.value));
+
+  const headers = Array.from(grid.children).slice(0, 3);
+  grid.innerHTML = '';
+  headers.forEach(h => grid.appendChild(h));
+
+  for (let i = 0; i < np; i++) {
+    const pos = document.createElement('span');
+    pos.className = 'prize-pos';
+    pos.textContent = i + 1;
+
+    const inp = document.createElement('input');
+    inp.type = 'number';
+    inp.className = 'p-prize';
+    inp.placeholder = '€';
+    inp.min = 0;
+    inp.value = existingVals[i] !== undefined && existingVals[i] !== ''
+      ? existingVals[i]
+      : (PRELOADED.prizes[i] || '');
+
+    const spacer = document.createElement('span');
+
+    grid.appendChild(pos);
+    grid.appendChild(inp);
+    grid.appendChild(spacer);
+  }
+}
+
+// ─── CONFIG ──────────────────────────────────────────────
+const API_URL = 'https://poker-range-api-production.up.railway.app';
+
+function getToken() {
+  return sessionStorage.getItem('access_token') || localStorage.getItem('access_token') || '';
+}
+
+// ─── CALCULATE ───────────────────────────────────────────
+async function calculate() {
+  const n = parseInt(document.getElementById('numPlayers').value);
+  const stacks = Array.from(document.querySelectorAll('.p-stack')).map(el => parseFloat(el.value) || 0);
+  const prizeVals = Array.from(document.querySelectorAll('.p-prize')).map(el => parseFloat(el.value) || 0);
+  const names = Array.from(document.querySelectorAll('.p-name')).map((el, i) => el.value.trim() || '');
+
+  const errEl = document.getElementById('errorMsg');
+  if (stacks.some(s => s <= 0) || prizeVals.some(p => p <= 0)) {
+    errEl.textContent = '⚠ Inserisci stack e premi validi (> 0).';
+    errEl.style.display = 'block';
+    return;
+  }
+  errEl.style.display = 'none';
+
+  const token = getToken();
+  if (!token) {
+    errEl.textContent = '⚠ Sessione scaduta. Effettua nuovamente il login.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  try {
+    const resp = await fetch(`${API_URL}/api/icm`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ access_token: token, stacks, prizes: prizeVals })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json();
+      errEl.textContent = '⚠ ' + (err.error || 'Errore server.');
+      errEl.style.display = 'block';
+      return;
+    }
+
+    const d = await resp.json();
+
+    playerNames = names;
+    playerStacks = stacks;
+    prizes = prizeVals;
+    icmEquities = d.equities;
+
+    renderEquityTable();
+    renderDealTable();
+    buildSimSelects();
+
+    document.getElementById('results').style.display = 'block';
+    document.getElementById('simResults').style.display = 'none';
+    document.getElementById('results').scrollIntoView({behavior: 'smooth', block: 'start'});
+
+  } catch (err) {
+    console.error('[icm_calc] Errore fetch:', err);
+    errEl.textContent = '⚠ Errore di connessione. Riprova.';
+    errEl.style.display = 'block';
+  }
+}
+
+// ─── SIMULATE CALL ───────────────────────────────────────
+async function simulateCall() {
+  const heroIdx = parseInt(document.getElementById('simHero').value);
+  const villainIdx = parseInt(document.getElementById('simVillain').value);
+  const callAmt = parseFloat(document.getElementById('callAmount').value) || 0;
+  const potAmt = parseFloat(document.getElementById('potAmount').value) || 0;
+
+  if (callAmt <= 0) {
+    alert('Inserisci un importo di call valido.');
+    return;
+  }
+
+  const token = getToken();
+  if (!token) { alert('Sessione scaduta. Effettua nuovamente il login.'); return; }
+
+  try {
+    const resp = await fetch(`${API_URL}/api/icm`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        access_token: token,
+        stacks: playerStacks,
+        prizes,
+        simulate: { heroIdx, villainIdx, callAmt, potAmt }
+      })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json();
+      alert(err.error || 'Errore server.');
+      return;
+    }
+
+    const d = await resp.json();
+    const s = d.simulation;
+
+    document.getElementById('simWinEq').textContent = `€ ${s.eqWin.toFixed(2)}`;
+    document.getElementById('simWinDelta').textContent = `+€ ${s.gainIfWin.toFixed(2)} vs ora`;
+    document.getElementById('simLoseEq').textContent = `€ ${s.eqLose.toFixed(2)}`;
+    document.getElementById('simLoseDelta').textContent = `-€ ${s.lossIfLose.toFixed(2)} vs ora`;
+
+    document.getElementById('metricChipOdds').textContent = (s.chipOdds * 100).toFixed(1) + '%';
+    document.getElementById('metricBF').textContent = s.BF.toFixed(2) + 'x';
+    document.getElementById('metricMinEq').textContent = (s.minEqICM * 100).toFixed(1) + '%';
+    document.getElementById('metricRP').textContent = (s.riskPremium >= 0 ? '+' : '') + (s.riskPremium * 100).toFixed(1) + '%';
+    document.getElementById('metricFoldEq').textContent = `€ ${s.eqNow.toFixed(2)}`;
+
+    document.getElementById('simResults').style.display = 'block';
+
+  } catch (err) {
+    console.error('[icm_calc] Errore simulazione:', err);
+    alert('Errore di connessione. Riprova.');
+  }
+}
+function playerLabel(i, name, positions, isHero) {
+  const pos = `<span style="color:var(--muted);font-size:11px;">${i}·${positions[i]}</span>`;
+  const nameStr = name ? ` ${name}` : '';
+  const heroTag = isHero ? '<span class="tag">HERO</span>' : '';
+  return `${pos}${nameStr}${heroTag}`;
+}
+
+function renderEquityTable() {
+  const heroIdx = parseInt(document.getElementById('heroSelect').value);
+  const totalChips = playerStacks.reduce((a, b) => a + b, 0);
+  const positions = getPositions(playerNames.length);
+
+  let html = `<tr>
+    <th style="text-align:left">Seat · Pos</th>
+    <th>Chips</th>
+    <th>% chips</th>
+    <th>Equity ICM</th>
+  </tr>`;
+
+  playerNames.forEach((name, i) => {
+    const chipPct = (playerStacks[i] / totalChips * 100).toFixed(1);
+    const eq = icmEquities[i].toFixed(2);
+    const isHero = i === heroIdx;
+    html += `<tr class="${isHero ? 'hero-row' : ''}">
+      <td>${playerLabel(i, name, positions, isHero)}</td>
+      <td>${playerStacks[i].toLocaleString('it-IT')}</td>
+      <td>${chipPct}%</td>
+      <td class="equity-val">€ ${eq}</td>
+    </tr>`;
+  });
+
+  document.getElementById('equityTable').innerHTML = html;
+}
+
+function renderDealTable() {
+  const heroIdx = parseInt(document.getElementById('heroSelect').value);
+  const totalPrize = prizes.reduce((a, b) => a + b, 0);
+  const totalChips = playerStacks.reduce((a, b) => a + b, 0);
+  const n = playerNames.length;
+  const equalChop = totalPrize / n;
+  const positions = getPositions(n);
+
+  let html = `<tr>
+    <th style="text-align:left">Seat · Pos</th>
+    <th style="color:var(--accent)">ICM Deal</th>
+    <th style="color:var(--accent2)">Chip Chop</th>
+    <th style="color:#a084e8">Equal Chop</th>
+  </tr>`;
+
+  playerNames.forEach((name, i) => {
+    const icmEq = icmEquities[i];
+    const chipChop = (playerStacks[i] / totalChips) * totalPrize;
+    const isHero = i === heroIdx;
+
+    const diffChip = chipChop - icmEq;
+    const diffChipStr = (diffChip >= 0 ? '+' : '') + '€' + diffChip.toFixed(0);
+    const diffChipColor = diffChip >= 0 ? 'var(--accent2)' : 'var(--danger)';
+
+    const diffEqual = equalChop - icmEq;
+    const diffEqualStr = (diffEqual >= 0 ? '+' : '') + '€' + diffEqual.toFixed(0);
+    const diffEqualColor = diffEqual >= 0 ? 'var(--accent2)' : 'var(--danger)';
+
+    html += `<tr class="${isHero ? 'hero-row' : ''}">
+      <td>${playerLabel(i, name, positions, isHero)}</td>
+      <td class="equity-val" style="color:var(--accent)">€ ${icmEq.toFixed(2)}</td>
+      <td>€ ${chipChop.toFixed(2)} <span style="font-size:10px;color:${diffChipColor}">${diffChipStr}</span></td>
+      <td>€ ${equalChop.toFixed(2)} <span style="font-size:10px;color:${diffEqualColor}">${diffEqualStr}</span></td>
+    </tr>`;
+  });
+
+  html += `<tr style="border-top:1px solid var(--border);">
+    <td style="color:var(--muted);font-size:11px;">Totale</td>
+    <td style="color:var(--muted);">€ ${totalPrize.toFixed(2)}</td>
+    <td style="color:var(--muted);">€ ${totalPrize.toFixed(2)}</td>
+    <td style="color:var(--muted);">€ ${totalPrize.toFixed(2)}</td>
+  </tr>`;
+
+  document.getElementById('dealTable').innerHTML = html;
+}
+
+function buildSimSelects() {
+  const heroSel = document.getElementById('simHero');
+  const heroIdx = parseInt(document.getElementById('heroSelect').value);
+  const positions = getPositions(playerNames.length);
+
+  heroSel.innerHTML = '';
+  playerNames.forEach((name, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = name ? `${i}·${positions[i]} · ${name}` : `${i}·${positions[i]}`;
+    heroSel.appendChild(opt);
+  });
+  heroSel.value = heroIdx;
+
+  updateSimVillain();
+}
+
+function updateSimVillain() {
+  const heroSel = document.getElementById('simHero');
+  const villainSel = document.getElementById('simVillain');
+  const heroIdx = parseInt(heroSel.value);
+  const positions = getPositions(playerNames.length);
+
+  villainSel.innerHTML = '';
+  playerNames.forEach((name, i) => {
+    if (i === heroIdx) return;
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = name ? `${i}·${positions[i]} · ${name}` : `${i}·${positions[i]}`;
+    villainSel.appendChild(opt);
+  });
+}
+
+// ─── RESET ───────────────────────────────────────────────
+function resetAll() {
+  document.querySelectorAll('.p-name').forEach(el => el.value = '');
+  document.querySelectorAll('.p-stack').forEach(el => el.value = '');
+  document.querySelectorAll('.p-prize').forEach(el => el.value = '');
+  document.getElementById('callAmount').value = '';
+  document.getElementById('potAmount').value = '';
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('simResults').style.display = 'none';
+  document.getElementById('errorMsg').style.display = 'none';
+}
+
+// ─── INIT ─────────────────────────────────────────────────
+buildPlayersGrid();
+</script>
+</body>
+</html>
