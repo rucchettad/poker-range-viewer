@@ -256,15 +256,38 @@ async function apiFetch(endpoint, opts = {}) {
     <div style="margin-top:4px;">
       <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">Sei interessato a offerte e bonus esclusivi?<br><span style="font-size:12px;color:var(--btn);">Seleziona le piattaforme su cui giochi:</span></div>
       <div style="display:flex;flex-direction:column;gap:8px;">
-        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" value="Lottomatica" class="reg-room-cb" style="accent-color:var(--btn);width:15px;height:15px;"> Lottomatica</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" value="Betpassion" class="reg-room-cb" style="accent-color:var(--btn);width:15px;height:15px;"> Betpassion</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" value="Goldbet" class="reg-room-cb" style="accent-color:var(--btn);width:15px;height:15px;"> Goldbet</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" value="Betwin360" class="reg-room-cb" style="accent-color:var(--btn);width:15px;height:15px;"> Betwin360</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" value="Admiralbet" class="reg-room-cb" style="accent-color:var(--btn);width:15px;height:15px;"> Admiralbet</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" value="888" class="reg-room-cb" style="accent-color:var(--btn);width:15px;height:15px;"> 888</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" value="Sisal" class="reg-room-cb" style="accent-color:var(--btn);width:15px;height:15px;"> Sisal</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" id="regRoomAltreChk" value="Altre" class="reg-room-cb" style="accent-color:var(--btn);width:15px;height:15px;"> Altre</label>
-        <input class="login-input" id="regRoomAltreText" placeholder="Specifica quale/i..." type="text" style="display:none;margin-top:2px;"/>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;min-width:110px;"><input type="checkbox" value="Lottomatica" class="reg-room-cb" style="accent-color:var(--btn);width:15px;height:15px;"> Lottomatica</label>
+          <input type="text" class="reg-room-pct" data-room="Lottomatica" placeholder="% rakeback" style="display:none;width:100px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--text);font-size:12px;">
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;min-width:110px;"><input type="checkbox" value="Betpassion" class="reg-room-cb" style="accent-color:var(--btn);width:15px;height:15px;"> Betpassion</label>
+          <input type="text" class="reg-room-pct" data-room="Betpassion" placeholder="% rakeback" style="display:none;width:100px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--text);font-size:12px;">
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;min-width:110px;"><input type="checkbox" value="Goldbet" class="reg-room-cb" style="accent-color:var(--btn);width:15px;height:15px;"> Goldbet</label>
+          <input type="text" class="reg-room-pct" data-room="Goldbet" placeholder="% rakeback" style="display:none;width:100px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--text);font-size:12px;">
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;min-width:110px;"><input type="checkbox" value="Betwin360" class="reg-room-cb" style="accent-color:var(--btn);width:15px;height:15px;"> Betwin360</label>
+          <input type="text" class="reg-room-pct" data-room="Betwin360" placeholder="% rakeback" style="display:none;width:100px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--text);font-size:12px;">
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;min-width:110px;"><input type="checkbox" value="Admiralbet" class="reg-room-cb" style="accent-color:var(--btn);width:15px;height:15px;"> Admiralbet</label>
+          <input type="text" class="reg-room-pct" data-room="Admiralbet" placeholder="% rakeback" style="display:none;width:100px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--text);font-size:12px;">
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;min-width:110px;"><input type="checkbox" value="888" class="reg-room-cb" style="accent-color:var(--btn);width:15px;height:15px;"> 888</label>
+          <input type="text" class="reg-room-pct" data-room="888" placeholder="% rakeback" style="display:none;width:100px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--text);font-size:12px;">
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;min-width:110px;"><input type="checkbox" value="Sisal" class="reg-room-cb" style="accent-color:var(--btn);width:15px;height:15px;"> Sisal</label>
+          <input type="text" class="reg-room-pct" data-room="Sisal" placeholder="% rakeback" style="display:none;width:100px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--text);font-size:12px;">
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;min-width:110px;"><input type="checkbox" id="regRoomAltreChk" value="Altre" class="reg-room-cb" style="accent-color:var(--btn);width:15px;height:15px;"> Altre</label>
+          <input class="login-input" id="regRoomAltreText" placeholder="Specifica quale/i..." type="text" style="display:none;margin-top:2px;"/>
+        </div>
       </div>
       <div style="font-size:11px;color:var(--muted);margin-top:10px;font-style:italic;">I dati forniti sono usati solo per proporti offerte personalizzate e non vengono condivisi con terze parti.</div>
     </div>
@@ -579,6 +602,19 @@ document.getElementById('regRoomAltreChk').addEventListener('change', function()
   document.getElementById('regRoomAltreText').style.display = this.checked ? 'block' : 'none';
 });
 
+// Mostra/nascondi campo % rakeback per ogni room
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.reg-room-cb').forEach(cb => {
+    cb.addEventListener('change', function() {
+      const room = this.value;
+      if (room === 'Altre') return;
+      const pctField = document.querySelector(`.reg-room-pct[data-room="${room}"]`);
+      if (pctField) pctField.style.display = this.checked ? 'inline-block' : 'none';
+      if (!this.checked && pctField) pctField.value = '';
+    });
+  });
+});
+
 document.getElementById('regBtn').addEventListener('click', async () => {
   const nome = document.getElementById('regNome').value.trim();
   const email = document.getElementById('regEmail').value.trim();
@@ -612,7 +648,9 @@ document.getElementById('regBtn').addEventListener('click', async () => {
       const altro = document.getElementById('regRoomAltreText').value.trim();
       if (altro) roomSelezionate.push('Altre: ' + altro);
     } else {
-      roomSelezionate.push(cb.value);
+      const pctField = document.querySelector(`.reg-room-pct[data-room="${cb.value}"]`);
+      const pct = pctField ? pctField.value.trim() : '';
+      roomSelezionate.push(pct ? `${cb.value} (${pct})` : cb.value);
     }
   });
 
