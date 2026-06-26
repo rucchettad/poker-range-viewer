@@ -229,15 +229,15 @@
 
     <!-- Toggle modalità bounty -->
     <div class="sub-toggle" style="margin-bottom:12px;">
-      <button id="btn-mode-diretta" class="active" onclick="setTagliaMode('diretta')">Media diretta</button>
-      <button id="btn-mode-calcolata" onclick="setTagliaMode('calcolata')">Da totale + giocatori</button>
+      <button id="btn-mode-diretta" class="active" onclick="setTagliaMode('diretta')">Bounty Media</button>
+      <button id="btn-mode-calcolata" onclick="setTagliaMode('calcolata')">Calcolo Bounty Media</button>
     </div>
 
     <!-- Modalità diretta: bounty media -->
     <div id="mode-diretta">
       <div class="grid">
         <div class="field" id="f-bounty-media">
-          <label>Bounty media <span class="hint">(€ — es. PokerStars te la mostra direttamente)</span></label>
+          <label>Bounty media <span class="hint">(€)</span></label>
           <input type="number" id="bounty-media" placeholder="55.55" min="0.01" step="0.01">
           <span class="field-error">Campo obbligatorio</span>
         </div>
@@ -248,7 +248,7 @@
     <div id="mode-calcolata" style="display:none;">
       <div class="grid">
         <div class="field" id="f-bounty-tot">
-          <label>Bounty totali in gioco <span class="hint">(€ — es. iPoker)</span></label>
+          <label>Bounty totali in gioco <span class="hint">(€)</span></label>
           <input type="number" id="bounty-tot" placeholder="3333" min="1" step="0.01">
           <span class="field-error">Campo obbligatorio</span>
         </div>
