@@ -789,21 +789,37 @@ document.getElementById('loginBtn').addEventListener('click', async () => {
   _authToken = loginData.access_token;
   sessionStorage.setItem('poker_token', loginData.access_token);
   sessionStorage.setItem('poker_email', loginData.user.email);
+  if (loginData.session_token) sessionStorage.setItem('poker_session', loginData.session_token);
   document.getElementById('loginScreen').style.display = 'none';
 
   // STEP 2: check-status separato
   try {
-    await apiFetch('/api/check-status', { method: 'POST', body: JSON.stringify({ access_token: loginData.access_token }) });
+    const sessionToken = sessionStorage.getItem('poker_session');
+    await apiFetch('/api/check-status', { method: 'POST', body: JSON.stringify({ access_token: loginData.access_token, session_token: sessionToken }) });
   } catch(e) {
     if (e instanceof RateLimitError) {
       // Account bloccato: pulisci sessione e mostra messaggio nella schermata login
       _authToken = null;
       sessionStorage.removeItem('poker_token');
       sessionStorage.removeItem('poker_email');
+      sessionStorage.removeItem('poker_session');
       document.getElementById('loginScreen').style.display = 'flex';
       const errEl = document.getElementById('loginError');
       errEl.style.color = 'var(--error)';
       errEl.innerHTML = '🚫 Il tuo account è stato sospeso per uso anomalo.<br>Contatta: <a href="mailto:rucchettad@gmail.com" style="color:var(--btn);">rucchettad@gmail.com</a>';
+      errEl.style.display = 'block';
+      loadEl.style.display = 'none';
+      return;
+    }
+    if (e.message === 'SESSION_DUPLICATE') {
+      _authToken = null;
+      sessionStorage.removeItem('poker_token');
+      sessionStorage.removeItem('poker_email');
+      sessionStorage.removeItem('poker_session');
+      document.getElementById('loginScreen').style.display = 'flex';
+      const errEl = document.getElementById('loginError');
+      errEl.style.color = 'var(--error)';
+      errEl.textContent = '⚠️ Sessione non valida. Un altro dispositivo ha effettuato l\'accesso con questo account.';
       errEl.style.display = 'block';
       loadEl.style.display = 'none';
       return;
@@ -858,7 +874,7 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
   // ===== PULISCI SESSIONE =====
   sessionStorage.removeItem('poker_token');
   sessionStorage.removeItem('poker_email');
-  document.getElementById('appScreen').style.display = 'none';
+  sessionStorage.removeItem('poker_session');
   document.getElementById('loginScreen').style.display = 'flex';
 });
 
@@ -953,13 +969,26 @@ async function ripristinaSessione() {
     _authToken = token;
     // Controlla se l'utente e' bloccato PRIMA di mostrare l'app
     try {
-      await apiFetch('/api/check-status', { method: 'POST', body: JSON.stringify({ access_token: token }) });
+      const sessionToken = sessionStorage.getItem('poker_session');
+      await apiFetch('/api/check-status', { method: 'POST', body: JSON.stringify({ access_token: token, session_token: sessionToken }) });
     } catch(e) {
       if (e instanceof RateLimitError) {
         document.getElementById('appScreen').style.display = 'block';
         document.getElementById('appContainer').style.display = 'block';
         document.getElementById('loadingMsg').style.display = 'none';
         mostraBannerRateLimitAlCaricamento();
+        return;
+      }
+      if (e.message === 'SESSION_DUPLICATE') {
+        _authToken = null;
+        sessionStorage.removeItem('poker_token');
+        sessionStorage.removeItem('poker_email');
+        sessionStorage.removeItem('poker_session');
+        document.getElementById('loginScreen').style.display = 'flex';
+        const errEl = document.getElementById('loginError');
+        errEl.style.color = 'var(--error)';
+        errEl.textContent = '⚠️ Sessione non valida. Un altro dispositivo ha effettuato l\'accesso con questo account.';
+        errEl.style.display = 'block';
         return;
       }
       // Altri errori (rete, token scaduto ecc): procedi normalmente
@@ -982,6 +1011,7 @@ window.addEventListener('pageshow', function(event) {
     window.DISCLAIMER_CHIUSO = false;
     sessionStorage.removeItem('poker_token');
     sessionStorage.removeItem('poker_email');
+    sessionStorage.removeItem('poker_session');
     document.getElementById('appScreen').style.display = 'none';
     document.getElementById('loginScreen').style.display = 'flex';
   }
