@@ -532,7 +532,7 @@
     <table class="result-table" id="dealTable"></table>
     <div style="margin-top:10px;display:flex;gap:16px;flex-wrap:wrap;">
       <span style="font-size:11px;color:var(--muted);">
-        <span style="color:var(--accent);font-weight:700;">ICM Deal</span> — equity reale (Malmuth-Harville)
+        <span style="color:var(--accent);font-weight:700;">ICM Deal</span> — equity reale
       </span>
       <span style="font-size:11px;color:var(--muted);">
         <span style="color:var(--accent2);font-weight:700;">Chip Chop</span> — proporzione chips lineare
@@ -995,9 +995,12 @@ function renderDealTable() {
     <th style="color:#a084e8">Equal Chop</th>
   </tr>`;
 
+  const minPrize = prizes[prizes.length - 1];
+  const prizePool = totalPrize - minPrize * n;
+
   playerNames.forEach((name, i) => {
     const icmEq = icmEquities[i];
-    const chipChop = (playerStacks[i] / totalChips) * totalPrize;
+    const chipChop = minPrize + (playerStacks[i] / totalChips) * prizePool;
     const isHero = i === heroIdx;
 
     const diffChip = chipChop - icmEq;
