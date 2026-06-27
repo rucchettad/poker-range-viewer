@@ -721,6 +721,31 @@ function trovaBtnSeat(testo, tipo) {
   return null;
 }
 
+function estraiBlindsAnte(testo, tipo) {
+  let sb = 0, bb = 0, ante = 0;
+
+  if (tipo === 'ipoker') {
+    const mB = testo.match(/Blinds:\s*(\d+)\/(\d+)/);
+    if (mB) { sb = parseInt(mB[1]); bb = parseInt(mB[2]); }
+    const mA = testo.match(/Ante:\s*(\d+)/);
+    if (mA) ante = parseInt(mA[1]);
+  } else if (tipo === 'pokerstars') {
+    const mSB = testo.match(/posts small blind (\d+)/);
+    const mBB = testo.match(/posts big blind (\d+)/);
+    if (mSB) sb = parseInt(mSB[1]);
+    if (mBB) bb = parseInt(mBB[1]);
+    const mA = testo.match(/posts the ante (\d+)/);
+    if (mA) ante = parseInt(mA[1]);
+  } else if (tipo === '888') {
+    const mB = testo.match(/([\d,]+)\/([\d,]+)\s+Blinds/);
+    if (mB) { sb = parseInt(mB[1].replace(/,/g,'')); bb = parseInt(mB[2].replace(/,/g,'')); }
+    const mA = testo.match(/posts ante \[([0-9,]+)\]/);
+    if (mA) ante = parseInt(mA[1].replace(/,/g,''));
+  }
+
+  return { sb, bb, ante };
+}
+
 function estraiGiocatori(testo, tipo) {
   const giocatori = [];
   let regex;
@@ -731,6 +756,26 @@ function estraiGiocatori(testo, tipo) {
   } else if (tipo === '888') {
     regex = /Seat (\d+): (.+?) \( ([\d,]+) \)/g;
   }
+
+  // Trova chi posta SB e BB
+  let sbNick = null, bbNick = null;
+  if (tipo === 'pokerstars') {
+    const mSB = testo.match(/(\S+): posts small blind/);
+    const mBB = testo.match(/(\S+): posts big blind/);
+    if (mSB) sbNick = mSB[1];
+    if (mBB) bbNick = mBB[1];
+  } else if (tipo === '888') {
+    const mSB = testo.match(/(\S+) posts small blind/);
+    const mBB = testo.match(/(\S+) posts big blind/);
+    if (mSB) sbNick = mSB[1];
+    if (mBB) bbNick = mBB[1];
+  } else if (tipo === 'ipoker') {
+    const mSB = testo.match(/(\S+): Post SB/);
+    const mBB = testo.match(/(\S+): Post BB/);
+    if (mSB) sbNick = mSB[1];
+    if (mBB) bbNick = mBB[1];
+  }
+
   let m;
   while ((m = regex.exec(testo)) !== null) {
     const seat = parseInt(m[1]);
@@ -738,7 +783,7 @@ function estraiGiocatori(testo, tipo) {
     const stackStr = m[3].replace(/[€,]/g, '').replace(/\.00$/, '');
     const stack = parseInt(stackStr);
     if (!isNaN(stack) && stack > 0) {
-      giocatori.push({ seat, nick, stack });
+      giocatori.push({ seat, nick, stack, isSB: nick === sbNick, isBB: nick === bbNick });
     }
   }
   return giocatori;
@@ -801,13 +846,35 @@ function importaHH() {
   buildPlayersGrid();
   aggiornaLegenda(n);
 
+  // Estrai blinds e ante
+  const { sb, bb, ante } = estraiBlindsAnte(testo, tipo);
+
+  // Calcola pot preflop: SB + BB + (ante × n giocatori)
+  const potPreflop = sb + bb + (ante * n);
+
+  // Aggiusta stack sottraendo ante e blinds già postati
+  // Gli stack nell'HH sono PRIMA del post, quindi vanno decurtati
+  const ordinatiConStack = ordinati.map(g => {
+    let stack = g.stack;
+    if (ante > 0) stack -= ante;
+    if (g.isSB) stack -= sb;
+    if (g.isBB) stack -= bb;
+    return { ...g, stack: Math.max(0, stack) };
+  });
+
   // Popola nick e stack
   const nameInputs = document.querySelectorAll('.p-name');
   const stackInputs = document.querySelectorAll('.p-stack');
-  ordinati.forEach((g, i) => {
+  ordinatiConStack.forEach((g, i) => {
     if (nameInputs[i]) nameInputs[i].value = g.nick;
     if (stackInputs[i]) stackInputs[i].value = g.stack;
   });
+
+  // Pre-compila pot preflop se disponibile
+  if (potPreflop > 0) {
+    const potEl = document.getElementById('potAmount');
+    if (potEl) potEl.value = potPreflop;
+  }
 
   chiudiImportaHH();
 }
