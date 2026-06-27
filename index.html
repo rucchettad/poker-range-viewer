@@ -146,6 +146,7 @@ async function apiFetch(endpoint, opts = {}) {
       .mobile-label{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;}
       .mobile-control{display:flex;flex-direction:column;gap:4px;}
     }
+.rakeback-info-wrap:hover .rakeback-tooltip { display:block !important; }
 </style>
 <link rel="manifest" href="manifest.json"/>
 <meta name="theme-color" content="#0b0c10"/>
@@ -255,13 +256,14 @@ async function apiFetch(endpoint, opts = {}) {
 
     <div style="margin-top:4px;">
       <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">
-        <span id="rakebackInfoBtn" onclick="document.getElementById('rakebackTooltip').style.display=document.getElementById('rakebackTooltip').style.display==='none'?'block':'none'" style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:var(--btn);color:#fff;font-size:10px;font-weight:700;cursor:pointer;margin-right:5px;flex-shrink:0;vertical-align:middle;">i</span>Sei interessato a bonus esclusivi? Ricevi già la rakeback?
-        <div id="rakebackTooltip" style="display:none;margin-top:8px;background:#1e2230;border:1px solid #2a2f3d;border-radius:8px;padding:12px 14px;font-size:12px;color:#e8eaf0;line-height:1.7;">
+        <span style="position:relative;display:inline-block;vertical-align:middle;margin-right:5px;" class="rakeback-info-wrap">
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:var(--btn);color:#fff;font-size:10px;font-weight:700;cursor:default;flex-shrink:0;">i</span>
+          <div style="display:none;position:absolute;left:0;top:22px;z-index:999;width:260px;background:#1e2230;border:1px solid #2a2f3d;border-radius:8px;padding:12px 14px;font-size:12px;color:#e8eaf0;line-height:1.7;" class="rakeback-tooltip">
+          <strong style="color:white;">Esempio:</strong> in un torneo da 10€, potresti pagare 9€ di buy-in + 1€ di rake.<br><br>
           <strong style="color:white;">Cos'è il rakeback?</strong><br>
-          Il rakeback è un rimborso, parziale, del rake che hai generato. È come un cashback: più giochi, più rake produci, e più ne ricevi indietro sotto forma di denaro reale o bonus.<br><br>
-          <strong style="color:white;">Esempio:</strong> in un torneo da 10€, potresti pagare 9€ di buy-in + 1€ di rake.
+          Il rakeback è un rimborso, parziale, del rake che hai generato. È come un cashback: più giochi, più rake produci, e più ne ricevi indietro sotto forma di denaro reale o bonus.
         </div>
-        <br><span style="font-size:12px;color:var(--btn);">Se sei interessato seleziona le piattaforme su cui giochi:</span>
+        </span><br><span style="font-size:12px;color:var(--btn);">Se sei interessato seleziona le piattaforme su cui giochi:</span>
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="display:flex;align-items:center;gap:8px;">
