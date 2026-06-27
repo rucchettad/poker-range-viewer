@@ -935,7 +935,7 @@ function aggiornaAccountPanel(user) {
 async function disdiciAbbonamento() {
   const msgEl = document.getElementById('disdiciMsg');
   const btn = document.getElementById('disdiciBtn');
-  if (!confirm('Sei sicuro di voler disdire l'abbonamento? Manterrai l'accesso fino alla scadenza del periodo già pagato.')) return;
+  if (!confirm("Sei sicuro di voler disdire l'abbonamento? Manterrai l'accesso fino alla scadenza del periodo già pagato.")) return;
   btn.disabled = true;
   btn.textContent = 'Attendere...';
   try {
