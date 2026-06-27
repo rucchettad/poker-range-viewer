@@ -692,23 +692,29 @@ function chiudiImportaHH() {
 }
 
 function rilevaTipoHH(testo) {
+  // iPoker: ha "in chips)" con simbolo euro
   if (testo.includes('in chips)') && testo.includes('€')) return 'ipoker';
+  // 888: ha "( stack )" con spazi interni, senza "in chips"
+  if (!testo.includes('in chips)') && testo.match(/Seat \d+: .+ \( [\d,]+ \)/)) return '888';
+  // PokerStars/Snai/Sisal: ha "in chips)" senza euro
   if (testo.includes('in chips)')) return 'pokerstars';
-  if (testo.match(/Seat \d+ is the button/i) || testo.match(/Seat #\d+ is the button/i)) return 'pokerstars';
-  if (testo.includes('( ') && testo.match(/Seat \d+: .+ \( [\d,]+ \)/)) return '888';
   return null;
 }
 
 function trovaBtnSeat(testo, tipo) {
   if (tipo === 'ipoker') {
+    // iPoker: "Seat 5: LaPassia43 (...) DEALER"
     const m = testo.match(/Seat (\d+): .+DEALER/);
     return m ? parseInt(m[1]) : null;
   }
   if (tipo === 'pokerstars') {
-    const m = testo.match(/Seat #?(\d+) is the button/i);
+    // PokerStars/Snai/Sisal: "Table '...' 8-max Seat #2 is the button"
+    // oppure su riga separata "Seat #6 is the button"
+    const m = testo.match(/Seat #(\d+) is the button/i) || testo.match(/Seat (\d+) is the button/i);
     return m ? parseInt(m[1]) : null;
   }
   if (tipo === '888') {
+    // 888: "Seat 3 is the button"
     const m = testo.match(/Seat (\d+) is the button/i);
     return m ? parseInt(m[1]) : null;
   }
