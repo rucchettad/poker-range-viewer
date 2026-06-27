@@ -561,28 +561,28 @@
       </div>
       <div class="field-group">
         <label>Villain</label>
-        <select id="simVillain"></select>
+        <select id="simVillain" onchange="aggiornaPotTotale()"></select>
       </div>
     </div>
 
     <div class="row" style="margin-bottom:8px;">
       <div class="field-group">
-        <label>Call Hero (chips)</label>
-        <input type="number" id="callAmount" placeholder="auto da stack Hero" min="0" onkeydown="return bloccaPuntoVirgola(event)">
+        <label>Call Hero</label>
+        <input type="number" id="callAmount" placeholder="auto: min stack" min="0" oninput="aggiornaPotTotale()" onkeydown="return bloccaPuntoVirgola(event)">
       </div>
-    </div>
-    <div class="row" style="margin-bottom:4px;">
       <div class="field-group">
         <label>SB + BB + Ante</label>
         <input type="number" id="potSBBBAnte" placeholder="es. 7500" oninput="aggiornaPotTotale()" min="0" onkeydown="return bloccaPuntoVirgola(event)">
       </div>
+    </div>
+    <div class="row" style="margin-bottom:12px;">
       <div class="field-group">
-        <label>Bet / Raise villain</label>
-        <input type="number" id="potBetVillain" placeholder="es. 50000" oninput="aggiornaPotTotale()" min="0" onkeydown="return bloccaPuntoVirgola(event)">
+        <label>Pot Totale</label>
+        <input type="number" id="potBetVillain" placeholder="auto: min stack" oninput="aggiornaPotTotale()" min="0" onkeydown="return bloccaPuntoVirgola(event)">
       </div>
     </div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:12px;text-align:right;">
-      Pot totale = SB+BB+Ante + Bet villain = <span id="potTotaleLabel" style="color:var(--accent);font-weight:700;">0</span>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">
+      Pot totale = SB+BB+Ante + <span style="color:var(--accent);">min(stack Hero, stack Villain)</span>
     </div>
 
     <button class="btn btn-primary" style="width:100%; margin-bottom:14px;" onclick="simulateCall()">Simula Call</button>
@@ -877,6 +877,9 @@ function importaHH() {
   if (potPreflop > 0) {
     const potEl = document.getElementById('potSBBBAnte');
     if (potEl) potEl.value = potPreflop;
+    // Reset flag manuale e ricalcola
+    document.getElementById('callAmount').dataset.manuale = '';
+    document.getElementById('potBetVillain').dataset.manuale = '';
     aggiornaPotTotale();
   }
 
@@ -1117,8 +1120,8 @@ async function simulateCall() {
   const villainIdx = parseInt(document.getElementById('simVillain').value);
   const callAmt = parseFloat(document.getElementById('callAmount').value) || 0;
   const sbbbante = parseFloat(document.getElementById('potSBBBAnte').value) || 0;
-  const betVillain = parseFloat(document.getElementById('potBetVillain').value) || 0;
-  const potAmt = sbbbante + betVillain;
+  const potTotale = parseFloat(document.getElementById('potBetVillain').value) || 0;
+  const potAmt = sbbbante + potTotale;
 
   if (callAmt <= 0) {
     alert('Inserisci un importo di call valido.');
@@ -1256,20 +1259,25 @@ function bloccaPuntoVirgola(e) {
 }
 
 function aggiornaPotTotale() {
+  const heroIdx = parseInt(document.getElementById('simHero').value);
+  const villainIdx = parseInt(document.getElementById('simVillain').value);
   const sbbbante = parseFloat(document.getElementById('potSBBBAnte').value) || 0;
-  const betVillain = parseFloat(document.getElementById('potBetVillain').value) || 0;
-  const tot = sbbbante + betVillain;
-  const el = document.getElementById('potTotaleLabel');
-  if (el) el.textContent = tot.toLocaleString('it-IT');
+  if (!isNaN(heroIdx) && !isNaN(villainIdx) && playerStacks[heroIdx] && playerStacks[villainIdx]) {
+    const minStack = Math.min(playerStacks[heroIdx], playerStacks[villainIdx]);
+    // Autocompila call e pot totale solo se non modificati manualmente
+    const callEl = document.getElementById('callAmount');
+    const potEl = document.getElementById('potBetVillain');
+    if (!callEl.dataset.manuale) callEl.value = minStack;
+    if (!potEl.dataset.manuale) potEl.value = minStack;
+  }
 }
 
 function onHeroChange() {
   updateSimVillain();
-  // Pre-compila call con lo stack dell'hero selezionato
-  const heroIdx = parseInt(document.getElementById('simHero').value);
-  if (!isNaN(heroIdx) && playerStacks[heroIdx] !== undefined) {
-    document.getElementById('callAmount').value = playerStacks[heroIdx];
-  }
+  // Reset flag manuale quando cambia selezione
+  document.getElementById('callAmount').dataset.manuale = '';
+  document.getElementById('potBetVillain').dataset.manuale = '';
+  aggiornaPotTotale();
 }
 
 function buildSimSelects() {
@@ -1287,12 +1295,8 @@ function buildSimSelects() {
   });
   heroSel.value = heroIdx;
 
-  // Pre-compila call con stack hero attuale
-  if (!isNaN(heroIdx) && playerStacks[heroIdx] !== undefined) {
-    document.getElementById('callAmount').value = playerStacks[heroIdx];
-  }
-
   updateSimVillain();
+  aggiornaPotTotale();
 }
 
 function updateSimVillain() {
@@ -1320,7 +1324,6 @@ function resetAll() {
   document.getElementById('callAmount').value = '';
   document.getElementById('potSBBBAnte').value = '';
   document.getElementById('potBetVillain').value = '';
-  document.getElementById('potTotaleLabel').textContent = '0';
   document.getElementById('results').style.display = 'none';
   document.getElementById('simResults').style.display = 'none';
   document.getElementById('errorMsg').style.display = 'none';
