@@ -877,9 +877,6 @@ function importaHH() {
   if (potPreflop > 0) {
     const potEl = document.getElementById('potSBBBAnte');
     if (potEl) potEl.value = potPreflop;
-    // Reset flag manuale e ricalcola
-    document.getElementById('callAmount').dataset.manuale = '';
-    document.getElementById('potBetVillain').dataset.manuale = '';
     aggiornaPotTotale();
   }
 
@@ -1261,22 +1258,15 @@ function bloccaPuntoVirgola(e) {
 function aggiornaPotTotale() {
   const heroIdx = parseInt(document.getElementById('simHero').value);
   const villainIdx = parseInt(document.getElementById('simVillain').value);
-  const sbbbante = parseFloat(document.getElementById('potSBBBAnte').value) || 0;
-  if (!isNaN(heroIdx) && !isNaN(villainIdx) && playerStacks[heroIdx] && playerStacks[villainIdx]) {
-    const minStack = Math.min(playerStacks[heroIdx], playerStacks[villainIdx]);
-    // Autocompila call e pot totale solo se non modificati manualmente
-    const callEl = document.getElementById('callAmount');
-    const potEl = document.getElementById('potBetVillain');
-    if (!callEl.dataset.manuale) callEl.value = minStack;
-    if (!potEl.dataset.manuale) potEl.value = minStack;
-  }
+  if (isNaN(heroIdx) || isNaN(villainIdx)) return;
+  if (!playerStacks[heroIdx] || !playerStacks[villainIdx]) return;
+  const minStack = Math.min(playerStacks[heroIdx], playerStacks[villainIdx]);
+  document.getElementById('callAmount').value = minStack;
+  document.getElementById('potBetVillain').value = minStack;
 }
 
 function onHeroChange() {
   updateSimVillain();
-  // Reset flag manuale quando cambia selezione
-  document.getElementById('callAmount').dataset.manuale = '';
-  document.getElementById('potBetVillain').dataset.manuale = '';
   aggiornaPotTotale();
 }
 
