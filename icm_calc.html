@@ -692,11 +692,11 @@ function chiudiImportaHH() {
 }
 
 function rilevaTipoHH(testo) {
-  // iPoker: ha "in chips)" con simbolo euro
-  if (testo.includes('in chips)') && testo.includes('€')) return 'ipoker';
+  // iPoker: ha "€" direttamente nelle righe degli stack (es. "€11,700.00 in chips)")
+  if (/Seat \d+: \S+ \(€/.test(testo)) return 'ipoker';
   // 888: ha "( stack )" con spazi interni, senza "in chips"
   if (!testo.includes('in chips)') && testo.match(/Seat \d+: .+ \( [\d,]+ \)/)) return '888';
-  // PokerStars/Snai/Sisal: ha "in chips)" senza euro
+  // PokerStars/Snai/Sisal: ha "in chips)" senza euro nelle chips
   if (testo.includes('in chips)')) return 'pokerstars';
   return null;
 }
