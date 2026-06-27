@@ -1116,9 +1116,7 @@ async function simulateCall() {
   const heroIdx = parseInt(document.getElementById('simHero').value);
   const villainIdx = parseInt(document.getElementById('simVillain').value);
   const callAmt = parseFloat(document.getElementById('callAmount').value) || 0;
-  const sbbbante = parseFloat(document.getElementById('potSBBBAnte').value) || 0;
-  const potTotale = parseFloat(document.getElementById('potBetVillain').value) || 0;
-  const potAmt = sbbbante + potTotale;
+  const potAmt = parseFloat(document.getElementById('potBetVillain').value) || 0;
 
   if (callAmt <= 0) {
     alert('Inserisci un importo di call valido.');
@@ -1262,7 +1260,8 @@ function aggiornaPotTotale() {
   if (!playerStacks[heroIdx] || !playerStacks[villainIdx]) return;
   const minStack = Math.min(playerStacks[heroIdx], playerStacks[villainIdx]);
   document.getElementById('callAmount').value = minStack;
-  document.getElementById('potBetVillain').value = minStack;
+  const sbbbante = parseFloat(document.getElementById('potSBBBAnte').value) || 0;
+  document.getElementById('potBetVillain').value = (minStack * 2) + sbbbante;
 }
 
 function onHeroChange() {
