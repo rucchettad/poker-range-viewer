@@ -357,8 +357,19 @@ async function apiFetch(endpoint, opts = {}) {
     <button onclick="apriTool('pko_calc.html','PKO Calculator')" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:white;padding:6px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">PKO</button>
     <button onclick="apriTool('mb_calc.html','Mystery Bounty')" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:white;padding:6px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">Mystery</button>
     <button onclick="apriTool('icm_calc.html','ICM Final Table')" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:white;padding:6px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">ICM</button>
-    <button class="logout-btn" id="logoutBtn" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;">Esci</button>
+    <button id="accountBtn" onclick="toggleAccountPanel()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;">Account</button>
   </div>
+</div>
+
+<!-- ACCOUNT PANEL -->
+<div id="accountPanel" style="display:none;position:fixed;top:52px;right:12px;z-index:9999;background:#1e2230;border:1px solid #2a2f3d;border-radius:10px;padding:16px;min-width:240px;box-shadow:0 8px 32px rgba(0,0,0,0.5);">
+  <div style="font-size:12px;color:#7a8099;margin-bottom:4px;">Account</div>
+  <div id="accountEmail" style="font-size:13px;color:#e8eaf0;font-weight:600;margin-bottom:8px;word-break:break-all;"></div>
+  <div style="font-size:11px;color:#7a8099;margin-bottom:2px;">Stato abbonamento</div>
+  <div id="accountStatus" style="font-size:13px;font-weight:700;margin-bottom:16px;"></div>
+  <button id="disdiciBtn" onclick="disdiciAbbonamento()" style="width:100%;background:#dc2626;border:none;color:white;padding:9px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:8px;">Disdici abbonamento</button>
+  <button id="logoutBtn" style="width:100%;background:#2a2f3d;border:1px solid #3a3f4d;color:#e8eaf0;padding:9px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;">Esci</button>
+  <div id="disdiciMsg" style="display:none;margin-top:10px;font-size:12px;color:#4bc8a0;text-align:center;"></div>
 </div>
 
 <div style="background:#1a1400;border:1px solid #f59e0b44;border-radius:8px;padding:6px 14px;margin-bottom:8px;text-align:center;font-size:12px;color:#f59e0b;">🚧 Poker Range Viewer — Beta &nbsp;|&nbsp; Stiamo lavorando a nuove funzionalità. Grazie per far parte di questo progetto fin dall'inizio.</div>
@@ -883,6 +894,67 @@ document.getElementById('trialLogoutLink').addEventListener('click', () => {
   document.getElementById('loginScreen').style.display = 'flex';
 });
 
+// ===== ACCOUNT PANEL =====
+function toggleAccountPanel() {
+  const panel = document.getElementById('accountPanel');
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+}
+
+// Chiudi panel cliccando fuori
+document.addEventListener('click', (e) => {
+  const panel = document.getElementById('accountPanel');
+  const btn = document.getElementById('accountBtn');
+  if (panel && !panel.contains(e.target) && e.target !== btn) {
+    panel.style.display = 'none';
+  }
+});
+
+function aggiornaAccountPanel(user) {
+  const emailEl = document.getElementById('accountEmail');
+  const statusEl = document.getElementById('accountStatus');
+  if (emailEl) emailEl.textContent = user.email || '';
+  if (statusEl) {
+    const status = user.subscription_status || 'trial';
+    if (status === 'active') {
+      statusEl.textContent = '✅ Attivo';
+      statusEl.style.color = '#4bc8a0';
+    } else if (status === 'trial') {
+      statusEl.textContent = '🟡 Trial';
+      statusEl.style.color = '#f59e0b';
+    } else if (status === 'cancelled') {
+      statusEl.textContent = '🔴 Disdetto';
+      statusEl.style.color = '#dc2626';
+      document.getElementById('disdiciBtn').style.display = 'none';
+    } else {
+      statusEl.textContent = status;
+      statusEl.style.color = '#7a8099';
+    }
+  }
+}
+
+async function disdiciAbbonamento() {
+  const msgEl = document.getElementById('disdiciMsg');
+  const btn = document.getElementById('disdiciBtn');
+  if (!confirm('Sei sicuro di voler disdire l'abbonamento? Manterrai l'accesso fino alla scadenza del periodo già pagato.')) return;
+  btn.disabled = true;
+  btn.textContent = 'Attendere...';
+  try {
+    const token = sessionStorage.getItem('poker_token');
+    const resp = await apiFetch('/api/disdici', { method: 'POST', body: JSON.stringify({ access_token: token }) });
+    msgEl.textContent = '✅ Abbonamento disdetto. Accesso attivo fino alla scadenza.';
+    msgEl.style.display = 'block';
+    btn.style.display = 'none';
+    document.getElementById('accountStatus').textContent = '🔴 Disdetto';
+    document.getElementById('accountStatus').style.color = '#dc2626';
+  } catch(e) {
+    msgEl.textContent = '⚠ ' + (e.message || 'Errore. Contatta rucchettad@gmail.com');
+    msgEl.style.color = '#dc2626';
+    msgEl.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Disdici abbonamento';
+  }
+}
+
 // ===== LOGOUT =====
 document.getElementById('logoutBtn').addEventListener('click', () => {
   _authToken = null;
@@ -925,6 +997,7 @@ function mostraApp(user) {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appScreen').style.display = 'block';
   document.getElementById('userEmail').textContent = user.email;
+  aggiornaAccountPanel(user);
   if (!window.APP_AVVIATA) avviaApp();
 }
 
