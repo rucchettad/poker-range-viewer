@@ -458,15 +458,23 @@
     </div>
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px 12px;font-size:11px;color:var(--muted);line-height:1.8;">
       👆 Tocca il <span style="color:var(--accent);font-weight:700;">seat</span> per selezionarti come <span style="color:var(--accent);font-weight:700;">HERO</span><br>
-      <span style="color:var(--accent);font-weight:700;">0</span> BTN &nbsp;·&nbsp;
-      <span style="color:var(--accent);font-weight:700;">1</span> SB &nbsp;·&nbsp;
-      <span style="color:var(--accent);font-weight:700;">2</span> BB &nbsp;·&nbsp;
-      <span style="color:var(--accent);font-weight:700;">3</span> UTG &nbsp;·&nbsp;
-      <span style="color:var(--accent);font-weight:700;">4</span> UTG+1 &nbsp;·&nbsp;
-      <span style="color:var(--accent);font-weight:700;">5</span> MP &nbsp;·&nbsp;
-      <span style="color:var(--accent);font-weight:700;">6</span> MP+1 &nbsp;·&nbsp;
-      <span style="color:var(--accent);font-weight:700;">7</span> HJ &nbsp;·&nbsp;
-      <span style="color:var(--accent);font-weight:700;">8</span> CO
+      <span id="legendaPositioni"></span>
+    </div>
+    <div style="margin-top:8px;">
+      <button onclick="apriImportaHH()" style="background:var(--surface2);border:1px dashed var(--accent);color:var(--accent);padding:8px 16px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;width:100%;">📋 Importa Hand History</button>
+    </div>
+    <!-- OVERLAY IMPORTA HH -->
+    <div id="hhOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);z-index:9999;align-items:center;justify-content:center;padding:16px;">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;width:100%;max-width:500px;display:flex;flex-direction:column;gap:12px;">
+        <div style="font-size:14px;font-weight:700;color:var(--accent);">📋 Importa Hand History</div>
+        <div style="font-size:11px;color:var(--muted);">Supporta: iPoker (Lottomatica, Betpassion...), PokerStars (Snai, Sisal...), 888</div>
+        <textarea id="hhInput" placeholder="Incolla qui la hand history..." style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;padding:10px;min-height:180px;resize:vertical;font-family:monospace;outline:none;"></textarea>
+        <div id="hhError" style="color:var(--danger);font-size:12px;display:none;"></div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="importaHH()" style="flex:1;background:var(--accent);color:#0d0f14;border:none;padding:10px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;">Importa</button>
+          <button onclick="chiudiImportaHH()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px 16px;border-radius:6px;font-size:13px;cursor:pointer;">Annulla</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -597,7 +605,7 @@
           <div class="metric-label">Pot Odds chip
             <span class="tooltip-wrap">
               <span class="tooltip-icon">?</span>
-              <span class="tooltip-box">Equity minima per chiamare in termini di chips puri (cash game). Call / (Pot + Call).</span>
+              <span class="tooltip-box">Equity minima per chiamare in chip EV puri (cash game). Formula: Call / (Pot + Call).</span>
             </span>
           </div>
           <div class="metric-value" id="metricChipOdds">—</div>
@@ -625,7 +633,7 @@
         </div>
       </div>
 
-      <div class="metrics-row" style="grid-template-columns:1fr 1fr; margin-top:8px;">
+      <div class="metrics-row" style="grid-template-columns:1fr; margin-top:8px;">
         <div class="metric-box">
           <div class="metric-label">Risk Premium
             <span class="tooltip-wrap">
@@ -636,11 +644,7 @@
           <div class="metric-value" id="metricRP">—</div>
           <div class="metric-sub">punti % extra vs cEV</div>
         </div>
-        <div class="metric-box">
-          <div class="metric-label">Fold equity attuale</div>
-          <div class="metric-value" id="metricFoldEq">—</div>
-          <div class="metric-sub">se foldi mantieni</div>
-        </div>
+
       </div>
     </div>
   </div>
@@ -664,6 +668,143 @@ const PRELOADED = {
   heroIdx: 8,
   prizes: ['','','','','','','','','']
 };
+
+
+// ─── LEGENDA DINAMICA ────────────────────────────────────
+function aggiornaLegenda(n) {
+  const positions = getPositions(n);
+  const el = document.getElementById('legendaPositioni');
+  if (!el) return;
+  el.innerHTML = positions.map((pos, i) =>
+    `<span style="color:var(--accent);font-weight:700;">${i}</span> ${pos}`
+  ).join(' &nbsp;·&nbsp; ');
+}
+
+// ─── IMPORTA HAND HISTORY ────────────────────────────────
+function apriImportaHH() {
+  document.getElementById('hhOverlay').style.display = 'flex';
+  document.getElementById('hhInput').value = '';
+  document.getElementById('hhError').style.display = 'none';
+}
+
+function chiudiImportaHH() {
+  document.getElementById('hhOverlay').style.display = 'none';
+}
+
+function rilevaTipoHH(testo) {
+  if (testo.includes('in chips)') && testo.includes('€')) return 'ipoker';
+  if (testo.includes('in chips)')) return 'pokerstars';
+  if (testo.match(/Seat \d+ is the button/i) || testo.match(/Seat #\d+ is the button/i)) return 'pokerstars';
+  if (testo.includes('( ') && testo.match(/Seat \d+: .+ \( [\d,]+ \)/)) return '888';
+  return null;
+}
+
+function trovaBtnSeat(testo, tipo) {
+  if (tipo === 'ipoker') {
+    const m = testo.match(/Seat (\d+): .+DEALER/);
+    return m ? parseInt(m[1]) : null;
+  }
+  if (tipo === 'pokerstars') {
+    const m = testo.match(/Seat #?(\d+) is the button/i);
+    return m ? parseInt(m[1]) : null;
+  }
+  if (tipo === '888') {
+    const m = testo.match(/Seat (\d+) is the button/i);
+    return m ? parseInt(m[1]) : null;
+  }
+  return null;
+}
+
+function estraiGiocatori(testo, tipo) {
+  const giocatori = [];
+  let regex;
+  if (tipo === 'ipoker') {
+    regex = /Seat (\d+): (\S+) \(€([\.\d,]+) in chips\)/g;
+  } else if (tipo === 'pokerstars') {
+    regex = /Seat (\d+): (.+?) \((\d+) in chips\)/g;
+  } else if (tipo === '888') {
+    regex = /Seat (\d+): (.+?) \( ([\d,]+) \)/g;
+  }
+  let m;
+  while ((m = regex.exec(testo)) !== null) {
+    const seat = parseInt(m[1]);
+    const nick = m[2].trim();
+    const stackStr = m[3].replace(/[€,]/g, '').replace(/\.00$/, '');
+    const stack = parseInt(stackStr);
+    if (!isNaN(stack) && stack > 0) {
+      giocatori.push({ seat, nick, stack });
+    }
+  }
+  return giocatori;
+}
+
+function importaHH() {
+  const testo = document.getElementById('hhInput').value.trim();
+  const errEl = document.getElementById('hhError');
+  errEl.style.display = 'none';
+
+  if (!testo) {
+    errEl.textContent = '⚠ Incolla una hand history valida.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const tipo = rilevaTipoHH(testo);
+  if (!tipo) {
+    errEl.textContent = '⚠ Formato non riconosciuto. Supportati: iPoker, PokerStars/Snai/Sisal, 888.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const btnSeat = trovaBtnSeat(testo, tipo);
+  if (btnSeat === null) {
+    errEl.textContent = '⚠ Non riesco a trovare la posizione del dealer/button.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const giocatori = estraiGiocatori(testo, tipo);
+  if (giocatori.length < 2) {
+    errEl.textContent = '⚠ Non riesco a trovare i giocatori. Controlla il formato.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  // Ordina i seat in ordine crescente
+  giocatori.sort((a, b) => a.seat - b.seat);
+  const n = giocatori.length;
+
+  // Trova indice del BTN nell'array ordinato
+  let btnIdx = giocatori.findIndex(g => g.seat === btnSeat);
+  if (btnIdx === -1) {
+    // Se il seat del dealer non è tra i giocatori attivi, prendi il più vicino
+    btnIdx = 0;
+  }
+
+  // Riordina partendo dal BTN in senso orario
+  const ordinati = [];
+  for (let i = 0; i < n; i++) {
+    ordinati.push(giocatori[(btnIdx + i) % n]);
+  }
+
+  // Aggiorna numero giocatori
+  const numPlayersEl = document.getElementById('numPlayers');
+  numPlayersEl.value = n;
+
+  // Aggiorna grid e legenda
+  buildPlayersGrid();
+  aggiornaLegenda(n);
+
+  // Popola nick e stack
+  const nameInputs = document.querySelectorAll('.p-name');
+  const stackInputs = document.querySelectorAll('.p-stack');
+  ordinati.forEach((g, i) => {
+    if (nameInputs[i]) nameInputs[i].value = g.nick;
+    if (stackInputs[i]) stackInputs[i].value = g.stack;
+  });
+
+  chiudiImportaHH();
+}
 
 function buildPlayersGrid() {
   const n = parseInt(document.getElementById('numPlayers').value);
@@ -724,6 +865,7 @@ function buildPlayersGrid() {
   }
 
   buildPrizesGrid();
+  aggiornaLegenda(n);
 }
 
 function setHero(idx) {
@@ -937,7 +1079,7 @@ async function simulateCall() {
     document.getElementById('metricBF').textContent = s.BF.toFixed(2) + 'x';
     document.getElementById('metricMinEq').textContent = (s.minEqICM * 100).toFixed(1) + '%';
     document.getElementById('metricRP').textContent = (s.riskPremium >= 0 ? '+' : '') + (s.riskPremium * 100).toFixed(1) + '%';
-    document.getElementById('metricFoldEq').textContent = `€ ${s.eqNow.toFixed(2)}`;
+    
 
     document.getElementById('simResults').style.display = 'block';
 
@@ -1076,9 +1218,13 @@ function resetAll() {
 
 // ─── INIT ─────────────────────────────────────────────────
 buildPlayersGrid();
+aggiornaLegenda(9);
 
 // ─── EXPOSE PUBLIC FUNCTIONS ──────────────────────────────
 window.buildPlayersGrid = buildPlayersGrid;
+window.apriImportaHH = apriImportaHH;
+window.chiudiImportaHH = chiudiImportaHH;
+window.importaHH = importaHH;
 window.setHero = setHero;
 window.buildHeroSelect = buildHeroSelect;
 window.buildPrizesGrid = buildPrizesGrid;
