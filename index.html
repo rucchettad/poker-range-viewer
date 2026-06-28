@@ -990,7 +990,21 @@ function mostraDisclaimerPoiApp(user) {
   document.getElementById('disclaimerButton').onclick = () => { clearInterval(intervalId); chiudi(); };
 }
 
-function mostraApp(user) {
+function mostraSessioneScaduta() {
+  _authToken = null;
+  sessionStorage.removeItem('poker_token');
+  sessionStorage.removeItem('poker_email');
+  sessionStorage.removeItem('poker_session');
+  document.getElementById('sessioneScadutaOverlay').style.display = 'flex';
+}
+
+function chiudiSessioneScaduta() {
+  document.getElementById('sessioneScadutaOverlay').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+}
+
+
   if (!window.DISCLAIMER_CHIUSO) {
     return;
   }
@@ -1403,17 +1417,7 @@ document.getElementById('retryBtn').addEventListener('click', () => {
       if (e instanceof RateLimitError) {
         mostraBannerRateLimit();
       } else if (e.message && (e.message.toLowerCase().includes('token') || e.message.toLowerCase().includes('jwt') || e.message.toLowerCase().includes('non valido') || e.message.toLowerCase().includes('unauthorized') || e.message.toLowerCase().includes('scadut'))) {
-        // Sessione scaduta — pulisci e manda al login
-        _authToken = null;
-        sessionStorage.removeItem('poker_token');
-        sessionStorage.removeItem('poker_email');
-        sessionStorage.removeItem('poker_session');
-        document.getElementById('appScreen').style.display = 'none';
-        document.getElementById('loginScreen').style.display = 'flex';
-        const errEl = document.getElementById('loginError');
-        errEl.style.color = 'var(--error)';
-        errEl.textContent = '⏰ Sessione scaduta. Rieffettua il login.';
-        errEl.style.display = 'block';
+        mostraSessioneScaduta();
       } else {
         percentualiMani = {};
         const errBanner = document.getElementById('errorBanner');
@@ -1575,6 +1579,16 @@ document.getElementById('retryBtn').addEventListener('click', () => {
     </div>
   </div>
 </div>
+<!-- SESSIONE SCADUTA OVERLAY -->
+<div id="sessioneScadutaOverlay" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);z-index:99998;display:none;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:linear-gradient(135deg,#1f2937 0%,#111827 100%);border:2px solid #dc2626;border-radius:16px;padding:32px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.5);text-align:center;">
+    <div style="font-size:48px;margin-bottom:16px;">⏰</div>
+    <h2 style="font-size:20px;font-weight:700;color:white;margin:0 0 12px;">Sessione scaduta</h2>
+    <p style="font-size:14px;color:#a9b4c2;margin:0 0 24px;line-height:1.6;">La tua sessione è scaduta.<br>Rieffettua il login per continuare.</p>
+    <button onclick="chiudiSessioneScaduta()" style="background:linear-gradient(135deg,#1f6feb 0%,#0969da 100%);border:none;color:white;padding:14px 32px;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;width:100%;">Vai al login</button>
+  </div>
+</div>
+
 <style>
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
