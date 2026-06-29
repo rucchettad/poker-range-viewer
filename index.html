@@ -117,7 +117,9 @@ async function apiFetch(endpoint, opts = {}) {
     /* ===== MOBILE STYLES ===== */
     @media (max-width:1023px) {
       #desktopToolBar { display:none !important; }
-      #hamburgerBtn { display:block !important; }
+      #headerTitleDesktop { display:none !important; }
+      #headerTitleMobile { display:block !important; }
+      #mobileToolBar { display:flex !important; }
     }
       .wrap{transform:none !important;width:100% !important;max-width:100% !important;padding:8px !important;box-sizing:border-box;}
       body{height:auto !important;overflow:auto !important;}
@@ -360,8 +362,11 @@ async function apiFetch(endpoint, opts = {}) {
 </div>
 
 <div style="background:linear-gradient(135deg,#1f6feb 0%,#0969da 100%);border:2px solid #388bfd;border-radius:12px;padding:8px 20px;box-shadow:0 4px 12px rgba(31,111,235,0.3);margin-bottom:16px;display:flex;align-items:center;position:relative;">
-  <div style="flex:1;text-align:center;font-size:14px;font-weight:700;color:white;">&#9829;Poker Range &#9824; Preflop &#9830; Mtt Normal&#9827;</div>
-  <!-- DESKTOP: pulsanti visibili -->
+  <!-- DESKTOP: titolo centrato -->
+  <div id="headerTitleDesktop" style="flex:1;text-align:center;font-size:14px;font-weight:700;color:white;">&#9829;Poker Range &#9824; Preflop &#9830; Mtt Normal&#9827;</div>
+  <!-- MOBILE: titolo a sinistra -->
+  <div id="headerTitleMobile" style="display:none;font-size:13px;font-weight:700;color:white;flex:1;">&#9829;Poker Range &#9824;</div>
+  <!-- DESKTOP: pulsanti -->
   <div id="desktopToolBar" style="position:absolute;right:20px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
     <span id="userEmail" style="font-size:12px;color:rgba(255,255,255,0.8);"></span>
     <button onclick="apriTool('pko_calc.html','PKO Calculator')" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:white;padding:6px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">PKO</button>
@@ -369,16 +374,18 @@ async function apiFetch(endpoint, opts = {}) {
     <button onclick="apriTool('icm_calc.html','ICM Final Table')" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:white;padding:6px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">ICM</button>
     <button id="accountBtn" onclick="toggleAccountPanel()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;">Account</button>
   </div>
-  <!-- MOBILE: hamburger -->
-  <button id="hamburgerBtn" onclick="toggleHamburger()" style="display:none;position:absolute;right:12px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:18px;line-height:1;">☰</button>
+  <!-- MOBILE: hamburger tool + account fisso -->
+  <div id="mobileToolBar" style="display:none;align-items:center;gap:6px;flex-shrink:0;">
+    <button id="hamburgerBtn" onclick="toggleHamburger()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:16px;line-height:1;">☰</button>
+    <button id="accountBtn" onclick="toggleAccountPanel()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;">Account</button>
+  </div>
 </div>
 
-<!-- MENU HAMBURGER MOBILE -->
+<!-- MENU HAMBURGER MOBILE (solo tool) -->
 <div id="hamburgerMenu" style="display:none;background:linear-gradient(135deg,#1f6feb 0%,#0969da 100%);border:2px solid #388bfd;border-radius:8px;padding:8px;margin-bottom:8px;flex-direction:column;gap:8px;">
   <button onclick="apriTool('pko_calc.html','PKO Calculator');toggleHamburger();" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:white;padding:10px;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;width:100%;text-align:left;">🎯 PKO Calculator</button>
   <button onclick="apriTool('mb_calc.html','Mystery Bounty');toggleHamburger();" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:white;padding:10px;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;width:100%;text-align:left;">🎲 Mystery Bounty</button>
   <button onclick="apriTool('icm_calc.html','ICM Final Table');toggleHamburger();" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:white;padding:10px;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;width:100%;text-align:left;">📊 ICM Final Table</button>
-  <button id="accountBtnMobile" onclick="toggleAccountPanel();toggleHamburger();" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;padding:10px;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;width:100%;text-align:left;">👤 Account</button>
 </div>
 
 <!-- ACCOUNT PANEL -->
@@ -928,8 +935,7 @@ function toggleAccountPanel() {
 // Chiudi panel cliccando fuori
 document.addEventListener('click', (e) => {
   const panel = document.getElementById('accountPanel');
-  const btn = document.getElementById('accountBtn');
-  if (panel && !panel.contains(e.target) && e.target !== btn) {
+  if (panel && !panel.contains(e.target) && !e.target.closest('#mobileToolBar') && e.target.id !== 'accountBtn') {
     panel.style.display = 'none';
   }
 });
