@@ -377,7 +377,7 @@ async function apiFetch(endpoint, opts = {}) {
   <!-- MOBILE: hamburger tool + account fisso -->
   <div id="mobileToolBar" style="display:none;align-items:center;gap:6px;flex-shrink:0;">
     <button id="hamburgerBtn" onclick="toggleHamburger()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:16px;line-height:1;">☰</button>
-    <button id="accountBtn" onclick="toggleAccountPanel()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;">Account</button>
+    <button id="accountBtnMobile" onclick="toggleAccountPanel()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;">Account</button>
   </div>
 </div>
 
@@ -935,7 +935,9 @@ function toggleAccountPanel() {
 // Chiudi panel cliccando fuori
 document.addEventListener('click', (e) => {
   const panel = document.getElementById('accountPanel');
-  if (panel && !panel.contains(e.target) && !e.target.closest('#mobileToolBar') && e.target.id !== 'accountBtn') {
+  const btn = document.getElementById('accountBtn');
+  const btnMobile = document.getElementById('accountBtnMobile');
+  if (panel && !panel.contains(e.target) && e.target !== btn && e.target !== btnMobile) {
     panel.style.display = 'none';
   }
 });
@@ -1220,6 +1222,14 @@ function avviaApp() {
         errEl.style.color = 'var(--error)';
         errEl.textContent = '⚠️ Sessione non valida. Un altro dispositivo ha effettuato l\'accesso con questo account.';
         errEl.style.display = 'block';
+      } else if (e.message === 'TRIAL_EXPIRED') {
+        _authToken = null;
+        sessionStorage.removeItem('poker_token');
+        sessionStorage.removeItem('poker_email');
+        sessionStorage.removeItem('poker_session');
+        document.getElementById('appScreen').style.display = 'none';
+        window._TRIAL_EMAIL = sessionStorage.getItem('poker_email') || '';
+        document.getElementById('trialScadutoScreen').style.display = 'flex';
       }
     }
   }, 30000);
