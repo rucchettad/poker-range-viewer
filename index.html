@@ -337,9 +337,9 @@ async function apiFetch(endpoint, opts = {}) {
     <button class="login-link" id="backToLoginFromReg">← Torna al login</button>
     <div class="login-error" id="regError"></div>
     <div class="login-loading" id="regLoading">Invio in corso...</div>
-  </div>
-  <div style="margin-top:16px;text-align:center;font-size:12px;color:#6b7280;">
-    Per assistenza: <a href="mailto:rucchettad@gmail.com" style="color:var(--btn);text-decoration:none;">rucchettad@gmail.com</a>
+    <div style="margin-top:8px;text-align:center;font-size:12px;color:#6b7280;">
+      Per assistenza: <a href="mailto:rucchettad@gmail.com" style="color:var(--btn);text-decoration:none;">rucchettad@gmail.com</a>
+    </div>
   </div>
 </div>
 
@@ -594,7 +594,7 @@ async function apiFetch(endpoint, opts = {}) {
 
 </div>
 </div>
-<div style="position:fixed;bottom:10px;left:12px;font-size:12px;color:#4b5563;z-index:999;pointer-events:auto;">
+<div id="assistenzaFooter" style="position:fixed;bottom:10px;left:12px;font-size:12px;color:#4b5563;z-index:999;pointer-events:auto;display:none;">
   Per assistenza: <a href="mailto:rucchettad@gmail.com" style="color:var(--btn);text-decoration:none;">rucchettad@gmail.com</a>
 </div>
 </div>
@@ -966,10 +966,10 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
   _authToken = null;
   window.APP_AVVIATA = false;
   window.DISCLAIMER_CHIUSO = false;
-  // ===== PULISCI SESSIONE =====
   sessionStorage.removeItem('poker_token');
   sessionStorage.removeItem('poker_email');
   sessionStorage.removeItem('poker_session');
+  document.getElementById('assistenzaFooter').style.display = 'none';
   document.getElementById('loginScreen').style.display = 'flex';
 });
 
@@ -1016,6 +1016,7 @@ function mostraApp(user) {
   }
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appScreen').style.display = 'block';
+  document.getElementById('assistenzaFooter').style.display = 'block';
   document.getElementById('userEmail').textContent = user.email;
   aggiornaAccountPanel(user);
   if (!window.APP_AVVIATA) avviaApp();
