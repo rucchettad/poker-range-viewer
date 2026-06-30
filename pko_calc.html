@@ -84,6 +84,28 @@
   </div>
 </div>
 
+<!-- BLIND HERO -->
+<div style="margin-top:12px;">
+  <div class="grid2">
+    <div class="field">
+      <label style="display:flex;align-items:center;gap:8px;">
+        <input type="radio" name="blindHero" id="radioSB" value="sb" style="accent-color:var(--accent);cursor:pointer;"/>
+        Sei da Small Blind?
+        <span class="tip" data-tip="Inserisci il valore dello small blind in chips (es. 500 se il livello è 500/1000).">?</span>
+      </label>
+      <input type="number" id="blindSB" placeholder="Es. 500" style="display:none;margin-top:6px;" min="0"/>
+    </div>
+    <div class="field">
+      <label style="display:flex;align-items:center;gap:8px;">
+        <input type="radio" name="blindHero" id="radioBB" value="bb" style="accent-color:var(--accent);cursor:pointer;"/>
+        Sei da Big Blind?
+        <span class="tip" data-tip="Inserisci il valore del big blind in chips (es. 1000 se il livello è 500/1000).">?</span>
+      </label>
+      <input type="number" id="blindBB" placeholder="Es. 1000" style="display:none;margin-top:6px;" min="0"/>
+    </div>
+  </div>
+</div>
+
 <button class="calc-btn">Calcola</button>
 
 <div class="risultati" id="risultati">

@@ -3,7 +3,7 @@
 const BF_TABLE = [
   {bf:0.3,d:1.0},{bf:0.4,d:1.7},{bf:0.5,d:3.0},{bf:0.75,d:4.2},
   {bf:1.0,d:5.4},{bf:1.25,d:6.2},{bf:1.5,d:7.4},{bf:1.75,d:8.5},
-  {bf:2.0,d:9.4},{bf:2.5,d:11.1},{bf:3.0,d:12.7},{bf:4.0,d:15.5},
+  {bf:2.0,d:9.4},{bf:2.25,d:10.2},{bf:2.5,d:11.1},{bf:3.0,d:12.7},{bf:4.0,d:15.5},
   {bf:5.0,d:17.5},{bf:10.0,d:25.0},{bf:20.0,d:32.0},{bf:50.0,d:40.0},{bf:100.0,d:50.0}
 ];
 
@@ -40,6 +40,28 @@ function getToken() {
   return sessionStorage.getItem('poker_token') || sessionStorage.getItem('access_token') || '';
 }
 
+// Gestione visibilità campi SB/BB
+function setupBlindRadio() {
+  document.getElementById('radioSB').addEventListener('change', function() {
+    document.getElementById('blindSB').style.display = this.checked ? '' : 'none';
+    document.getElementById('blindBB').style.display = 'none';
+  });
+  document.getElementById('radioBB').addEventListener('change', function() {
+    document.getElementById('blindBB').style.display = this.checked ? '' : 'none';
+    document.getElementById('blindSB').style.display = 'none';
+  });
+}
+
+function getBlindHero() {
+  if (document.getElementById('radioSB').checked) {
+    return parseFloat(document.getElementById('blindSB').value) || 0;
+  }
+  if (document.getElementById('radioBB').checked) {
+    return parseFloat(document.getElementById('blindBB').value) || 0;
+  }
+  return 0;
+}
+
 async function calcola() {
   const buyin         = parseFloat(document.getElementById('buyin').value);
   const taglia        = parseFloat(document.getElementById('taglia').value);
@@ -48,6 +70,7 @@ async function calcola() {
   const bbSbAnte      = parseFloat(document.getElementById('bbSbAnte').value) || 0;
   const altreChips    = parseFloat(document.getElementById('altreChips').value) || 0;
   const potAttuale    = bbSbAnte + altreChips;
+  const blindHero     = getBlindHero();
   const sv1           = parseFloat(document.getElementById('sv1').value);
   const bv1           = parseFloat(document.getElementById('bv1').value);
 
@@ -78,7 +101,7 @@ async function calcola() {
     const resp = await fetch(`${API_URL}/api/pko`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ access_token: token, buyin, taglia, stackIniziale, stackHero, potAttuale, villains })
+      body: JSON.stringify({ access_token: token, buyin, taglia, stackIniziale, stackHero, potAttuale, blindHero, villains })
     });
 
     if (!resp.ok) {
@@ -133,6 +156,9 @@ document.addEventListener('keydown', e => { if (e.key === 'Enter') calcola(); })
 // Expose public functions
 window.toggleVillain = toggleVillain;
 window.calcola = calcola;
+
+// Init
+setupBlindRadio();
 })();
 
 
