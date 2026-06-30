@@ -8,154 +8,6 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <title>Poker Range Viewer</title>
-
-<script>
-// ===== BACKEND CONFIG =====
-const API_URL = 'https://poker-range-api-production.up.railway.app';
-let _authToken = null;
-
-class RateLimitError extends Error {
-  constructor() { super('Account temporaneamente sospeso per troppe richieste.'); }
-}
-
-async function apiFetch(endpoint, opts = {}) {
-  const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
-  if (_authToken) headers['Authorization'] = 'Bearer ' + _authToken;
-  const res = await fetch(API_URL + endpoint, { ...opts, headers });
-  const json = await res.json();
-  if (res.status === 429 || (json && json.error === 'RATE_LIMIT_BLOCKED')) throw new RateLimitError();
-  if (!res.ok) throw new Error(json.error || 'Errore server');
-  return json;
-}
-</script>
-
-<style>
-    :root {
-      --bg:#0b0c10; --panel:#11131a; --line:#1d2330; --text:#e6eef7; --muted:#a9b4c2;
-      --btn:#1f6feb;
-      --success:#10b981; --warning:#f59e0b; --error:#dc2626;
-    }
-    body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);}
-
-    /* LOGIN */
-    #loginScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg);}
-    .login-box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:40px;width:360px;display:flex;flex-direction:column;gap:20px;}
-    .login-logo{text-align:center;font-size:20px;font-weight:700;color:white;}
-    .login-title{text-align:center;font-size:14px;color:var(--muted);}
-    .login-input{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px 16px;color:var(--text);font-size:14px;width:100%;outline:none;box-sizing:border-box;}
-    .login-input:focus{border-color:var(--btn);}
-    .login-btn{background:var(--btn);color:white;border:none;border-radius:8px;padding:12px;font-size:15px;font-weight:700;cursor:pointer;width:100%;}
-    .login-btn:hover{background:#388bfd;}
-    .login-error{color:var(--error);font-size:13px;text-align:center;display:none;}
-    .login-loading{color:var(--muted);font-size:13px;text-align:center;display:none;}
-
-    .login-link{text-align:center;font-size:13px;color:var(--muted);cursor:pointer;text-decoration:underline;background:none;border:none;padding:0;font-family:inherit;width:100%;}
-    .login-link:hover{color:var(--btn);}
-
-    /* FORGOT PASSWORD SCREEN */
-    #forgotScreen{display:none;align-items:center;justify-content:center;min-height:100vh;background:var(--bg);}
-
-    /* RESET PASSWORD */
-    #resetScreen{display:none;align-items:center;justify-content:center;min-height:100vh;background:var(--bg);}
-
-    /* APP */
-    .wrap{max-width:1400px;margin:0 auto;padding:20px;}
-    #positionsContainer{margin-bottom:8px;}
-    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:8px;}
-    .tabs{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-right:30px;}
-    .label{font-size:18px;font-weight:700;color:var(--muted);margin-right:10px;}
-    .tab{padding:8px 12px;font-size:16px;border-radius:8px;border:1px solid var(--line);background:var(--panel);cursor:pointer;font-weight:600;color:#dfe7f2;display:inline-block;}
-    .tab:hover{border-color:#2e3b52}
-    .tab.active{background:var(--btn);border-color:transparent;color:white;}
-    .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:8px;}
-    .flat-section{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:8px;display:none;}
-    .flat-section.show{display:block;}
-    .flat-tabs{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
-    .flat-tab{padding:6px 10px;font-size:14px;border-radius:6px;border:1px solid var(--line);background:var(--panel);cursor:pointer;font-weight:600;color:#dfe7f2;transition:all 0.2s ease;}
-    .flat-tab:hover{border-color:#2e3b52;}
-    .flat-tab.active{background:var(--flat);border-color:transparent;color:white;}
-    .canvasRow{display:flex;gap:12px;align-items:flex-start;position:relative;}
-    .note-panel{min-width:250px;max-width:250px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;font-size:13px;line-height:1.6;color:var(--text);display:flex;flex-direction:column;gap:8px;}
-    .note-panel .note-title{font-size:14px;font-weight:700;margin-bottom:4px;color:var(--btn);}
-    .note-content{width:100%;min-height:400px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px;color:var(--text);font-size:13px;line-height:1.6;font-family:system-ui,sans-serif;white-space:pre-wrap;}
-    .sidePanel{position:absolute;right:0;top:0;display:flex;flex-direction:column;gap:8px;min-width:220px;max-width:220px;}
-    .matrix-container{width:832px;height:728px;border:none;border-radius:8px;background:#0f1117;display:grid;grid-template-columns:repeat(13,64px);grid-template-rows:repeat(13,50px);gap:0;}
-    .hand-cell{width:64px;height:50px;border:0.5px solid #1f2937;background:#1f2937;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:default;position:relative;box-sizing:border-box;}
-    .hand-text{color:white;font-size:14px;font-weight:bold;z-index:10;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#000;text-shadow:1px 1px 0 #fff,-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff;}
-    .color-bar{position:absolute;top:0;height:100%;z-index:1;box-sizing:border-box;}
-    .action-percentage{position:absolute;left:50%;top:75%;transform:translateX(-50%);color:#000;font-size:8px;font-weight:bold;text-shadow:1px 1px 0 #fff,-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff;z-index:11;pointer-events:none;}
-    .title{font-size:16px;font-weight:700;margin:6px 0 10px;}
-    .tableGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;width:100%;transform:scaleY(0.85);transform-origin:top;}
-    .cellBtn{padding:7px 10px;font-size:13px;border:1px solid var(--line);background:var(--panel);border-radius:6px;cursor:pointer;text-align:center;font-weight:600;color:#dfe7f2;transition:all 0.2s ease;}
-    .cellBtn:hover{border-color:#2e3b52}
-    .cellBtn.active{background:var(--btn);color:white;border-color:transparent}
-    .stats{display:flex;gap:12px;margin-top:10px;margin-bottom:16px;flex-wrap:wrap;justify-content:center;}
-    .stat{background:var(--bg);padding:8px 12px;border-radius:8px;border:1px solid var(--line);display:flex;align-items:center;gap:8px;}
-    .stat-color{width:18px;height:18px;border-radius:3px;border:1px solid #ffffff30;flex-shrink:0;}
-    .stat-content{display:flex;flex-direction:column;}
-    .stat-label{font-size:9px;color:var(--muted);text-transform:uppercase;font-weight:600;}
-    .stat-value{font-size:13px;font-weight:700;color:var(--text);}
-    .switch-buttons-container{display:none;gap:10px;margin-top:8px;flex-wrap:wrap;}
-    .switch-buttons-container.show{display:flex;}
-    .switch-btn{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border:none;color:white;padding:8px 16px;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;transition:all 0.2s ease;box-shadow:0 4px 6px rgba(0,0,0,0.1);}
-    .switch-btn:hover{transform:translateY(-2px);box-shadow:0 6px 12px rgba(0,0,0,0.15);}
-    .info-title{font-size:13px;font-weight:700;color:var(--btn);margin-bottom:8px;text-align:center;}
-    .info-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12px;}
-    .info-label{color:var(--muted);font-weight:500;}
-    .info-value{color:var(--text);font-weight:700;}
-    .card-content-wrapper{display:flex;flex-direction:column;}
-    .stats{order:0;}
-    .canvasRow{order:1;}
-    .logout-btn{background:var(--panel);border:1px solid var(--line);color:var(--muted);padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;}
-    .logout-btn:hover{color:var(--error);border-color:var(--error);}
-    .error-banner{background:#2a1414;border:1px solid var(--error);color:#ff9b9b;border-radius:8px;padding:12px 16px;text-align:center;margin-bottom:12px;font-size:13px;white-space:pre-line;line-height:1.6;}
-    .error-banner button{background:var(--error);color:white;border:none;border-radius:6px;padding:6px 14px;margin-left:10px;cursor:pointer;font-weight:600;margin-top:8px;}
-
-    /* RESPONSIVE SCALING - solo desktop */
-    .wrap{transform-origin:top left;transition:transform 0.2s ease;}
-
-    /* ===== MOBILE STYLES ===== */
-    @media (max-width:1023px) {
-      #desktopToolBar { display:none !important; }
-      #headerTitleDesktop { display:none !important; }
-      #headerTitleMobile { display:block !important; }
-      #mobileToolBar { display:flex !important; }
-      .wrap{transform:none !important;width:100% !important;max-width:100% !important;padding:8px !important;box-sizing:border-box;}
-      body{height:auto !important;overflow:auto !important;}
-      #positionsContainer,#modeTabs,.switch-buttons-container,.sidePanel,.title,#stackGrid,#userEmail{display:none !important;}
-      .action-percentage{display:none !important;}
-      #rangeStats{gap:4px;margin:4px 0;flex-wrap:wrap;}
-      #rangeStats .stat{padding:3px 5px;gap:4px;}
-      #rangeStats .stat-color{width:10px;height:10px;}
-      #rangeStats .stat-label{font-size:5px;}
-      #rangeStats .stat-value{font-size:9px;}
-      #rangeStats .stat:first-child{display:none !important;}
-      #mobileControls{display:flex !important;}
-      .logout-btn{font-size:11px;padding:5px 10px;}
-      .card{padding:8px;margin-top:4px;}
-      .card-content-wrapper{display:flex;flex-direction:column;}
-      #headline{font-size:12px;color:var(--muted);margin:4px 0 8px;text-align:center;}
-      .stats{gap:6px;margin:8px 0;}
-      .stat{padding:5px 8px;}
-      .stat-label{font-size:7px;}
-      .stat-value{font-size:11px;}
-      .canvasRow{flex-direction:column;position:static;gap:8px;}
-      .matrix-container{width:100% !important;height:auto !important;aspect-ratio:832/728;grid-template-columns:repeat(13,1fr) !important;grid-template-rows:repeat(13,1fr) !important;}
-      .hand-cell{width:100% !important;height:100% !important;}
-      .hand-text{font-size:8px !important;}
-      .action-percentage{font-size:5px !important;}
-      .note-panel{min-width:unset !important;max-width:100% !important;width:100%;order:3;}
-      .note-content{min-height:100px;}
-      #noteMobileToggle{display:flex !important;align-items:center;justify-content:space-between;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 16px;cursor:pointer;color:var(--btn);font-weight:700;font-size:14px;width:100%;box-sizing:border-box;}
-      #noteContentMobile{display:none;}
-      #noteContentMobile.aperto{display:block;}
-      .mobile-select{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 16px;color:var(--text);font-size:15px;font-weight:600;font-family:system-ui,sans-serif;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23a9b4c2' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center;cursor:pointer;}
-      .mobile-select:focus{outline:none;border-color:var(--btn);}
-      .mobile-label{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;}
-      .mobile-control{display:flex;flex-direction:column;gap:4px;}
-    }
-.rakeback-info-wrap:hover .rakeback-tooltip { display:block !important; }
-</style>
 <link rel="manifest" href="manifest.json"/>
 <link rel="icon" type="image/x-icon" href="favicon.ico"/>
 <link rel="apple-touch-icon" href="apple-touch-icon.png"/>
@@ -163,26 +15,7 @@ async function apiFetch(endpoint, opts = {}) {
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Poker Range"/>
-<script>
-  function adattaSchermo() {
-    const wrap = document.querySelector('.wrap');
-    if (!wrap) return;
-    if (window.innerWidth >= 1024) {
-      const scala = Math.min(1, window.innerWidth / 1440);
-      wrap.style.transform = `scale(${scala})`;
-      wrap.style.width = '1440px';
-      document.body.style.height = wrap.offsetHeight * scala + 'px';
-      document.body.style.overflow = 'hidden auto';
-    } else {
-      wrap.style.transform = '';
-      wrap.style.width = '';
-      document.body.style.height = '';
-      document.body.style.overflow = '';
-    }
-  }
-  window.addEventListener('resize', adattaSchermo);
-  window.addEventListener('load', adattaSchermo);
-</script>
+<link rel="stylesheet" href="js/style.css"/>
 </head>
 <body>
 
@@ -220,7 +53,7 @@ async function apiFetch(endpoint, opts = {}) {
 </div>
 
 <!-- RESET PASSWORD SCREEN -->
-<div id="resetScreen">
+<div id="resetScreen" style="display:none;align-items:center;justify-content:center;min-height:100vh;background:var(--bg);">
   <div class="login-box">
     <div class="login-logo">&#9829; Poker Range &#9824;</div>
     <div class="login-title">Imposta nuova password</div>
@@ -238,10 +71,7 @@ async function apiFetch(endpoint, opts = {}) {
     <div class="login-logo">&#9829; Poker Range &#9824;</div>
     <div style="text-align:center;font-size:28px;">⏰</div>
     <div style="text-align:center;font-size:18px;font-weight:700;color:white;">Periodo di prova terminato</div>
-    <div style="text-align:center;font-size:14px;color:var(--muted);line-height:1.6;">
-      I tuoi 15 giorni gratuiti sono scaduti.<br>
-      Abbonati per continuare ad accedere ai range.
-    </div>
+    <div style="text-align:center;font-size:14px;color:var(--muted);line-height:1.6;">I tuoi 30 giorni gratuiti sono scaduti.<br>Abbonati per continuare ad accedere ai range.</div>
     <div style="background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px;">
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <span style="font-size:13px;color:var(--muted);">Abbonamento mensile</span>
@@ -267,48 +97,24 @@ async function apiFetch(endpoint, opts = {}) {
 
     <div style="margin-top:4px;">
       <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">
-        <span style="position:relative;display:inline-block;vertical-align:middle;margin-right:5px;" class="rakeback-info-wrap">
+        <span class="rakeback-info-wrap" style="position:relative;display:inline-block;vertical-align:middle;margin-right:5px;">
           <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:var(--btn);color:#fff;font-size:10px;font-weight:700;cursor:default;flex-shrink:0;">i</span>
-          <div style="display:none;position:absolute;left:0;top:22px;z-index:999;width:260px;background:#1e2230;border:1px solid #2a2f3d;border-radius:8px;padding:12px 14px;font-size:12px;color:#e8eaf0;line-height:1.7;" class="rakeback-tooltip">
+          <div class="rakeback-tooltip" style="display:none;position:absolute;left:0;top:22px;z-index:999;width:260px;background:#1e2230;border:1px solid #2a2f3d;border-radius:8px;padding:12px 14px;font-size:12px;color:#e8eaf0;line-height:1.7;">
           <strong style="color:white;">Esempio:</strong> in un torneo da 10€, potresti pagare 9€ di buy-in + 1€ di rake.<br><br>
           <strong style="color:white;">Cos'è il rakeback?</strong><br>
-          Il rakeback è un rimborso, parziale, del rake che hai generato. È come un cashback: più giochi, più rake produci, e più ne ricevi indietro sotto forma di denaro reale o bonus.
+          Il rakeback è un rimborso, parziale, del rake che hai generato.
           </div>
         </span>Sei interessato a bonus esclusivi? Ricevi già la rakeback?<br><span style="font-size:12px;color:var(--btn);">Se sei interessato seleziona le piattaforme su cui giochi:</span>
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;">
-        <div style="display:flex;align-items:center;gap:8px;">
-          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;min-width:110px;"><input type="checkbox" value="Lottomatica" class="reg-room-cb" onchange="toggleRakeback(this)" style="accent-color:var(--btn);width:15px;height:15px;"> Lottomatica</label>
-          <input type="text" class="reg-room-pct" data-room="Lottomatica" placeholder="% rakeback attuale" style="display:none;width:110px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--text);font-size:12px;">
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;min-width:110px;"><input type="checkbox" value="Betpassion" class="reg-room-cb" onchange="toggleRakeback(this)" style="accent-color:var(--btn);width:15px;height:15px;"> Betpassion</label>
-          <input type="text" class="reg-room-pct" data-room="Betpassion" placeholder="% rakeback attuale" style="display:none;width:110px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--text);font-size:12px;">
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;min-width:110px;"><input type="checkbox" value="Goldbet" class="reg-room-cb" onchange="toggleRakeback(this)" style="accent-color:var(--btn);width:15px;height:15px;"> Goldbet</label>
-          <input type="text" class="reg-room-pct" data-room="Goldbet" placeholder="% rakeback attuale" style="display:none;width:110px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--text);font-size:12px;">
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;min-width:110px;"><input type="checkbox" value="Betwin360" class="reg-room-cb" onchange="toggleRakeback(this)" style="accent-color:var(--btn);width:15px;height:15px;"> Betwin360</label>
-          <input type="text" class="reg-room-pct" data-room="Betwin360" placeholder="% rakeback attuale" style="display:none;width:110px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--text);font-size:12px;">
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;min-width:110px;"><input type="checkbox" value="Admiralbet" class="reg-room-cb" onchange="toggleRakeback(this)" style="accent-color:var(--btn);width:15px;height:15px;"> Admiralbet</label>
-          <input type="text" class="reg-room-pct" data-room="Admiralbet" placeholder="% rakeback attuale" style="display:none;width:110px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--text);font-size:12px;">
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;min-width:110px;"><input type="checkbox" value="888" class="reg-room-cb" onchange="toggleRakeback(this)" style="accent-color:var(--btn);width:15px;height:15px;"> 888</label>
-          <input type="text" class="reg-room-pct" data-room="888" placeholder="% rakeback attuale" style="display:none;width:110px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--text);font-size:12px;">
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;min-width:110px;"><input type="checkbox" value="Sisal" class="reg-room-cb" onchange="toggleRakeback(this)" style="accent-color:var(--btn);width:15px;height:15px;"> Sisal</label>
-          <input type="text" class="reg-room-pct" data-room="Sisal" placeholder="% rakeback attuale" style="display:none;width:110px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--text);font-size:12px;">
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;min-width:110px;"><input type="checkbox" id="regRoomAltreChk" value="Altre" class="reg-room-cb" style="accent-color:var(--btn);width:15px;height:15px;"> Altre</label>
-          <input class="login-input" id="regRoomAltreText" placeholder="Specifica quale/i..." type="text" style="display:none;margin-top:2px;"/>
-        </div>
+        <div style="display:flex;align-items:center;gap:8px;"><label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;min-width:110px;"><input type="checkbox" value="Lottomatica" class="reg-room-cb" style="accent-color:var(--btn);width:15px;height:15px;"> Lottomatica</label><input type="text" class="reg-room-pct" data-room="Lottomatica" placeholder="% rakeback attuale" style="display:none;width:110px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--text);font-size:12px;"></div>
+        <div style="display:flex;align-items:center;gap:8px;"><label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;min-width:110px;"><input type="checkbox" value="Betpassion" class="reg-room-cb" style="accent-color:var(--btn);width:15px;height:15px;"> Betpassion</label><input type="text" class="reg-room-pct" data-room="Betpassion" placeholder="% rakeback attuale" style="display:none;width:110px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--text);font-size:12px;"></div>
+        <div style="display:flex;align-items:center;gap:8px;"><label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;min-width:110px;"><input type="checkbox" value="Goldbet" class="reg-room-cb" style="accent-color:var(--btn);width:15px;height:15px;"> Goldbet</label><input type="text" class="reg-room-pct" data-room="Goldbet" placeholder="% rakeback attuale" style="display:none;width:110px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--text);font-size:12px;"></div>
+        <div style="display:flex;align-items:center;gap:8px;"><label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;min-width:110px;"><input type="checkbox" value="Betwin360" class="reg-room-cb" style="accent-color:var(--btn);width:15px;height:15px;"> Betwin360</label><input type="text" class="reg-room-pct" data-room="Betwin360" placeholder="% rakeback attuale" style="display:none;width:110px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--text);font-size:12px;"></div>
+        <div style="display:flex;align-items:center;gap:8px;"><label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;min-width:110px;"><input type="checkbox" value="Admiralbet" class="reg-room-cb" style="accent-color:var(--btn);width:15px;height:15px;"> Admiralbet</label><input type="text" class="reg-room-pct" data-room="Admiralbet" placeholder="% rakeback attuale" style="display:none;width:110px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--text);font-size:12px;"></div>
+        <div style="display:flex;align-items:center;gap:8px;"><label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;min-width:110px;"><input type="checkbox" value="888" class="reg-room-cb" style="accent-color:var(--btn);width:15px;height:15px;"> 888</label><input type="text" class="reg-room-pct" data-room="888" placeholder="% rakeback attuale" style="display:none;width:110px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--text);font-size:12px;"></div>
+        <div style="display:flex;align-items:center;gap:8px;"><label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;min-width:110px;"><input type="checkbox" value="Sisal" class="reg-room-cb" style="accent-color:var(--btn);width:15px;height:15px;"> Sisal</label><input type="text" class="reg-room-pct" data-room="Sisal" placeholder="% rakeback attuale" style="display:none;width:110px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;color:var(--text);font-size:12px;"></div>
+        <div style="display:flex;align-items:center;gap:8px;"><label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;min-width:110px;"><input type="checkbox" id="regRoomAltreChk" value="Altre" class="reg-room-cb" style="accent-color:var(--btn);width:15px;height:15px;"> Altre</label><input class="login-input" id="regRoomAltreText" placeholder="Specifica quale/i..." type="text" style="display:none;margin-top:2px;"/></div>
       </div>
       <div style="font-size:11px;color:var(--muted);margin-top:10px;font-style:italic;">I dati forniti sono usati solo per proporti offerte personalizzate e non vengono condivisi con terze parti.</div>
     </div>
@@ -317,7 +123,7 @@ async function apiFetch(endpoint, opts = {}) {
     <div style="margin-top:8px;">
       <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px;color:var(--muted);line-height:1.5;">
         <input type="checkbox" id="regGdprChk" style="accent-color:var(--btn);width:16px;height:16px;margin-top:2px;flex-shrink:0;">
-        <span>Ho letto e accetto la <button type="button" onclick="document.getElementById('privacyModal').style.display='flex'" style="background:none;border:none;color:var(--btn);cursor:pointer;font-size:13px;padding:0;text-decoration:underline;font-family:inherit;">Privacy Policy</button>. I miei dati saranno utilizzati esclusivamente per la gestione dell'accesso al servizio e non verranno ceduti a terzi.</span>
+        <span>Ho letto e accetto la <button type="button" id="privacyOpenBtn" style="background:none;border:none;color:var(--btn);cursor:pointer;font-size:13px;padding:0;text-decoration:underline;font-family:inherit;">Privacy Policy</button>. I miei dati saranno utilizzati esclusivamente per la gestione dell'accesso al servizio e non verranno ceduti a terzi.</span>
       </label>
     </div>
 
@@ -335,7 +141,7 @@ async function apiFetch(endpoint, opts = {}) {
           <div><strong style="color:white;">Cessione a terzi:</strong><br>I dati non vengono ceduti a terzi, ad eccezione di Stripe per la gestione dei pagamenti (se applicabile).</div>
           <div><strong style="color:white;">Diritti:</strong><br>Puoi richiedere accesso, modifica o cancellazione dei tuoi dati scrivendo a rucchettad@gmail.com.</div>
         </div>
-        <button onclick="document.getElementById('privacyModal').style.display='none'" style="margin-top:20px;width:100%;background:var(--btn);border:none;color:white;padding:10px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">Chiudi</button>
+        <button id="privacyCloseBtn" style="margin-top:20px;width:100%;background:var(--btn);border:none;color:white;padding:10px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">Chiudi</button>
       </div>
     </div>
     <button class="login-link" id="backToLoginFromReg">← Torna al login</button>
@@ -354,37 +160,34 @@ async function apiFetch(endpoint, opts = {}) {
 <!-- TOOL OVERLAY -->
 <div id="toolOverlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:var(--bg);flex-direction:column;">
   <div style="display:flex;align-items:center;gap:12px;padding:10px 16px;background:linear-gradient(135deg,#1f6feb 0%,#0969da 100%);border-bottom:2px solid #388bfd;flex-shrink:0;">
-    <button onclick="chiudiTool()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;padding:6px 14px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;">← Range</button>
+    <button id="toolOverlayBack" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;padding:6px 14px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;">← Range</button>
     <span id="toolOverlayTitle" style="font-size:14px;font-weight:700;color:white;"></span>
   </div>
   <div id="toolContent" style="flex:1;overflow:auto;"></div>
 </div>
 
+<!-- HEADER -->
 <div style="background:linear-gradient(135deg,#1f6feb 0%,#0969da 100%);border:2px solid #388bfd;border-radius:12px;padding:8px 20px;box-shadow:0 4px 12px rgba(31,111,235,0.3);margin-bottom:16px;display:flex;align-items:center;position:relative;">
-  <!-- DESKTOP: titolo centrato -->
   <div id="headerTitleDesktop" style="flex:1;text-align:center;font-size:14px;font-weight:700;color:white;">&#9829;Poker Range &#9824; Preflop &#9830; Mtt Normal&#9827;</div>
-  <!-- MOBILE: titolo a sinistra -->
   <div id="headerTitleMobile" style="display:none;font-size:13px;font-weight:700;color:white;flex:1;">&#9829;Poker Range &#9824;</div>
-  <!-- DESKTOP: pulsanti -->
   <div id="desktopToolBar" style="position:absolute;right:20px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
     <span id="userEmail" style="font-size:12px;color:rgba(255,255,255,0.8);"></span>
-    <button onclick="apriTool('pko_calc.html','PKO Calculator')" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:white;padding:6px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">PKO</button>
-    <button onclick="apriTool('mb_calc.html','Mystery Bounty')" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:white;padding:6px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">Mystery</button>
-    <button onclick="apriTool('icm_calc.html','ICM Final Table')" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:white;padding:6px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">ICM</button>
-    <button id="accountBtn" onclick="toggleAccountPanel()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;">Account</button>
+    <button id="toolPko" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:white;padding:6px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">PKO</button>
+    <button id="toolMystery" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:white;padding:6px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">Mystery</button>
+    <button id="toolIcm" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:white;padding:6px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">ICM</button>
+    <button id="accountBtn" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;">Account</button>
   </div>
-  <!-- MOBILE: hamburger tool + account fisso -->
   <div id="mobileToolBar" style="display:none;align-items:center;gap:6px;flex-shrink:0;">
-    <button id="hamburgerBtn" onclick="toggleHamburger()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:16px;line-height:1;">☰</button>
-    <button id="accountBtnMobile" onclick="toggleAccountPanel()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;">Account</button>
+    <button id="hamburgerBtn" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:16px;line-height:1;">☰</button>
+    <button id="accountBtnMobile" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;">Account</button>
   </div>
 </div>
 
-<!-- MENU HAMBURGER MOBILE (solo tool) -->
+<!-- HAMBURGER MENU MOBILE -->
 <div id="hamburgerMenu" style="display:none;background:linear-gradient(135deg,#1f6feb 0%,#0969da 100%);border:2px solid #388bfd;border-radius:8px;padding:8px;margin-bottom:8px;flex-direction:column;gap:8px;">
-  <button onclick="apriTool('pko_calc.html','PKO Calculator');toggleHamburger();" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:white;padding:10px;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;width:100%;text-align:left;">🎯 PKO Calculator</button>
-  <button onclick="apriTool('mb_calc.html','Mystery Bounty');toggleHamburger();" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:white;padding:10px;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;width:100%;text-align:left;">🎲 Mystery Bounty</button>
-  <button onclick="apriTool('icm_calc.html','ICM Final Table');toggleHamburger();" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:white;padding:10px;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;width:100%;text-align:left;">📊 ICM Final Table</button>
+  <button id="toolPkoMobile" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:white;padding:10px;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;width:100%;text-align:left;">🎯 PKO Calculator</button>
+  <button id="toolMysteryMobile" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:white;padding:10px;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;width:100%;text-align:left;">🎲 Mystery Bounty</button>
+  <button id="toolIcmMobile" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:white;padding:10px;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;width:100%;text-align:left;">📊 ICM Final Table</button>
 </div>
 
 <!-- ACCOUNT PANEL -->
@@ -393,11 +196,12 @@ async function apiFetch(endpoint, opts = {}) {
   <div id="accountEmail" style="font-size:13px;color:#e8eaf0;font-weight:600;margin-bottom:8px;word-break:break-all;"></div>
   <div style="font-size:11px;color:#7a8099;margin-bottom:2px;">Stato abbonamento</div>
   <div id="accountStatus" style="font-size:13px;font-weight:700;margin-bottom:16px;"></div>
-  <button id="disdiciBtn" onclick="disdiciAbbonamento()" style="width:100%;background:#dc2626;border:none;color:white;padding:9px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:8px;">Disdici abbonamento</button>
+  <button id="disdiciBtn" style="width:100%;background:#dc2626;border:none;color:white;padding:9px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:8px;">Disdici abbonamento</button>
   <button id="logoutBtn" style="width:100%;background:#2a2f3d;border:1px solid #3a3f4d;color:#e8eaf0;padding:9px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;">Esci</button>
   <div id="disdiciMsg" style="display:none;margin-top:10px;font-size:12px;color:#4bc8a0;text-align:center;"></div>
 </div>
 
+<!-- WIP BANNER -->
 <div style="background:#1a1400;border:1px solid #f59e0b44;border-radius:8px;padding:6px 14px;margin-bottom:8px;text-align:center;font-size:12px;color:#f59e0b;">🚧 Range in completamento — Alcune configurazioni potrebbero non essere ancora disponibili. Grazie per far parte del progetto fin dall'inizio.</div>
 
 <div id="loadingMsg" style="text-align:center;padding:40px;color:var(--muted);font-size:16px;">Caricamento range in corso...</div>
@@ -406,7 +210,7 @@ async function apiFetch(endpoint, opts = {}) {
   <button id="retryBtn">Riprova</button>
 </div>
 
-<!-- CONTROLLI MOBILE (solo su telefono) -->
+<!-- CONTROLLI MOBILE -->
 <div id="mobileControls" style="display:none;flex-direction:column;gap:10px;margin-bottom:8px;">
   <div class="mobile-control">
     <div class="mobile-label">Azione</div>
@@ -426,63 +230,36 @@ async function apiFetch(endpoint, opts = {}) {
     <div class="mobile-control" style="flex:1;" id="mobileOpenerControl">
       <div class="mobile-label" id="mobileOpenerLabel">RFI</div>
       <select class="mobile-select" id="mobileOpener">
-        <option value="EP">EP</option>
-        <option value="EP1">EP1</option>
-        <option value="EP2">EP2</option>
-        <option value="MP1">MP1</option>
-        <option value="MP2">MP2</option>
-        <option value="CO">CO</option>
-        <option value="BTN">BTN</option>
-        <option value="SB">SB</option>
-        <option value="BB">BB</option>
+        <option value="EP">EP</option><option value="EP1">EP1</option><option value="EP2">EP2</option>
+        <option value="MP1">MP1</option><option value="MP2">MP2</option><option value="CO">CO</option>
+        <option value="BTN">BTN</option><option value="SB">SB</option><option value="BB">BB</option>
       </select>
     </div>
     <div class="mobile-control" style="flex:1;" id="mobileResponderControl">
       <div class="mobile-label" id="mobileResponderLabel">Hero</div>
       <select class="mobile-select" id="mobileResponder">
-        <option value="EP">EP</option>
-        <option value="EP1">EP1</option>
-        <option value="EP2">EP2</option>
-        <option value="MP1">MP1</option>
-        <option value="MP2">MP2</option>
-        <option value="CO">CO</option>
-        <option value="BTN">BTN</option>
-        <option value="SB">SB</option>
-        <option value="BB" selected>BB</option>
+        <option value="EP">EP</option><option value="EP1">EP1</option><option value="EP2">EP2</option>
+        <option value="MP1">MP1</option><option value="MP2">MP2</option><option value="CO">CO</option>
+        <option value="BTN">BTN</option><option value="SB">SB</option><option value="BB" selected>BB</option>
       </select>
     </div>
   </div>
   <div class="mobile-control" id="mobileFlatControl" style="display:none;">
     <div class="mobile-label">Flat</div>
     <select class="mobile-select" id="mobileFlat">
-      <option value="EP">EP</option>
-      <option value="EP1">EP1</option>
-      <option value="EP2">EP2</option>
-      <option value="MP1">MP1</option>
-      <option value="MP2">MP2</option>
-      <option value="CO">CO</option>
-      <option value="BTN">BTN</option>
-      <option value="SB" selected>SB</option>
+      <option value="EP">EP</option><option value="EP1">EP1</option><option value="EP2">EP2</option>
+      <option value="MP1">MP1</option><option value="MP2">MP2</option><option value="CO">CO</option>
+      <option value="BTN">BTN</option><option value="SB" selected>SB</option>
     </select>
   </div>
   <div class="mobile-control">
     <div class="mobile-label">Stack</div>
     <select class="mobile-select" id="mobileStack">
-      <option value="5bb">5bb</option>
-      <option value="7bb">7bb</option>
-      <option value="10bb">10bb</option>
-      <option value="13bb">13bb</option>
-      <option value="15bb">15bb</option>
-      <option value="17bb">17bb</option>
-      <option value="20bb">20bb</option>
-      <option value="23bb">23bb</option>
-      <option value="25bb" selected>25bb</option>
-      <option value="32bb">32bb</option>
-      <option value="36bb">36bb</option>
-      <option value="40bb">40bb</option>
-      <option value="50bb">50bb</option>
-      <option value="60bb">60bb</option>
-      <option value="80bb">80bb</option>
+      <option value="5bb">5bb</option><option value="7bb">7bb</option><option value="10bb">10bb</option>
+      <option value="13bb">13bb</option><option value="15bb">15bb</option><option value="17bb">17bb</option>
+      <option value="20bb">20bb</option><option value="23bb">23bb</option><option value="25bb" selected>25bb</option>
+      <option value="32bb">32bb</option><option value="36bb">36bb</option><option value="40bb">40bb</option>
+      <option value="50bb">50bb</option><option value="60bb">60bb</option><option value="80bb">80bb</option>
       <option value="100bb">100bb</option>
     </select>
   </div>
@@ -494,42 +271,28 @@ async function apiFetch(endpoint, opts = {}) {
 <div class="row" id="openerRow">
 <div class="tabs" id="openerTabs">
 <span class="label" id="openerLabel">RFI:</span>
-<div class="tab active">EP</div>
-<div class="tab">EP1</div>
-<div class="tab">EP2</div>
-<div class="tab">MP1</div>
-<div class="tab">MP2</div>
-<div class="tab">CO</div>
-<div class="tab">BTN</div>
-<div class="tab">SB</div>
-<div class="tab">BB</div>
+<div class="tab active">EP</div><div class="tab">EP1</div><div class="tab">EP2</div>
+<div class="tab">MP1</div><div class="tab">MP2</div><div class="tab">CO</div>
+<div class="tab">BTN</div><div class="tab">SB</div><div class="tab">BB</div>
 </div>
 </div>
 <div class="flat-section" id="flatSection">
 <div class="flat-tabs" id="flatTabs">
 <span class="label">Flat:</span>
-<div class="flat-tab" data-flat-pos="EP">EP</div>
-<div class="flat-tab" data-flat-pos="EP1">EP1</div>
-<div class="flat-tab" data-flat-pos="EP2">EP2</div>
-<div class="flat-tab" data-flat-pos="MP1">MP1</div>
-<div class="flat-tab" data-flat-pos="MP2">MP2</div>
-<div class="flat-tab" data-flat-pos="CO">CO</div>
-<div class="flat-tab" data-flat-pos="BTN">BTN</div>
-<div class="flat-tab active" data-flat-pos="SB">SB</div>
+<div class="flat-tab" data-flat-pos="EP">EP</div><div class="flat-tab" data-flat-pos="EP1">EP1</div>
+<div class="flat-tab" data-flat-pos="EP2">EP2</div><div class="flat-tab" data-flat-pos="MP1">MP1</div>
+<div class="flat-tab" data-flat-pos="MP2">MP2</div><div class="flat-tab" data-flat-pos="CO">CO</div>
+<div class="flat-tab" data-flat-pos="BTN">BTN</div><div class="flat-tab active" data-flat-pos="SB">SB</div>
 <div class="flat-tab" data-flat-pos="BB">BB</div>
 </div>
 </div>
 <div class="row" id="responderRow">
 <div class="tabs" id="responderTabs" style="display:flex;">
 <span class="label" id="responderLabel">Hero:</span>
-<div class="tab" data-pos="EP">EP</div>
-<div class="tab" data-pos="EP1">EP1</div>
-<div class="tab" data-pos="EP2">EP2</div>
-<div class="tab" data-pos="MP1">MP1</div>
-<div class="tab" data-pos="MP2">MP2</div>
-<div class="tab" data-pos="CO">CO</div>
-<div class="tab" data-pos="BTN">BTN</div>
-<div class="tab" data-pos="SB">SB</div>
+<div class="tab" data-pos="EP">EP</div><div class="tab" data-pos="EP1">EP1</div>
+<div class="tab" data-pos="EP2">EP2</div><div class="tab" data-pos="MP1">MP1</div>
+<div class="tab" data-pos="MP2">MP2</div><div class="tab" data-pos="CO">CO</div>
+<div class="tab" data-pos="BTN">BTN</div><div class="tab" data-pos="SB">SB</div>
 <div class="tab active" data-pos="BB">BB</div>
 </div>
 </div>
@@ -538,36 +301,20 @@ async function apiFetch(endpoint, opts = {}) {
 <div class="row">
 <div class="tabs" id="modeTabs">
 <span class="label">Azione:</span>
-<div class="tab active">RFI/OSHOVE</div>
-<div class="tab">Vs 3Bet NAI</div>
-<div class="tab">Vs 3Bet AI</div>
-<div class="tab">Vs 4Bet</div>
-<div class="tab">Vs RFI</div>
-<div class="tab">Vs RFI e Flat</div>
-<div class="tab">Call Shove</div>
-<div class="tab">SB Limp vs BB ISO</div>
-<div class="tab">BB vs SB Limp</div>
+<div class="tab active">RFI/OSHOVE</div><div class="tab">Vs 3Bet NAI</div><div class="tab">Vs 3Bet AI</div>
+<div class="tab">Vs 4Bet</div><div class="tab">Vs RFI</div><div class="tab">Vs RFI e Flat</div>
+<div class="tab">Call Shove</div><div class="tab">SB Limp vs BB ISO</div><div class="tab">BB vs SB Limp</div>
 </div>
 </div>
 
 <div class="card" id="stackCard">
 <div class="title">Dimensione Stack</div>
 <div class="tableGrid" id="stackGrid">
-<div class="cellBtn">5bb</div>
-<div class="cellBtn">7bb</div>
-<div class="cellBtn">10bb</div>
-<div class="cellBtn">13bb</div>
-<div class="cellBtn">15bb</div>
-<div class="cellBtn">17bb</div>
-<div class="cellBtn">20bb</div>
-<div class="cellBtn">23bb</div>
-<div class="cellBtn active">25bb</div>
-<div class="cellBtn">32bb</div>
-<div class="cellBtn">36bb</div>
-<div class="cellBtn">40bb</div>
-<div class="cellBtn">50bb</div>
-<div class="cellBtn">60bb</div>
-<div class="cellBtn">80bb</div>
+<div class="cellBtn">5bb</div><div class="cellBtn">7bb</div><div class="cellBtn">10bb</div>
+<div class="cellBtn">13bb</div><div class="cellBtn">15bb</div><div class="cellBtn">17bb</div>
+<div class="cellBtn">20bb</div><div class="cellBtn">23bb</div><div class="cellBtn active">25bb</div>
+<div class="cellBtn">32bb</div><div class="cellBtn">36bb</div><div class="cellBtn">40bb</div>
+<div class="cellBtn">50bb</div><div class="cellBtn">60bb</div><div class="cellBtn">80bb</div>
 <div class="cellBtn">100bb</div>
 </div>
 
@@ -595,1011 +342,28 @@ async function apiFetch(endpoint, opts = {}) {
 <div class="stats" id="rangeStats"></div>
 <div class="canvasRow">
 <div class="note-panel" id="notePanel">
-  <div class="note-title" id="noteMobileToggle" onclick="toggleNote()">
-    Note Strategiche <span id="noteArrow">▼</span>
-  </div>
+  <div class="note-title" id="noteMobileToggle">Note Strategiche <span id="noteArrow">▼</span></div>
   <div id="noteContentMobile">
     <div class="note-content" id="noteContent">Nessuna nota per questa configurazione.</div>
   </div>
 </div>
 <div class="matrix-container" id="matrix"></div>
-<div class="sidePanel">
+<div class="sidePanel"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
 
 </div>
 </div>
-</div>
-</div>
-</div>
-</div>
 
-</div>
-</div>
-<div id="assistenzaFooter" style="position:fixed;bottom:10px;left:12px;font-size:12px;color:#4b5563;z-index:999;pointer-events:auto;display:none;">
+<div id="assistenzaFooter" style="position:fixed;bottom:10px;left:12px;font-size:12px;color:#4b5563;z-index:999;display:none;">
   Per assistenza: <a href="mailto:rucchettad@gmail.com" style="color:var(--btn);text-decoration:none;">rucchettad@gmail.com</a>
 </div>
 </div>
 
-<script>
-window.DISCLAIMER_CHIUSO = false;
-
-// Toggle note su mobile
-function toggleHamburger() {
-  const menu = document.getElementById('hamburgerMenu');
-  menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
-}
-
-function toggleNote() {
-  const content = document.getElementById('noteContentMobile');
-  const arrow = document.getElementById('noteArrow');
-  if (window.innerWidth >= 1024) return;
-  content.classList.toggle('aperto');
-  arrow.textContent = content.classList.contains('aperto') ? '▲' : '▼';
-}
-
-// ===== FORGOT PASSWORD =====
-document.getElementById('forgotPasswordLink').addEventListener('click', () => {
-  document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('forgotScreen').style.display = 'flex';
-  document.getElementById('forgotEmail').value = document.getElementById('loginEmail').value || '';
-  document.getElementById('forgotError').style.display = 'none';
-});
-
-// ===== REGISTRAZIONE =====
-document.getElementById('registrazioneLink').addEventListener('click', () => {
-  document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('registrazioneScreen').style.display = 'flex';
-  document.getElementById('regError').style.display = 'none';
-});
-
-document.getElementById('backToLoginFromReg').addEventListener('click', () => {
-  document.getElementById('registrazioneScreen').style.display = 'none';
-  document.getElementById('loginScreen').style.display = 'flex';
-  document.getElementById('regError').style.display = 'none';
-});
-
-document.getElementById('regRoomAltreChk').addEventListener('change', function() {
-  document.getElementById('regRoomAltreText').style.display = this.checked ? 'block' : 'none';
-});
-
-function toggleRakeback(cb) {
-  const pct = document.querySelector(`.reg-room-pct[data-room="${cb.value}"]`);
-  if (pct) {
-    pct.style.display = cb.checked ? 'inline-block' : 'none';
-    if (!cb.checked) pct.value = '';
-  }
-}
-
-document.getElementById('regBtn').addEventListener('click', async () => {
-  const nome = document.getElementById('regNome').value.trim();
-  const email = document.getElementById('regEmail').value.trim();
-  const password = document.getElementById('regPassword').value;
-  const errEl = document.getElementById('regError');
-  const loadEl = document.getElementById('regLoading');
-  errEl.style.display = 'none';
-
-  if (!document.getElementById('regGdprChk').checked) {
-    errEl.style.color = 'var(--error)';
-    errEl.textContent = 'Devi accettare la Privacy Policy per procedere.';
-    errEl.style.display = 'block';
-    return;
-  }
-  if (!nome || !email || !password) {
-    errEl.style.color = 'var(--error)';
-    errEl.textContent = 'Compila tutti i campi obbligatori.';
-    errEl.style.display = 'block';
-    return;
-  }
-  if (password.length < 6) {
-    errEl.style.color = 'var(--error)';
-    errEl.textContent = 'La password deve essere di almeno 6 caratteri.';
-    errEl.style.display = 'block';
-    return;
-  }
-
-  const roomSelezionate = [];
-  document.querySelectorAll('.reg-room-cb:checked').forEach(cb => {
-    if (cb.value === 'Altre') {
-      const altro = document.getElementById('regRoomAltreText').value.trim();
-      if (altro) roomSelezionate.push('Altre: ' + altro);
-    } else {
-      const pct = document.querySelector(`.reg-room-pct[data-room="${cb.value}"]`);
-      const pctVal = pct ? pct.value.trim() : '';
-      roomSelezionate.push(pctVal ? `${cb.value} (${pctVal})` : cb.value);
-    }
-  });
-
-  loadEl.style.display = 'block';
-  try {
-    await apiFetch('/api/registrazione', { method: 'POST', body: JSON.stringify({
-      nome_cognome: nome,
-      email,
-      password,
-      room_principale: roomSelezionate.join(', ')
-    })});
-    loadEl.style.display = 'none';
-    errEl.style.color = 'var(--success)';
-    errEl.textContent = '✓ Registrazione completata! Controlla la tua email (anche nella cartella spam). Reindirizzamento al login...';
-    errEl.style.display = 'block';
-    document.getElementById('regBtn').disabled = true;
-    document.getElementById('regBtn').style.opacity = '0.6';
-    setTimeout(() => {
-      document.getElementById('registrazioneScreen').style.display = 'none';
-      document.getElementById('loginScreen').style.display = 'flex';
-      document.getElementById('loginEmail').value = email;
-      document.getElementById('loginError').style.color = 'var(--success)';
-      document.getElementById('loginError').textContent = '✓ Account creato! Inserisci la password per accedere.';
-      document.getElementById('loginError').style.display = 'block';
-    }, 3000);
-  } catch(e) {
-    loadEl.style.display = 'none';
-    errEl.style.color = 'var(--error)';
-    errEl.textContent = e.message || 'Errore durante la registrazione.';
-    errEl.style.display = 'block';
-  }
-});
-
-document.getElementById('backToLoginLink').addEventListener('click', () => {
-  document.getElementById('forgotScreen').style.display = 'none';
-  document.getElementById('loginScreen').style.display = 'flex';
-  document.getElementById('forgotError').style.display = 'none';
-});
-
-document.getElementById('forgotBtn').addEventListener('click', async () => {
-  const email = document.getElementById('forgotEmail').value.trim();
-  const errEl = document.getElementById('forgotError');
-  const loadEl = document.getElementById('forgotLoading');
-  errEl.style.display = 'none';
-  if (!email) {
-    errEl.style.color = 'var(--error)';
-    errEl.textContent = 'Inserisci la tua email.';
-    errEl.style.display = 'block';
-    return;
-  }
-  loadEl.style.display = 'block';
-  try {
-    await apiFetch('/api/reset-password', { method: 'POST', body: JSON.stringify({ email }) });
-    loadEl.style.display = 'none';
-    errEl.style.color = 'var(--success)';
-    errEl.textContent = '✓ Link inviato! Controlla la tua email (anche spam).';
-    errEl.style.display = 'block';
-    document.getElementById('forgotBtn').disabled = true;
-    document.getElementById('forgotBtn').style.opacity = '0.6';
-  } catch(e) {
-    loadEl.style.display = 'none';
-    errEl.style.color = 'var(--error)';
-    errEl.textContent = 'Errore: ' + e.message;
-    errEl.style.display = 'block';
-  }
-});
-
-document.getElementById('forgotEmail').addEventListener('keydown', e => {
-  if (e.key === 'Enter') document.getElementById('forgotBtn').click();
-});
-
-// ===== RESET PASSWORD =====
-document.getElementById('resetBtn').addEventListener('click', async () => {
-  const pwd = document.getElementById('resetPassword').value;
-  const pwd2 = document.getElementById('resetPasswordConfirm').value;
-  const errEl = document.getElementById('resetError');
-  const loadEl = document.getElementById('resetLoading');
-
-  errEl.style.display = 'none';
-  if (pwd.length < 6) {
-    errEl.textContent = 'La password deve essere di almeno 6 caratteri.';
-    errEl.style.display = 'block'; return;
-  }
-  if (pwd !== pwd2) {
-    errEl.textContent = 'Le password non coincidono.';
-    errEl.style.display = 'block'; return;
-  }
-
-  loadEl.style.display = 'block';
-  try {
-    await apiFetch('/api/nuova-password', { method: 'POST', body: JSON.stringify({ token: _authToken, password: pwd }) });
-    loadEl.style.display = 'none';
-    _authToken = null;
-    sessionStorage.removeItem('poker_token');
-    sessionStorage.removeItem('poker_email');
-    document.getElementById('resetScreen').style.display = 'none';
-    document.getElementById('loginScreen').style.display = 'flex';
-    const loginErr = document.getElementById('loginError');
-    loginErr.style.color = 'var(--success)';
-    loginErr.textContent = 'Password aggiornata! Accedi con la nuova password.';
-    loginErr.style.display = 'block';
-  } catch(e) {
-    loadEl.style.display = 'none';
-    errEl.textContent = 'Errore: ' + e.message;
-    errEl.style.display = 'block';
-  }
-});
-
-// ===== LOGIN =====
-document.getElementById('loginBtn').addEventListener('click', async () => {
-  const email = document.getElementById('loginEmail').value.trim();
-  const password = document.getElementById('loginPassword').value;
-  const errEl = document.getElementById('loginError');
-  const loadEl = document.getElementById('loginLoading');
-  errEl.style.display = 'none';
-  loadEl.style.display = 'block';
-
-  // STEP 1: login separato
-  let loginData;
-  try {
-    loginData = await apiFetch('/api/login', { method: 'POST', body: JSON.stringify({ email, password }) });
-  } catch(e) {
-    loadEl.style.display = 'none';
-    errEl.style.color = 'var(--error)';
-    if (e.message === 'TRIAL_EXPIRED') {
-      // Trial scaduto: mostra schermata pagamento Stripe
-      document.getElementById('loginScreen').style.display = 'none';
-      document.getElementById('trialScadutoScreen').style.display = 'flex';
-      // Salva email per uso nel checkout
-      window._TRIAL_EMAIL = email;
-      return;
-    } else if (e.message && (e.message.includes('sospeso') || e.message.includes('coach') || e.message.includes('scaduto'))) {
-      errEl.innerHTML = '🚫 Accesso negato.<br>Per assistenza: <a href="mailto:rucchettad@gmail.com" style="color:var(--btn);">rucchettad@gmail.com</a>';
-    } else {
-      errEl.textContent = 'Email o password errati.';
-    }
-    errEl.style.display = 'block';
-    return;
-  }
-  loadEl.style.display = 'none';
-  _authToken = loginData.access_token;
-  sessionStorage.setItem('poker_token', loginData.access_token);
-  sessionStorage.setItem('poker_email', loginData.user.email);
-  if (loginData.session_token) sessionStorage.setItem('poker_session', loginData.session_token);
-  document.getElementById('loginScreen').style.display = 'none';
-
-  // STEP 2: check-status separato
-  try {
-    const sessionToken = sessionStorage.getItem('poker_session');
-    await apiFetch('/api/check-status', { method: 'POST', body: JSON.stringify({ access_token: loginData.access_token, session_token: sessionToken }) });
-  } catch(e) {
-    if (e instanceof RateLimitError) {
-      // Account bloccato: pulisci sessione e mostra messaggio nella schermata login
-      _authToken = null;
-      sessionStorage.removeItem('poker_token');
-      sessionStorage.removeItem('poker_email');
-      sessionStorage.removeItem('poker_session');
-      document.getElementById('loginScreen').style.display = 'flex';
-      const errEl = document.getElementById('loginError');
-      errEl.style.color = 'var(--error)';
-      errEl.innerHTML = '🚫 Il tuo account è stato sospeso per uso anomalo.<br>Contatta: <a href="mailto:rucchettad@gmail.com" style="color:var(--btn);">rucchettad@gmail.com</a>';
-      errEl.style.display = 'block';
-      loadEl.style.display = 'none';
-      return;
-    }
-    if (e.message === 'SESSION_DUPLICATE') {
-      _authToken = null;
-      sessionStorage.removeItem('poker_token');
-      sessionStorage.removeItem('poker_email');
-      sessionStorage.removeItem('poker_session');
-      document.getElementById('loginScreen').style.display = 'flex';
-      const errEl = document.getElementById('loginError');
-      errEl.style.color = 'var(--error)';
-      errEl.textContent = '⚠️ Sessione non valida. Un altro dispositivo ha effettuato l\'accesso con questo account.';
-      errEl.style.display = 'block';
-      loadEl.style.display = 'none';
-      return;
-    }
-  }
-
-  mostraDisclaimerPoiApp({ email: loginData.user.email });
-});
-
-document.getElementById('loginPassword').addEventListener('keydown', e => {
-  if (e.key === 'Enter') document.getElementById('loginBtn').click();
-});
-
-// ===== TRIAL SCADUTO — CHECKOUT STRIPE =====
-document.getElementById('trialCheckoutBtn').addEventListener('click', async () => {
-  const loadEl = document.getElementById('trialLoading');
-  const errEl = document.getElementById('trialError');
-  loadEl.style.display = 'block';
-  errEl.style.display = 'none';
-
-  // Dobbiamo fare login veloce per ottenere il token (anche se scaduto, serve l'user_id)
-  // Usiamo l'email salvata e facciamo una richiesta dedicata al backend
-  try {
-    const email = window._TRIAL_EMAIL || document.getElementById('loginEmail').value.trim();
-    const password = document.getElementById('loginPassword').value;
-
-    const res = await fetch(API_URL + '/api/crea-checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-    const data = await res.json();
-    if (!res.ok || !data.checkout_url) throw new Error(data.error || 'Errore pagamento');
-    window.location.href = data.checkout_url;
-  } catch(e) {
-    loadEl.style.display = 'none';
-    errEl.textContent = e.message;
-    errEl.style.display = 'block';
-  }
-});
-
-document.getElementById('trialLogoutLink').addEventListener('click', () => {
-  document.getElementById('trialScadutoScreen').style.display = 'none';
-  document.getElementById('loginScreen').style.display = 'flex';
-});
-
-// ===== ACCOUNT PANEL =====
-function toggleAccountPanel() {
-  const panel = document.getElementById('accountPanel');
-  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-}
-
-// Chiudi panel cliccando fuori
-document.addEventListener('click', (e) => {
-  const panel = document.getElementById('accountPanel');
-  const btn = document.getElementById('accountBtn');
-  const btnMobile = document.getElementById('accountBtnMobile');
-  if (panel && !panel.contains(e.target) && e.target !== btn && e.target !== btnMobile) {
-    panel.style.display = 'none';
-  }
-});
-
-function aggiornaAccountPanel(user) {
-  const emailEl = document.getElementById('accountEmail');
-  const statusEl = document.getElementById('accountStatus');
-  if (emailEl) emailEl.textContent = user.email || '';
-  if (statusEl) {
-    const status = user.subscription_status || 'trial';
-    if (status === 'active') {
-      statusEl.textContent = '✅ Attivo';
-      statusEl.style.color = '#4bc8a0';
-    } else if (status === 'trial') {
-      statusEl.textContent = '🟡 Trial';
-      statusEl.style.color = '#f59e0b';
-    } else if (status === 'cancelled') {
-      statusEl.textContent = '🔴 Disdetto';
-      statusEl.style.color = '#dc2626';
-      document.getElementById('disdiciBtn').style.display = 'none';
-    } else {
-      statusEl.textContent = status;
-      statusEl.style.color = '#7a8099';
-    }
-  }
-}
-
-async function disdiciAbbonamento() {
-  const msgEl = document.getElementById('disdiciMsg');
-  const btn = document.getElementById('disdiciBtn');
-  if (!confirm("Sei sicuro di voler disdire l'abbonamento? Manterrai l'accesso fino alla scadenza del periodo già pagato.")) return;
-  btn.disabled = true;
-  btn.textContent = 'Attendere...';
-  try {
-    const token = sessionStorage.getItem('poker_token');
-    const resp = await apiFetch('/api/disdici', { method: 'POST', body: JSON.stringify({ access_token: token }) });
-    msgEl.textContent = '✅ Abbonamento disdetto. Accesso attivo fino alla scadenza.';
-    msgEl.style.display = 'block';
-    btn.style.display = 'none';
-    document.getElementById('accountStatus').textContent = '🔴 Disdetto';
-    document.getElementById('accountStatus').style.color = '#dc2626';
-  } catch(e) {
-    msgEl.textContent = '⚠ ' + (e.message || 'Errore. Contatta rucchettad@gmail.com');
-    msgEl.style.color = '#dc2626';
-    msgEl.style.display = 'block';
-    btn.disabled = false;
-    btn.textContent = 'Disdici abbonamento';
-  }
-}
-
-// ===== LOGOUT =====
-document.getElementById('logoutBtn').addEventListener('click', () => {
-  _authToken = null;
-  window.APP_AVVIATA = false;
-  window.DISCLAIMER_CHIUSO = false;
-  sessionStorage.removeItem('poker_token');
-  sessionStorage.removeItem('poker_email');
-  sessionStorage.removeItem('poker_session');
-  document.getElementById('assistenzaFooter').style.display = 'none';
-  document.getElementById('loginScreen').style.display = 'flex';
-});
-
-function mostraDisclaimerPoiApp(user) {
-  const overlay = document.getElementById('disclaimerOverlay');
-  const countdownEl = document.getElementById('countdownSeconds');
-  countdownEl.textContent = '5';
-  overlay.style.display = 'flex';
-  overlay.style.animation = 'fadeIn 0.3s ease-out';
-  let countdown = 5;
-  const intervalId = setInterval(() => {
-    countdown--;
-    countdownEl.textContent = countdown;
-    if (countdown <= 0) { clearInterval(intervalId); chiudi(); }
-  }, 1000);
-  function chiudi() {
-    overlay.style.animation = 'fadeOut 0.3s ease-out';
-    setTimeout(() => {
-      overlay.style.display = 'none';
-      window.DISCLAIMER_CHIUSO = true;
-      mostraApp(user);
-    }, 300);
-  }
-  document.getElementById('disclaimerButton').onclick = () => { clearInterval(intervalId); chiudi(); };
-}
-
-function mostraSessioneScaduta() {
-  _authToken = null;
-  sessionStorage.removeItem('poker_token');
-  sessionStorage.removeItem('poker_email');
-  sessionStorage.removeItem('poker_session');
-  document.getElementById('sessioneScadutaOverlay').style.display = 'flex';
-}
-
-function chiudiSessioneScaduta() {
-  document.getElementById('sessioneScadutaOverlay').style.display = 'none';
-  document.getElementById('appScreen').style.display = 'none';
-  document.getElementById('loginScreen').style.display = 'flex';
-}
-
-function mostraApp(user) {
-  if (!window.DISCLAIMER_CHIUSO) {
-    return;
-  }
-  document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('appScreen').style.display = 'block';
-  document.getElementById('assistenzaFooter').style.display = 'block';
-  document.getElementById('userEmail').textContent = user.email;
-  aggiornaAccountPanel(user);
-  if (!window.APP_AVVIATA) avviaApp();
-}
-
-// ===== BANNER RATE LIMIT AL CARICAMENTO (prima che l'app sia avviata) =====
-function mostraBannerRateLimitAlCaricamento() {
-  _RATE_LIMITED = true;
-  const MSG = "⚠️ Rallenta!\nHai effettuato troppe richieste in poco tempo. Se stavi semplicemente navigando, ricorda di effettuare meno richieste consecutive in rapida successione.\nAttendi che il monitoraggio si concluda — potrebbe richiedere fino a 10 minuti — dopodiché potrai accedere nuovamente.\nL'accesso anomalo ai dati è monitorato e può comportare la sospensione permanente dell'account.";
-  const errBanner = document.getElementById('errorBanner');
-  const errText = document.getElementById('errorBannerText');
-  const retryBtn = document.getElementById('retryBtn');
-  errText.textContent = MSG;
-  retryBtn.style.display = 'none';
-  errBanner.style.display = 'block';
-  // Blocca i tab: tutti i click non fanno nulla
-  document.querySelectorAll('.tab, .flat-tab, .cellBtn').forEach(el => {
-    el.style.pointerEvents = 'none';
-    el.style.opacity = '0.4';
-  });
-}
-
-// ===== RIPRISTINO SESSIONE AL CARICAMENTO PAGINA =====
-async function ripristinaSessione() {
-  // Controlla se ritorno da pagamento Stripe riuscito
-  const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get('payment') === 'success') {
-    history.replaceState(null, '', window.location.pathname);
-    // Mostra messaggio successo nel login
-    document.getElementById('loginScreen').style.display = 'flex';
-    const errEl = document.getElementById('loginError');
-    errEl.style.color = 'var(--success)';
-    errEl.textContent = '✓ Pagamento completato! Accedi con le tue credenziali.';
-    errEl.style.display = 'block';
-    return;
-  }
-  if (urlParams.get('payment') === 'cancel') {
-    history.replaceState(null, '', window.location.pathname);
-    document.getElementById('loginScreen').style.display = 'flex';
-    return;
-  }
-  // Controlla se c'e' un token di recovery nell'URL (link email reset password)
-  const hash = window.location.hash;
-  const params = new URLSearchParams(hash.replace('#', '?'));
-  const tipo = params.get('type');
-  const accessToken = params.get('access_token');
-
-  if (tipo === 'recovery' && accessToken) {
-    // Pulisce l'URL senza ricaricare la pagina
-    history.replaceState(null, '', window.location.pathname);
-    _authToken = accessToken;
-    // Mostra schermata reset password
-    document.getElementById('resetScreen').style.display = 'flex';
-    return;
-  }
-
-  // Ripristino sessione normale
-  const token = sessionStorage.getItem('poker_token');
-  const email = sessionStorage.getItem('poker_email');
-  if (token && email) {
-    _authToken = token;
-    // Controlla se l'utente e' bloccato PRIMA di mostrare l'app
-    try {
-      const sessionToken = sessionStorage.getItem('poker_session');
-      await apiFetch('/api/check-status', { method: 'POST', body: JSON.stringify({ access_token: token, session_token: sessionToken }) });
-    } catch(e) {
-      if (e instanceof RateLimitError) {
-        document.getElementById('appScreen').style.display = 'block';
-        document.getElementById('appContainer').style.display = 'block';
-        document.getElementById('loadingMsg').style.display = 'none';
-        mostraBannerRateLimitAlCaricamento();
-        return;
-      }
-      if (e.message === 'SESSION_DUPLICATE') {
-        _authToken = null;
-        sessionStorage.removeItem('poker_token');
-        sessionStorage.removeItem('poker_email');
-        sessionStorage.removeItem('poker_session');
-        document.getElementById('loginScreen').style.display = 'flex';
-        const errEl = document.getElementById('loginError');
-        errEl.style.color = 'var(--error)';
-        errEl.textContent = '⚠️ Sessione non valida. Un altro dispositivo ha effettuato l\'accesso con questo account.';
-        errEl.style.display = 'block';
-        return;
-      }
-      // Altri errori (rete, token scaduto ecc): procedi normalmente
-    }
-    mostraDisclaimerPoiApp({ email });
-  } else {
-    document.getElementById('loginScreen').style.display = 'flex';
-  }
-}
-
-// Chiamata al caricamento normale
-window.addEventListener('DOMContentLoaded', ripristinaSessione);
-
-// Quando la pagina viene ripristinata dalla bfcache (back/forward cache): logout automatico
-window.addEventListener('pageshow', function(event) {
-  if (event.persisted) {
-    // Forza logout per obbligare a rifare login (e quindi check-status)
-    _authToken = null;
-    window.APP_AVVIATA = false;
-    window.DISCLAIMER_CHIUSO = false;
-    sessionStorage.removeItem('poker_token');
-    sessionStorage.removeItem('poker_email');
-    sessionStorage.removeItem('poker_session');
-    document.getElementById('appScreen').style.display = 'none';
-    document.getElementById('loginScreen').style.display = 'flex';
-  }
-});
-
-// ===== BACKEND DATA =====
-window.APP_AVVIATA = false;
-
-// Cache con TTL 5 minuti
-const _CACHE = {};
-const _CACHE_TTL = 5 * 60 * 1000;
-function cacheGet(chiave) {
-  const entry = _CACHE[chiave];
-  if (!entry) return undefined;
-  if (Date.now() - entry.ts > _CACHE_TTL) { delete _CACHE[chiave]; return undefined; }
-  return entry.val;
-}
-function cacheSet(chiave, val) { _CACHE[chiave] = { val, ts: Date.now() }; }
-function svuotaCache() { Object.keys(_CACHE).forEach(k => delete _CACHE[k]); }
-
-// Flag rate limit globale
-let _RATE_LIMITED = false;
-
-async function fetchRange(chiave) {
-  const cached = cacheGet('r:' + chiave);
-  if (cached !== undefined) return cached;
-  const data = await apiFetch('/api/range', { method: 'POST', body: JSON.stringify({ access_token: _authToken, range_key: chiave }) });
-  if (data && data.error === 'RATE_LIMIT_BLOCKED') throw new RateLimitError();
-  const result = data.hands || null;
-  cacheSet('r:' + chiave, result);
-  return result;
-}
-
-async function fetchNota(chiave) {
-  const cached = cacheGet('n:' + chiave);
-  if (cached !== undefined) return cached;
-  const data = await apiFetch('/api/nota', { method: 'POST', body: JSON.stringify({ access_token: _authToken, range_key: chiave }) });
-  const result = data.note || null;
-  cacheSet('n:' + chiave, result);
-  return result;
-}
-
-function avviaApp() {
-  window.APP_AVVIATA = true;
-  document.getElementById('loadingMsg').style.display = 'none';
-  document.getElementById('errorBanner').style.display = 'none';
-  document.getElementById('appContainer').style.display = 'block';
-  window.creaMatrice();
-  window.impostaEventListener();
-  window.aggiornaUI();
-  if (window.innerWidth < 1024) {
-    inizializzaMobile();
-  }
-  // Polling sessione ogni 30 secondi
-  setInterval(async () => {
-    const token = sessionStorage.getItem('poker_token');
-    const sessionToken = sessionStorage.getItem('poker_session');
-    if (!token || !sessionToken) return;
-    try {
-      await apiFetch('/api/check-status', { method: 'POST', body: JSON.stringify({ access_token: token, session_token: sessionToken }) });
-    } catch(e) {
-      if (e.message === 'SESSION_DUPLICATE') {
-        _authToken = null;
-        sessionStorage.removeItem('poker_token');
-        sessionStorage.removeItem('poker_email');
-        sessionStorage.removeItem('poker_session');
-        document.getElementById('appScreen').style.display = 'none';
-        document.getElementById('loginScreen').style.display = 'flex';
-        const errEl = document.getElementById('loginError');
-        errEl.style.color = 'var(--error)';
-        errEl.textContent = '⚠️ Sessione non valida. Un altro dispositivo ha effettuato l\'accesso con questo account.';
-        errEl.style.display = 'block';
-      } else if (e.message === 'TRIAL_EXPIRED') {
-        _authToken = null;
-        sessionStorage.removeItem('poker_token');
-        sessionStorage.removeItem('poker_email');
-        sessionStorage.removeItem('poker_session');
-        document.getElementById('appScreen').style.display = 'none';
-        window._TRIAL_EMAIL = sessionStorage.getItem('poker_email') || '';
-        document.getElementById('trialScadutoScreen').style.display = 'flex';
-      }
-    }
-  }, 30000);
-}
-
-function inizializzaMobile() {
-  const mc = document.getElementById('mobileControls');
-  if (mc) mc.style.display = 'flex';
-
-  const mAzione = document.getElementById('mobileAzione');
-  const mOpener = document.getElementById('mobileOpener');
-  const mResponder = document.getElementById('mobileResponder');
-  const mFlat = document.getElementById('mobileFlat');
-  const mStack = document.getElementById('mobileStack');
-  const mFlatControl = document.getElementById('mobileFlatControl');
-  const mResponderControl = document.getElementById('mobileResponderControl');
-  const mOpenerLabel = document.getElementById('mobileOpenerLabel');
-  const mResponderLabel = document.getElementById('mobileResponderLabel');
-
-  function aggiornaMobileUI() {
-    try {
-      const azione = mAzione.value;
-
-      if(azione==="RFI/OSHOVE"){mOpenerLabel.textContent='RFI';mResponderLabel.textContent='Hero';}
-      else if(azione==="Vs 3Bet NAI"||azione==="Vs 3Bet AI"){mOpenerLabel.textContent='Hero';mResponderLabel.textContent='3bettor';}
-      else if(azione==="Vs 4Bet"){mOpenerLabel.textContent='Hero/3Bettor';mResponderLabel.textContent='4Bettor';}
-      else if(azione==="Call Shove"){mOpenerLabel.textContent='Shove';mResponderLabel.textContent='Hero';}
-      else if(azione==="SB Limp vs BB ISO"){mOpenerLabel.textContent='Hero';mResponderLabel.textContent='Villain';}
-      else if(azione==="BB vs SB Limp"){mOpenerLabel.textContent='Villain';mResponderLabel.textContent='Hero';}
-      else{mOpenerLabel.textContent='RFI';mResponderLabel.textContent='Hero';}
-
-      mResponderControl.style.display = azione==="RFI/OSHOVE" ? 'none' : 'flex';
-
-      if(azione==="SB Limp vs BB ISO"||azione==="BB vs SB Limp") {
-        mOpener.value='SB'; mResponder.value='BB';
-        mOpener.disabled=true; mResponder.disabled=true;
-      } else {
-        mOpener.disabled=false; mResponder.disabled=false;
-      }
-
-      mFlatControl.style.display = azione==="Vs RFI e Flat" ? 'flex' : 'none';
-
-      Array.from(mStack.options).forEach(opt => {
-        const v = opt.value;
-        let nascondi = false;
-        if(azione==="Call Shove"&&!['5bb','7bb','10bb','13bb','15bb','17bb','20bb','23bb','25bb'].includes(v))nascondi=true;
-        if(["SB Limp vs BB ISO","BB vs SB Limp"].includes(azione)&&v==='5bb')nascondi=true;
-        if(["Vs 3Bet NAI","Vs RFI","Vs RFI e Flat","BB vs SB Limp"].includes(azione)&&['5bb','7bb'].includes(v))nascondi=true;
-        if(azione==="Vs 3Bet AI"&&!['10bb','13bb','15bb','17bb','20bb','23bb','25bb','32bb','36bb','40bb','50bb','60bb'].includes(v))nascondi=true;
-        if(azione==="Vs 4Bet"&&['5bb','7bb','10bb','13bb','15bb','17bb'].includes(v))nascondi=true;
-        opt.style.display = nascondi ? 'none' : '';
-      });
-
-      document.querySelectorAll('#modeTabs .tab').forEach(t=>{
-        if(t.textContent===azione) t.click();
-      });
-      document.querySelectorAll('#openerTabs .tab').forEach(t=>{
-        if(t.textContent.trim()===mOpener.value) t.click();
-      });
-      if(azione!=="RFI/OSHOVE") {
-        document.querySelectorAll('#responderTabs .tab').forEach(t=>{
-          if(t.getAttribute('data-pos')===mResponder.value) t.click();
-        });
-      }
-      document.querySelectorAll('#stackGrid .cellBtn').forEach(b=>{
-        if((b.getAttribute('data-orig')||b.textContent.trim())===mStack.value) b.click();
-      });
-      if(azione==="Vs RFI e Flat") {
-        document.querySelectorAll('.flat-tab').forEach(t=>{
-          if(t.getAttribute('data-flat-pos')===mFlat.value) t.click();
-        });
-      }
-
-    } catch(err) {
-      console.error('[aggiornaMobileUI] Errore:', err);
-    }
-  }
-
-  mAzione.addEventListener('change', aggiornaMobileUI);
-  mOpener.addEventListener('change', aggiornaMobileUI);
-  mResponder.addEventListener('change', aggiornaMobileUI);
-  mFlat.addEventListener('change', aggiornaMobileUI);
-  mStack.addEventListener('change', aggiornaMobileUI);
-
-  aggiornaMobileUI();
-}
-
-document.getElementById('retryBtn').addEventListener('click', () => {
-  document.getElementById('errorBanner').style.display = 'none';
-  aggiornaUI();
-});
-
-// ===== APP LOGIC =====
-(function() {
-  'use strict';
-
-  const MANI = [
-    ["AA","AKs","AQs","AJs","ATs","A9s","A8s","A7s","A6s","A5s","A4s","A3s","A2s"],
-    ["AKo","KK","KQs","KJs","KTs","K9s","K8s","K7s","K6s","K5s","K4s","K3s","K2s"],
-    ["AQo","KQo","QQ","QJs","QTs","Q9s","Q8s","Q7s","Q6s","Q5s","Q4s","Q3s","Q2s"],
-    ["AJo","KJo","QJo","JJ","JTs","J9s","J8s","J7s","J6s","J5s","J4s","J3s","J2s"],
-    ["ATo","KTo","QTo","JTo","TT","T9s","T8s","T7s","T6s","T5s","T4s","T3s","T2s"],
-    ["A9o","K9o","Q9o","J9o","T9o","99","98s","97s","96s","95s","94s","93s","92s"],
-    ["A8o","K8o","Q8o","J8o","T8o","98o","88","87s","86s","85s","84s","83s","82s"],
-    ["A7o","K7o","Q7o","J7o","T7o","97o","87o","77","76s","75s","74s","73s","72s"],
-    ["A6o","K6o","Q6o","J6o","T6o","96o","86o","76o","66","65s","64s","63s","62s"],
-    ["A5o","K5o","Q5o","J5o","T5o","95o","85o","75o","65o","55","54s","53s","52s"],
-    ["A4o","K4o","Q4o","J4o","T4o","94o","84o","74o","64o","54o","44","43s","42s"],
-    ["A3o","K3o","Q3o","J3o","T3o","93o","83o","73o","63o","53o","43o","33","32s"],
-    ["A2o","K2o","Q2o","J2o","T2o","92o","82o","72o","62o","52o","42o","32o","22"]
-  ];
-
-  const COLORI = {
-    fold:'#87ceeb', flat:'#16a34a', threebfold:'#ffe57f', threebbroke:'#ff6600',
-    threebshove:'#dc2626', open:'#ffb347', limpflat:'#9333ea', limpthreebet:'#ffc0cb',
-    isotobrokefold:'#ffa500', checkback:'#16a34a', bbshovebase:'#dc2626',
-    shove:'#dc2626', callnai:'#16a34a', '4betbrokenai':'#ffa500', '4betnaitofold':'#ffe57f', foldnai:'#87ceeb',
-    callai:'#16a34a', foldai:'#87ceeb',
-    raisevsiso:'#ffb347', foldvsiso:'#87ceeb', shovevsiso:'#dc2626', callvsiso:'#16a34a',
-    shovevsbbiso:'#dc2626', callvsbbiso:'#16a34a', foldvsbbiso:'#87ceeb',
-    callvsbbisoai:'#16a34a', foldvsbbisoai:'#87ceeb'
-  };
-
-  const ORDINE_AZIONI = ['threebshove','threebbroke','threebfold','open','flat','limpthreebet','limpflat','isotobrokefold','checkback','bbshovebase','shove','callnai','4betbrokenai','4betnaitofold','foldnai','callai','foldai','raisevsiso','shovevsiso','callvsiso','foldvsiso','shovevsbbiso','callvsbbiso','foldvsbbiso','callvsbbisoai','foldvsbbisoai','fold'];
-
-  let stackSelezionato = "25bb";
-  let apritoreSelezionato = "EP";
-  let responderSelezionato = "BB";
-  let azioneSelezionata = "RFI/OSHOVE";
-  let flatPosizioneSelezionata = "SB";
-  let bbLimpSubMode = "base";
-  let sbIsoSubMode = "base";
-  let percentualiMani = {};
-  let matrixContainer = null;
-  let richiestaInCorsoId = 0;
-
-  function normalizzaNome(nome) { return nome.replace(/\//g,'-').replace(/\s+/g,'_').replace(/\|/g,'_'); }
-
-  function generaChiaveRange() {
-    const m = normalizzaNome(azioneSelezionata);
-    if (azioneSelezionata === "RFI/OSHOVE") return responderSelezionato === "NO" ? `${m}_${apritoreSelezionato}_${stackSelezionato}` : `${m}_${apritoreSelezionato}_${responderSelezionato}_${stackSelezionato}`;
-    if (azioneSelezionata === "Vs RFI e Flat") return `${m}_${apritoreSelezionato}_${responderSelezionato}_${flatPosizioneSelezionata}_${stackSelezionato}`;
-    if (azioneSelezionata === "BB vs SB Limp") { let s=bbLimpSubMode==="nai"?"_NAI":bbLimpSubMode==="ai"?"_AI":""; return `${m}${s}_${apritoreSelezionato}_${responderSelezionato}_${stackSelezionato}`; }
-    if (azioneSelezionata === "SB Limp vs BB ISO") { let s=sbIsoSubMode==="nai"?"_NAI":sbIsoSubMode==="ai"?"_AI":""; return `${m}${s}_${apritoreSelezionato}_${responderSelezionato}_${stackSelezionato}`; }
-    return `${m}_${apritoreSelezionato}_${responderSelezionato}_${stackSelezionato}`;
-  }
-
-  function creaMatrice() {
-    matrixContainer = document.getElementById('matrix');
-    matrixContainer.innerHTML = '';
-    for (let r=0;r<13;r++) for (let c=0;c<13;c++) {
-      const mano=MANI[r][c], cell=document.createElement('div');
-      cell.className='hand-cell'; cell.setAttribute('data-hand',mano);
-      const txt=document.createElement('div'); txt.className='hand-text'; txt.textContent=mano;
-      cell.appendChild(txt); matrixContainer.appendChild(cell);
-    }
-  }
-
-  function aggiornaVisualizzazioneMatrice() {
-    document.querySelectorAll('.hand-cell').forEach(cell => {
-      const mano=cell.getAttribute('data-hand');
-      cell.querySelectorAll('.color-bar').forEach(b=>b.remove());
-      cell.querySelectorAll('.action-percentage').forEach(p=>p.remove());
-      if (!percentualiMani[mano]) return;
-      let pctAcc=0, azioniOrdine=[];
-      const tutte=Object.keys(percentualiMani[mano]);
-      const ordinate=ORDINE_AZIONI.filter(a=>tutte.includes(a));
-      tutte.forEach(a=>{if(!ordinate.includes(a))ordinate.push(a);});
-      ordinate.forEach(az=>{
-        const pct=percentualiMani[mano][az];
-        if(pct>0){
-          azioniOrdine.push(az);
-          const bar=document.createElement('div'); bar.className='color-bar';
-          bar.style.backgroundColor=COLORI[az]||'#888';
-          bar.style.left=`${pctAcc}%`;
-          bar.style.width=`${pct}%`;
-          cell.appendChild(bar); pctAcc+=pct;
-        }
-      });
-      const n=azioniOrdine.length;
-      if(n>=3){const el=document.createElement('div');el.className='action-percentage';el.textContent=azioniOrdine.map(az=>percentualiMani[mano][az]).join('/');cell.appendChild(el);}
-      else azioniOrdine.forEach((az,idx)=>{const el=document.createElement('div');el.className='action-percentage';el.textContent=`${percentualiMani[mano][az]}%`;el.style.left=`${((idx+1)/(n+1))*100}%`;cell.appendChild(el);});
-    });
-  }
-
-  function aggiornaStatistiche() {
-    const contatori={};
-    Object.keys(COLORI).forEach(k=>{contatori[k]=0;});
-    Object.keys(percentualiMani).forEach(mano=>{
-      const combo=mano.includes('s')?4:mano.includes('o')?12:6;
-      Object.keys(contatori).forEach(az=>{if(percentualiMani[mano]&&percentualiMani[mano][az]>0)contatori[az]+=combo*(percentualiMani[mano][az]/100);});
-    });
-    const senzaFold=Object.keys(contatori).filter(k=>k!=='fold');
-    const tot=senzaFold.reduce((s,k)=>s+contatori[k],0);
-    const etichette={fold:'Fold',flat:'Flat/Call',threebfold:'3Bet/4Bet Fold',threebbroke:'3Bet/4Bet Broke',threebshove:'3Bet Shove',open:'Open',limpflat:'Limp/Flat',limpthreebet:'Limp/3Bet',isotobrokefold:'ISO to Broke/Fold',checkback:'Check Back',bbshovebase:'Shove (base)',shove:'Shove (NAI)',callnai:'Call (NAI)','4betbrokenai':'4Bet Broke NAI','4betnaitofold':'4Bet NAI to Fold',foldnai:'Fold (NAI)',callai:'Call (AI)',foldai:'Fold (AI)',raisevsiso:'Limp 3Bet',foldvsiso:'Fold vs ISO',shovevsiso:'Shove vs ISO',callvsiso:'Call vs ISO',shovevsbbiso:'Shove vs BB ISO',callvsbbiso:'Call vs BB ISO',foldvsbbiso:'Fold vs BB ISO',callvsbbisoai:'Call vs BB ISO AI',foldvsbbisoai:'Fold vs BB ISO AI'};
-    let html=`<div class="stat"><div class="stat-color" style="background:linear-gradient(45deg,#16a34a,#ffe57f,#ff6600,#dc2626,#ffb347)"></div><div class="stat-content"><div class="stat-label">Range Totale (senza Fold)</div><div class="stat-value">${Math.round(tot)} (${((tot/1326)*100).toFixed(1)}%)</div></div></div>`;
-    Object.keys(contatori).forEach(az=>{if(contatori[az]>0)html+=`<div class="stat"><div class="stat-color" style="background:${COLORI[az]}"></div><div class="stat-content"><div class="stat-label">${etichette[az]||az}</div><div class="stat-value">${Math.round(contatori[az])} (${((contatori[az]/1326)*100).toFixed(1)}%)</div></div></div>`;});
-    document.getElementById('rangeStats').innerHTML=html;
-  }
-
-  const MSG_RATE_LIMIT = "⚠️ Rallenta!\nHai effettuato troppe richieste in poco tempo. Se stavi semplicemente navigando, ricorda di effettuare meno richieste consecutive in rapida successione.\nAttendi che il monitoraggio si concluda — potrebbe richiedere fino a 10 minuti — dopodiché potrai accedere nuovamente.\nL'accesso anomalo ai dati è monitorato e può comportare la sospensione permanente dell'account.";
-
-  function mostraBannerRateLimit() {
-    _RATE_LIMITED = true;
-    svuotaCache();
-    const errBanner = document.getElementById('errorBanner');
-    const errText = document.getElementById('errorBannerText');
-    const retryBtn = document.getElementById('retryBtn');
-    errText.textContent = MSG_RATE_LIMIT;
-    retryBtn.style.display = 'none';
-    errBanner.style.display = 'block';
-    document.getElementById('noteContent').textContent = 'Account sospeso per uso anomalo.';
-    percentualiMani = {};
-    aggiornaStatistiche();
-    aggiornaVisualizzazioneMatrice();
-  }
-
-  async function caricaRangeCorrente() {
-    const chiave=generaChiaveRange();
-    const idRichiesta = ++richiestaInCorsoId;
-    document.getElementById('noteContent').textContent='Caricamento...';
-    let hands, nota;
-    try {
-      [hands, nota] = await Promise.all([fetchRange(chiave), fetchNota(chiave)]);
-    } catch(e) {
-      if (idRichiesta !== richiestaInCorsoId) return;
-      if (e instanceof RateLimitError) {
-        mostraBannerRateLimit();
-      } else if (e.message && (e.message.toLowerCase().includes('token') || e.message.toLowerCase().includes('jwt') || e.message.toLowerCase().includes('non valido') || e.message.toLowerCase().includes('unauthorized') || e.message.toLowerCase().includes('scadut'))) {
-        mostraSessioneScaduta();
-      } else {
-        percentualiMani = {};
-        const errBanner = document.getElementById('errorBanner');
-        const errText = document.getElementById('errorBannerText');
-        const retryBtn = document.getElementById('retryBtn');
-        document.getElementById('noteContent').textContent='Errore: ' + e.message;
-        errText.textContent='Errore caricamento: ' + e.message;
-        retryBtn.style.display = 'inline-block';
-        errBanner.style.display='block';
-        aggiornaStatistiche(); aggiornaVisualizzazioneMatrice();
-      }
-      return;
-    }
-    if (idRichiesta !== richiestaInCorsoId) return;
-    if (hands) {
-      percentualiMani = hands;
-    } else {
-      percentualiMani = {};
-    }
-    document.getElementById('noteContent').textContent = nota || 'Nessuna nota per questa configurazione.';
-    aggiornaStatistiche(); aggiornaVisualizzazioneMatrice();
-  }
-
-  window.aggiornaUI = function aggiornaUI() {
-    if (_RATE_LIMITED) return;
-    const responderTabs=document.getElementById('responderTabs');
-    const flatSection=document.getElementById('flatSection');
-    const stackButtons=document.querySelectorAll('#stackGrid .cellBtn');
-    const ordine=["EP","EP1","EP2","MP1","MP2","CO","BTN","SB","BB"];
-    const openerLabel=document.getElementById('openerLabel');
-    const responderLabel=document.getElementById('responderLabel');
-
-    stackButtons.forEach(btn=>{if(!btn.getAttribute('data-orig'))btn.setAttribute('data-orig',btn.textContent.trim());});
-
-    if(azioneSelezionata==="RFI/OSHOVE"){openerLabel.textContent='RFI:';responderLabel.textContent='Hero:';}
-    else if(azioneSelezionata==="Vs 3Bet NAI"||azioneSelezionata==="Vs 3Bet AI"){openerLabel.textContent='Hero:';responderLabel.textContent='3bettor:';}
-    else if(azioneSelezionata==="Vs 4Bet"){openerLabel.textContent='Hero/3Bettor:';responderLabel.textContent='4Bettor:';}
-    else if(azioneSelezionata==="Call Shove"){openerLabel.textContent='Shove:';responderLabel.textContent='Hero:';}
-    else if(azioneSelezionata==="SB Limp vs BB ISO"){openerLabel.textContent='Hero:';responderLabel.textContent='Villain:';}
-    else if(azioneSelezionata==="BB vs SB Limp"){openerLabel.textContent='Villain:';responderLabel.textContent='Hero:';}
-    else{openerLabel.textContent='RFI:';responderLabel.textContent='Hero:';}
-
-    if(azioneSelezionata==="RFI/OSHOVE"){responderTabs.style.display='none';responderSelezionato="NO";}
-    else{responderTabs.style.display='flex';if(responderSelezionato==="NO")responderSelezionato="BB";}
-
-    if(azioneSelezionata==="SB Limp vs BB ISO"||azioneSelezionata==="BB vs SB Limp"){
-      document.querySelectorAll('#openerTabs .tab').forEach(t=>{t.style.display=t.textContent.trim()==='SB'?'inline-block':'none';});
-      document.querySelectorAll('#responderTabs .tab').forEach(t=>{t.style.display=t.getAttribute('data-pos')==='BB'?'inline-block':'none';});
-      apritoreSelezionato='SB';responderSelezionato='BB';
-      document.querySelectorAll('#openerTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent.trim()==='SB')t.classList.add('active');});
-      document.querySelectorAll('#responderTabs .tab').forEach(t=>{t.classList.remove('active');if(t.getAttribute('data-pos')==='BB')t.classList.add('active');});
-    } else {
-      document.querySelectorAll('#openerTabs .tab').forEach(t=>{const pos=t.textContent.trim();const nascondi=(azioneSelezionata!=="Vs 4Bet"&&pos==='BB')||(azioneSelezionata==="Vs RFI e Flat"&&(pos==='SB'||pos==='BB'));t.style.display=nascondi?'none':'inline-block';});
-      document.querySelectorAll('#responderTabs .tab').forEach(t=>{t.style.display=t.getAttribute('data-pos')?'inline-block':'none';});
-      if(apritoreSelezionato==='BB'&&azioneSelezionata!=="Vs 4Bet"){apritoreSelezionato='BTN';document.querySelectorAll('#openerTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent.trim()==='BTN')t.classList.add('active');});}
-    }
-
-    stackButtons.forEach(btn=>{
-      const orig=btn.getAttribute('data-orig')||btn.textContent.trim();let nascondi=false;
-      if(azioneSelezionata==="Call Shove"&&!['5bb','7bb','10bb','13bb','15bb','17bb','20bb','23bb','25bb'].includes(orig))nascondi=true;
-      if(["SB Limp vs BB ISO","BB vs SB Limp"].includes(azioneSelezionata)&&orig==='5bb')nascondi=true;
-      if(["Vs 3Bet NAI","Vs RFI","Vs RFI e Flat","BB vs SB Limp"].includes(azioneSelezionata)&&['5bb','7bb'].includes(orig))nascondi=true;
-      if(azioneSelezionata==="Vs 3Bet AI"&&!['10bb','13bb','15bb','17bb','20bb','23bb','25bb','32bb','36bb','40bb','50bb','60bb'].includes(orig))nascondi=true;
-      if(azioneSelezionata==="Vs 4Bet"&&['5bb','7bb','10bb','13bb','15bb','17bb'].includes(orig))nascondi=true;
-      btn.style.display=nascondi?'none':'inline-block';btn.textContent=orig;
-    });
-
-    if(azioneSelezionata==="Vs RFI e Flat"){flatSection.classList.add('show');document.querySelectorAll('.flat-tab').forEach(t=>{t.style.display=t.getAttribute('data-flat-pos')==='BB'?'none':'inline-block';});}
-    else flatSection.classList.remove('show');
-
-    if(["Vs RFI","Call Shove"].includes(azioneSelezionata)){const idxO=ordine.indexOf(apritoreSelezionato);document.querySelectorAll('#responderTabs .tab').forEach(t=>{const pos=t.getAttribute('data-pos');if(pos)t.style.display=ordine.indexOf(pos)<=idxO?'none':'inline-block';});if(responderSelezionato==="NO"||ordine.indexOf(responderSelezionato)<=idxO){responderSelezionato=ordine.slice(idxO+1)[0]||"BB";document.querySelectorAll('#responderTabs .tab').forEach(t=>{t.classList.remove('active');if(t.getAttribute('data-pos')===responderSelezionato)t.classList.add('active');});}}
-
-    if(["Vs 3Bet NAI","Vs 3Bet AI"].includes(azioneSelezionata)){const idxO=ordine.indexOf(apritoreSelezionato);document.querySelectorAll('#responderTabs .tab').forEach(t=>{const pos=t.getAttribute('data-pos');if(pos)t.style.display=ordine.indexOf(pos)<=idxO?'none':'inline-block';});if(ordine.indexOf(responderSelezionato)<=idxO){responderSelezionato=ordine.slice(idxO+1)[0]||"BB";document.querySelectorAll('#responderTabs .tab').forEach(t=>{t.classList.remove('active');if(t.getAttribute('data-pos')===responderSelezionato)t.classList.add('active');});}}
-
-    if(azioneSelezionata==="Vs 4Bet"){document.querySelectorAll('#responderTabs .tab').forEach(t=>{const pos=t.getAttribute('data-pos');if(pos)t.style.display=pos===apritoreSelezionato?'none':'inline-block';});}
-
-    if(azioneSelezionata==="Vs RFI e Flat"){
-      const idxRFI=ordine.indexOf(apritoreSelezionato);
-      document.querySelectorAll('.flat-tab').forEach(t=>{const pos=t.getAttribute('data-flat-pos');if(pos)t.style.display=ordine.indexOf(pos)<=idxRFI?'none':'inline-block';});
-      const idxFlat=ordine.indexOf(flatPosizioneSelezionata);
-      document.querySelectorAll('#responderTabs .tab').forEach(t=>{const pos=t.getAttribute('data-pos');if(pos)t.style.display=ordine.indexOf(pos)<=idxFlat?'none':'inline-block';});
-      if(idxFlat<=idxRFI){flatPosizioneSelezionata=ordine.slice(idxRFI+1)[0]||"BB";document.querySelectorAll('.flat-tab').forEach(t=>{t.classList.remove('active');if(t.getAttribute('data-flat-pos')===flatPosizioneSelezionata)t.classList.add('active');});}
-      const nuovoIdxFlat=ordine.indexOf(flatPosizioneSelezionata);
-      if(responderSelezionato==="NO"||ordine.indexOf(responderSelezionato)<=nuovoIdxFlat){responderSelezionato=ordine.slice(nuovoIdxFlat+1)[0]||"BB";document.querySelectorAll('#responderTabs .tab').forEach(t=>{t.classList.remove('active');if(t.getAttribute('data-pos')===responderSelezionato)t.classList.add('active');});}
-    }
-
-    let titolo;
-    if(azioneSelezionata==="RFI/OSHOVE")titolo=responderSelezionato==="NO"?`${azioneSelezionata} - ${apritoreSelezionato} - ${stackSelezionato}`:`${azioneSelezionata} - ${apritoreSelezionato} vs ${responderSelezionato} - ${stackSelezionato}`;
-    else if(azioneSelezionata==="Vs RFI e Flat")titolo=`${azioneSelezionata} - ${responderSelezionato} vs ${apritoreSelezionato} - Flat: ${flatPosizioneSelezionata} - ${stackSelezionato}`;
-    else if(["Vs 3Bet NAI","Vs 3Bet AI","Vs 4Bet"].includes(azioneSelezionata))titolo=`${azioneSelezionata} - ${apritoreSelezionato} vs ${responderSelezionato} - ${stackSelezionato}`;
-    else if(azioneSelezionata==="SB Limp vs BB ISO"){const s=sbIsoSubMode==="nai"?" - vs BB 4Bet NAI":sbIsoSubMode==="ai"?" - vs BB 4Bet AI":"";titolo=`${azioneSelezionata}${s} - SB vs BB - ${stackSelezionato}`;}
-    else if(azioneSelezionata==="BB vs SB Limp"){const s=bbLimpSubMode==="nai"?" - VS Limp 3Bet NAI":bbLimpSubMode==="ai"?" - VS Limp 3Bet AI":"";titolo=`${azioneSelezionata}${s} - BB vs SB - ${stackSelezionato}`;}
-    else titolo=`${azioneSelezionata} - ${responderSelezionato} vs ${apritoreSelezionato} - ${stackSelezionato}`;
-    document.getElementById('headline').textContent=titolo;
-
-    const sc=document.getElementById('switchButtonsContainer');
-    ['switchTo3BetNAI','switchTo3BetAI','switchToIso','switchTo4Bet','switchToVsRFIFlat','switchToBBvsSBLimp','switchToVSLimp3BetNAI','switchToVSLimp3BetAI','switchToVsBBIsoNAI','switchToVsBBIsoAI','switchBackToBaseLimp','switchBackToBaseIso','switchBackToVsRFI','switchBackToRFI','switchBackToVsRFIFrom4Bet'].forEach(id=>document.getElementById(id).style.display='none');
-    sc.classList.remove('show');
-    if(azioneSelezionata==="RFI/OSHOVE"){if(!['5bb','7bb'].includes(stackSelezionato)){document.getElementById('switchTo3BetNAI').style.display='inline-block';sc.classList.add('show');}if(!['5bb','7bb','80bb','100bb'].includes(stackSelezionato)){document.getElementById('switchTo3BetAI').style.display='inline-block';sc.classList.add('show');}if(apritoreSelezionato==='SB'&&stackSelezionato!=='5bb'){document.getElementById('switchToIso').style.display='inline-block';sc.classList.add('show');}}
-    else if(azioneSelezionata==="Vs RFI"){document.getElementById('switchTo4Bet').style.display='inline-block';document.getElementById('switchToVsRFIFlat').style.display='inline-block';if(apritoreSelezionato==='SB'&&responderSelezionato==='BB')document.getElementById('switchToBBvsSBLimp').style.display='inline-block';sc.classList.add('show');}
-    else if(azioneSelezionata==="Vs RFI e Flat"){document.getElementById('switchBackToVsRFI').style.display='inline-block';sc.classList.add('show');}
-    else if(["Vs 3Bet NAI","Vs 3Bet AI"].includes(azioneSelezionata)){document.getElementById('switchBackToRFI').style.display='inline-block';sc.classList.add('show');}
-    else if(azioneSelezionata==="Vs 4Bet"){document.getElementById('switchBackToVsRFIFrom4Bet').style.display='inline-block';sc.classList.add('show');}
-    else if(azioneSelezionata==="BB vs SB Limp"){if(bbLimpSubMode!=="base"){document.getElementById('switchBackToBaseLimp').style.display='inline-block';sc.classList.add('show');}else{if(!['5bb','7bb','10bb','13bb','15bb'].includes(stackSelezionato)){document.getElementById('switchToVSLimp3BetNAI').style.display='inline-block';sc.classList.add('show');}if(!['5bb','80bb','100bb'].includes(stackSelezionato)){document.getElementById('switchToVSLimp3BetAI').style.display='inline-block';sc.classList.add('show');}}}
-    else if(azioneSelezionata==="SB Limp vs BB ISO"){if(sbIsoSubMode!=="base"){document.getElementById('switchBackToBaseIso').style.display='inline-block';sc.classList.add('show');}else{if(!['5bb','7bb','10bb','13bb','15bb','17bb','20bb','23bb','25bb','28bb','30bb','32bb'].includes(stackSelezionato)){document.getElementById('switchToVsBBIsoNAI').style.display='inline-block';sc.classList.add('show');}if(!['5bb','7bb','10bb','13bb','15bb','80bb','100bb'].includes(stackSelezionato)){document.getElementById('switchToVsBBIsoAI').style.display='inline-block';sc.classList.add('show');}}}
-
-    caricaRangeCorrente();
-  }
-
-  function impostaEventListener() {
-    document.querySelectorAll('#openerTabs .tab').forEach(tab=>{tab.onclick=()=>{apritoreSelezionato=tab.textContent.trim();document.querySelectorAll('#openerTabs .tab').forEach(t=>t.classList.remove('active'));tab.classList.add('active');aggiornaUI();};});
-    document.querySelectorAll('#responderTabs .tab').forEach(tab=>{tab.onclick=()=>{responderSelezionato=tab.getAttribute('data-pos');document.querySelectorAll('#responderTabs .tab').forEach(t=>t.classList.remove('active'));tab.classList.add('active');aggiornaUI();};});
-    document.querySelectorAll('#modeTabs .tab').forEach(tab=>{tab.onclick=()=>{azioneSelezionata=tab.textContent;if(azioneSelezionata==="BB vs SB Limp")bbLimpSubMode="base";if(azioneSelezionata==="SB Limp vs BB ISO")sbIsoSubMode="base";document.querySelectorAll('#modeTabs .tab').forEach(t=>t.classList.remove('active'));tab.classList.add('active');aggiornaUI();};});
-    document.querySelectorAll('.flat-tab').forEach(tab=>{tab.onclick=()=>{flatPosizioneSelezionata=tab.getAttribute('data-flat-pos');document.querySelectorAll('.flat-tab').forEach(t=>t.classList.remove('active'));tab.classList.add('active');aggiornaUI();};});
-    document.querySelectorAll('.cellBtn').forEach(btn=>{btn.onclick=()=>{stackSelezionato=btn.getAttribute('data-orig')||btn.textContent.trim();document.querySelectorAll('.cellBtn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');aggiornaUI();};});
-
-    const ord=["EP","EP1","EP2","MP1","MP2","CO","BTN","SB","BB"];
-    document.getElementById('switchTo3BetNAI').onclick=()=>{const idx=ord.indexOf(apritoreSelezionato);responderSelezionato=ord.slice(idx+1)[0]||"BB";azioneSelezionata="Vs 3Bet NAI";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="Vs 3Bet NAI")t.classList.add('active');});aggiornaUI();};
-    document.getElementById('switchTo3BetAI').onclick=()=>{const idx=ord.indexOf(apritoreSelezionato);responderSelezionato=ord.slice(idx+1)[0]||"BB";azioneSelezionata="Vs 3Bet AI";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="Vs 3Bet AI")t.classList.add('active');});aggiornaUI();};
-    document.getElementById('switchToIso').onclick=()=>{azioneSelezionata="SB Limp vs BB ISO";sbIsoSubMode="base";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="SB Limp vs BB ISO")t.classList.add('active');});aggiornaUI();};
-    document.getElementById('switchTo4Bet').onclick=()=>{const h=apritoreSelezionato,o=responderSelezionato;apritoreSelezionato=o;responderSelezionato=h;azioneSelezionata="Vs 4Bet";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="Vs 4Bet")t.classList.add('active');});aggiornaUI();};
-    document.getElementById('switchToVsRFIFlat').onclick=()=>{const idxO=ord.indexOf(apritoreSelezionato);const idxH=ord.indexOf(responderSelezionato);const tra=ord.slice(idxO+1,idxH);flatPosizioneSelezionata=tra.length>0?tra[tra.length-1]:ord[idxO+1];azioneSelezionata="Vs RFI e Flat";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="Vs RFI e Flat")t.classList.add('active');});aggiornaUI();};
-    document.getElementById('switchToBBvsSBLimp').onclick=()=>{azioneSelezionata="BB vs SB Limp";bbLimpSubMode="base";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="BB vs SB Limp")t.classList.add('active');});aggiornaUI();};
-    document.getElementById('switchToVSLimp3BetNAI').onclick=()=>{bbLimpSubMode="nai";aggiornaUI();};
-    document.getElementById('switchToVSLimp3BetAI').onclick=()=>{bbLimpSubMode="ai";aggiornaUI();};
-    document.getElementById('switchBackToBaseLimp').onclick=()=>{bbLimpSubMode="base";aggiornaUI();};
-    document.getElementById('switchToVsBBIsoNAI').onclick=()=>{sbIsoSubMode="nai";aggiornaUI();};
-    document.getElementById('switchToVsBBIsoAI').onclick=()=>{sbIsoSubMode="ai";aggiornaUI();};
-    document.getElementById('switchBackToBaseIso').onclick=()=>{sbIsoSubMode="base";aggiornaUI();};
-    document.getElementById('switchBackToVsRFI').onclick=()=>{azioneSelezionata="Vs RFI";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="Vs RFI")t.classList.add('active');});aggiornaUI();};
-    document.getElementById('switchBackToRFI').onclick=()=>{azioneSelezionata="RFI/OSHOVE";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="RFI/OSHOVE")t.classList.add('active');});aggiornaUI();};
-    document.getElementById('switchBackToVsRFIFrom4Bet').onclick=()=>{const h=apritoreSelezionato,o=responderSelezionato;apritoreSelezionato=o;responderSelezionato=h;azioneSelezionata="Vs RFI";document.querySelectorAll('#modeTabs .tab').forEach(t=>{t.classList.remove('active');if(t.textContent==="Vs RFI")t.classList.add('active');});aggiornaUI();};
-  }
-
-  window.creaMatrice = creaMatrice;
-  window.impostaEventListener = impostaEventListener;
-  window.aggiornaUI = aggiornaUI;
-})();
-</script>
-
-<!-- DISCLAIMER -->
+<!-- DISCLAIMER OVERLAY -->
 <div id="disclaimerOverlay" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);z-index:99999;display:none;align-items:center;justify-content:center;padding:20px;">
   <div style="background:linear-gradient(135deg,#1f2937 0%,#111827 100%);border:2px solid #f59e0b;border-radius:16px;padding:32px;max-width:600px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.5);animation:slideUp 0.4s ease-out;">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid #374151;">
@@ -1607,12 +371,8 @@ document.getElementById('retryBtn').addEventListener('click', () => {
       <h2 style="font-size:22px;font-weight:700;color:#f59e0b;margin:0;">CONDIZIONI D'USO</h2>
     </div>
     <div style="color:#e5e7eb;font-size:15px;line-height:1.8;margin-bottom:24px;">
-      <div style="background:rgba(245,158,11,0.1);border-left:4px solid #f59e0b;padding:12px 16px;border-radius:6px;margin-bottom:16px;font-weight:600;">
-        L'uso in tempo reale durante il gioco VIOLA i "Termini di Servizio" di tutte le piattaforme poker.
-      </div>
-      <div style="background:rgba(239,68,68,0.1);border:1px solid #ef4444;padding:14px 18px;border-radius:8px;font-weight:700;text-align:center;color:#fca5a5;letter-spacing:0.5px;">
-        L'UTENTE E' TOTALMENTE RESPONSABILE DELL'USO CONFORME.
-      </div>
+      <div style="background:rgba(245,158,11,0.1);border-left:4px solid #f59e0b;padding:12px 16px;border-radius:6px;margin-bottom:16px;font-weight:600;">L'uso in tempo reale durante il gioco VIOLA i "Termini di Servizio" di tutte le piattaforme poker.</div>
+      <div style="background:rgba(239,68,68,0.1);border:1px solid #ef4444;padding:14px 18px;border-radius:8px;font-weight:700;text-align:center;color:#fca5a5;letter-spacing:0.5px;">L'UTENTE E' TOTALMENTE RESPONSABILE DELL'USO CONFORME.</div>
     </div>
     <div style="display:flex;flex-direction:column;gap:12px;align-items:center;">
       <button id="disclaimerButton" style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);border:none;color:white;padding:14px 32px;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;width:100%;max-width:300px;">HO COMPRESO</button>
@@ -1620,98 +380,23 @@ document.getElementById('retryBtn').addEventListener('click', () => {
     </div>
   </div>
 </div>
+
 <!-- SESSIONE SCADUTA OVERLAY -->
 <div id="sessioneScadutaOverlay" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);z-index:99998;display:none;align-items:center;justify-content:center;padding:20px;">
   <div style="background:linear-gradient(135deg,#1f2937 0%,#111827 100%);border:2px solid #dc2626;border-radius:16px;padding:32px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.5);text-align:center;">
     <div style="font-size:48px;margin-bottom:16px;">⏰</div>
     <h2 style="font-size:20px;font-weight:700;color:white;margin:0 0 12px;">Sessione scaduta</h2>
     <p style="font-size:14px;color:#a9b4c2;margin:0 0 24px;line-height:1.6;">La tua sessione è scaduta.<br>Rieffettua il login per continuare.</p>
-    <button onclick="chiudiSessioneScaduta()" style="background:linear-gradient(135deg,#1f6feb 0%,#0969da 100%);border:none;color:white;padding:14px 32px;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;width:100%;">Vai al login</button>
+    <button id="sessioneScadutaBtn" style="background:linear-gradient(135deg,#1f6feb 0%,#0969da 100%);border:none;color:white;padding:14px 32px;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;width:100%;">Vai al login</button>
   </div>
 </div>
 
 <style>
-@keyframes fadeIn{from{opacity:0}to{opacity:1}}
-@keyframes fadeUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
-@keyframes fadeOut{from{opacity:1}to{opacity:0}}
+@keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
 </style>
-<script>
-(function(){
-  const overlay=document.getElementById('disclaimerOverlay');
-  const button=document.getElementById('disclaimerButton');
-  const countdownEl=document.getElementById('countdownSeconds');
-  let intervalId = null;
 
-  window.mostraDisclaimer = function(onClose) {
-    countdownEl.textContent = '5';
-    overlay.style.display = 'flex';
-    overlay.style.animation = 'fadeIn 0.3s ease-out';
-    let countdown = 5;
-    if (intervalId) clearInterval(intervalId);
-    intervalId = setInterval(() => {
-      countdown--;
-      countdownEl.textContent = countdown;
-      if (countdown <= 0) { clearInterval(intervalId); chiudi(); }
-    }, 1000);
-    function chiudi() {
-      overlay.style.animation = 'fadeOut 0.3s ease-out';
-      setTimeout(() => {
-        overlay.style.display = 'none';
-        if (onClose) onClose();
-      }, 300);
-      clearInterval(intervalId);
-    }
-    button.onclick = () => { clearInterval(intervalId); chiudi(); };
-  };
-})();
-</script>
-
-<script>
-async function apriTool(url, titolo) {
-  const overlay = document.getElementById('toolOverlay');
-  const content = document.getElementById('toolContent');
-  const title = document.getElementById('toolOverlayTitle');
-  title.textContent = titolo;
-  content.innerHTML = '<div style="text-align:center;padding:40px;color:#a9b4c2;">Caricamento...</div>';
-  overlay.style.display = 'flex';
-  document.body.style.overflow = 'hidden';
-  try {
-    const resp = await fetch(url + '?v=' + Date.now());
-    const html = await resp.text();
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-    content.innerHTML = '';
-    // Inietta stili
-    doc.querySelectorAll('style').forEach(s => {
-      const clone = document.createElement('style');
-      clone.textContent = s.textContent;
-      content.appendChild(clone);
-    });
-    // Inietta body
-    const div = document.createElement('div');
-    div.innerHTML = doc.body.innerHTML;
-    content.appendChild(div);
-    // Esegui script dopo che il DOM è stato inserito
-    const scripts = div.querySelectorAll('script');
-    scripts.forEach(s => s.remove());
-    setTimeout(() => {
-      scripts.forEach(s => {
-        const newScript = document.createElement('script');
-        newScript.textContent = s.textContent;
-        document.body.appendChild(newScript);
-      });
-    }, 50);
-  } catch(e) {
-    content.innerHTML = '<div style="text-align:center;padding:40px;color:#dc2626;">Errore caricamento tool.</div>';
-  }
-}
-
-function chiudiTool() {
-  document.getElementById('toolOverlay').style.display = 'none';
-  document.getElementById('toolContent').innerHTML = '';
-  document.body.style.overflow = '';
-}
-</script>
-
+<script type="module" src="js/main.js"></script>
 </body>
 </html>

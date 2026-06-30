@@ -8,192 +8,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mystery Bounty Calculator</title>
-<style>
-  :root {
-    --bg: #0d0f12;
-    --surface: #161a20;
-    --card: #1e242d;
-    --border: #2a323e;
-    --accent: #00e5a0;
-    --accent-dim: #00b87e;
-    --accent-glow: rgba(0,229,160,0.12);
-    --text: #e8edf2;
-    --muted: #6b7a8d;
-    --label: #9aaab8;
-    --danger: #ff6b6b;
-    --warn: #f5a623;
-    --radius: 10px;
-    --mono: 'JetBrains Mono', 'Fira Mono', monospace;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background: var(--bg); color: var(--text);
-    font-family: 'Inter', system-ui, sans-serif;
-    font-size: 15px; min-height: 100vh; padding: 32px 16px 64px;
-  }
-  .wrapper { max-width: 720px; margin: 0 auto; }
-
-  /* Header */
-  .header { margin-bottom: 28px; }
-  .header-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
-  .header-left { flex: 1; }
-  .header-badge {
-    display: inline-block; background: var(--accent-glow);
-    border: 1px solid var(--accent-dim); color: var(--accent);
-    font-size: 11px; font-weight: 600; letter-spacing: 0.1em;
-    text-transform: uppercase; padding: 4px 10px; border-radius: 4px; margin-bottom: 12px;
-  }
-  h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
-  h1 span { color: var(--accent); }
-  .subtitle { margin-top: 8px; color: var(--muted); font-size: 13px; line-height: 1.6; }
-  .header-result {
-    display: none; flex-direction: column; align-items: flex-end;
-    gap: 2px; padding-top: 4px; flex-shrink: 0;
-  }
-  .header-result.visible { display: flex; }
-  .header-result-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
-  .header-result-value { font-size: 44px; font-weight: 800; font-family: var(--mono); letter-spacing: -0.03em; color: var(--accent); line-height: 1; }
-  .header-result-sub { font-size: 11px; color: var(--muted); }
-
-  /* Toggle globale unità */
-  .global-toggle {
-    display: flex; align-items: center; gap: 12px;
-    background: var(--card); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 14px 20px;
-    margin-bottom: 16px;
-  }
-  .global-toggle-label {
-    font-size: 12px; font-weight: 600; color: var(--label);
-    text-transform: uppercase; letter-spacing: 0.08em; flex: 1;
-  }
-  .toggle-btns {
-    display: flex; background: var(--surface);
-    border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
-  }
-  .toggle-btns button {
-    background: none; border: none; color: var(--muted);
-    font-size: 12px; font-weight: 700; letter-spacing: 0.06em;
-    text-transform: uppercase; padding: 8px 18px; cursor: pointer;
-    transition: background 0.15s, color 0.15s;
-  }
-  .toggle-btns button.active {
-    background: var(--accent-glow); color: var(--accent); border-radius: 7px;
-  }
-
-  /* Section */
-  .section {
-    background: var(--card); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 24px; margin-bottom: 16px;
-  }
-  .section-title {
-    font-size: 11px; font-weight: 600; letter-spacing: 0.1em;
-    text-transform: uppercase; color: var(--muted);
-    margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
-  }
-
-  /* Grid */
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .grid.three { grid-template-columns: 1fr 1fr 1fr; }
-  @media (max-width: 560px) { .grid, .grid.three { grid-template-columns: 1fr; } }
-
-  /* Field */
-  .field { display: flex; flex-direction: column; gap: 6px; }
-  .field label { font-size: 12px; color: var(--label); font-weight: 500; }
-  .field label .hint { font-weight: 400; color: var(--muted); font-size: 11px; margin-left: 4px; }
-  .field input {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 8px; color: var(--text);
-    font-size: 15px; font-family: var(--mono);
-    padding: 10px 14px; outline: none;
-    transition: border-color 0.15s; width: 100%;
-  }
-  .field input:focus { border-color: var(--accent); }
-  .field input::placeholder { color: var(--muted); }
-  .field-error { font-size: 11px; color: var(--danger); display: none; }
-  .field.has-error input { border-color: var(--danger); }
-  .field.has-error .field-error { display: block; }
-
-  /* Sub-toggle taglia */
-  .sub-toggle {
-    display: flex; background: var(--surface);
-    border: 1px solid var(--border); border-radius: 8px;
-    overflow: hidden; margin-bottom: 16px;
-  }
-  .sub-toggle button {
-    flex: 1; background: none; border: none; color: var(--muted);
-    font-size: 12px; font-weight: 600; letter-spacing: 0.05em;
-    text-transform: uppercase; padding: 9px 12px; cursor: pointer;
-    transition: background 0.15s, color 0.15s;
-  }
-  .sub-toggle button.active { background: var(--accent-glow); color: var(--accent); border-radius: 7px; }
-
-  .divider { height: 1px; background: var(--border); margin: 20px 0; }
-
-  /* Output */
-  .output {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 24px; margin-bottom: 16px;
-  }
-  .output-title {
-    font-size: 11px; font-weight: 600; letter-spacing: 0.1em;
-    text-transform: uppercase; color: var(--muted); margin-bottom: 20px;
-  }
-  .result-main { display: flex; align-items: baseline; gap: 8px; margin-bottom: 24px; }
-  .result-value {
-    font-size: 52px; font-weight: 800; font-family: var(--mono);
-    letter-spacing: -0.03em; color: var(--accent); line-height: 1;
-  }
-  .result-label { font-size: 13px; color: var(--muted); margin-top: 4px; }
-
-  .steps { display: flex; flex-direction: column; }
-  .step {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 10px 0; border-bottom: 1px solid var(--border);
-  }
-  .step:last-child { border-bottom: none; }
-  .step-name { font-size: 13px; color: var(--muted); }
-  .step-name span {
-    font-size: 11px; color: var(--muted); opacity: 0.6;
-    display: block; margin-top: 2px; font-family: var(--mono);
-  }
-  .step-val { font-family: var(--mono); font-size: 14px; color: var(--text); font-weight: 600; text-align: right; }
-  .step-val.highlight { color: var(--accent); }
-  .step-val.delta { color: var(--warn); }
-
-  .verdict {
-    margin-top: 20px; padding: 14px 18px; border-radius: 8px;
-    font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 10px;
-  }
-  .verdict.good  { background: rgba(0,229,160,0.1);  border: 1px solid var(--accent-dim); color: var(--accent); }
-  .verdict.bad   { background: rgba(255,107,107,0.1); border: 1px solid #cc4444;          color: var(--danger); }
-  .verdict.close { background: rgba(245,166,35,0.1);  border: 1px solid #c47800;          color: var(--warn); }
-  .verdict-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
-
-  .btn-calc {
-    width: 100%; background: var(--accent); color: #0d0f12;
-    border: none; border-radius: 8px; font-size: 15px; font-weight: 700;
-    padding: 14px; cursor: pointer; transition: background 0.15s, transform 0.1s;
-    letter-spacing: 0.01em; margin-top: 4px;
-  }
-  .btn-calc:hover { background: #00f0aa; }
-  .btn-calc:active { transform: scale(0.99); }
-
-  .empty { text-align: center; padding: 32px 0; color: var(--muted); font-size: 13px; }
-  .empty-icon { font-size: 32px; margin-bottom: 10px; opacity: 0.4; }
-
-  .opt-tag {
-    display: inline-block; background: rgba(245,166,35,0.12); color: var(--warn);
-    font-size: 10px; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.08em; padding: 2px 6px; border-radius: 3px;
-    margin-left: 6px; vertical-align: middle;
-  }
-  .formula-note {
-    font-size: 11px; color: var(--muted); font-family: var(--mono);
-    background: var(--bg); border: 1px solid var(--border);
-    border-radius: 6px; padding: 8px 12px; margin-top: 12px;
-    line-height: 1.7; white-space: pre-wrap;
-  }
-</style>
+<link rel="stylesheet" href="js/mb_style.css">
 </head>
 <body>
 <div class="wrapper">
@@ -233,8 +48,8 @@
 
     <!-- Toggle modalità bounty -->
     <div class="sub-toggle" style="margin-bottom:12px;">
-      <button id="btn-mode-diretta" class="active" onclick="setTagliaMode('diretta')">Bounty Media</button>
-      <button id="btn-mode-calcolata" onclick="setTagliaMode('calcolata')">Calcolo Bounty Media</button>
+      <button id="btn-mode-diretta" class="active">Bounty Media</button>
+      <button id="btn-mode-calcolata">Calcolo Bounty Media</button>
     </div>
 
     <!-- Modalità diretta: bounty media -->
@@ -289,7 +104,7 @@
       <div class="field">
         <label style="display:flex;align-items:center;gap:6px">
           Risk premium <span class="hint">(%)</span>
-          <button onclick="toggleRpInfo()" style="background:none;border:1px solid var(--muted);color:var(--muted);border-radius:50%;width:16px;height:16px;font-size:10px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;line-height:1;flex-shrink:0">?</button>
+          <button style="background:none;border:1px solid var(--muted);color:var(--muted);border-radius:50%;width:16px;height:16px;font-size:10px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;line-height:1;flex-shrink:0">?</button>
         </label>
         <input type="number" id="risk" placeholder="0" min="0" max="30" step="0.1">
       </div>
@@ -330,7 +145,7 @@
     </div>
   </div>
 
-  <button class="btn-calc" onclick="calcola()">Calcola equity necessaria</button>
+  <button class="btn-calc">Calcola equity necessaria</button>
 
   <!-- OUTPUT -->
   <div class="output" id="output" style="margin-top:16px; display:none">
@@ -377,137 +192,6 @@
   </div>
 
 </div>
-<script>
-(function() {
-let tagliaMode = 'diretta';
-
-function setTagliaMode(mode) {
-  tagliaMode = mode;
-  document.getElementById('mode-diretta').style.display   = mode === 'diretta'   ? '' : 'none';
-  document.getElementById('mode-calcolata').style.display = mode === 'calcolata' ? '' : 'none';
-  document.getElementById('btn-mode-diretta').classList.toggle('active', mode === 'diretta');
-  document.getElementById('btn-mode-calcolata').classList.toggle('active', mode === 'calcolata');
-}
-
-
-function v(id) { return parseFloat(document.getElementById(id).value); }
-function fmt(n, dec=2) { return isNaN(n) ? '—' : n.toFixed(dec); }
-function fmtChips(n) {
-  if (isNaN(n)) return '—';
-  if (n >= 1000000) return (n/1000000).toFixed(3) + 'M';
-  if (n >= 1000)    return (n/1000).toFixed(1) + 'K';
-  return n.toFixed(0);
-}
-
-function setError(id, show) { document.getElementById('f-'+id)?.classList.toggle('has-error', show); }
-function clearErrors() { document.querySelectorAll('.field.has-error').forEach(f => f.classList.remove('has-error')); }
-
-const API_URL = 'https://poker-range-api-production.up.railway.app';
-
-function getToken() {
-  return sessionStorage.getItem('poker_token') || sessionStorage.getItem('access_token') || '';
-}
-
-async function calcola() {
-  clearErrors();
-  let errors = false;
-
-  const stack = v('stack');
-  const buyin = v('buyin');
-  const risk  = isNaN(v('risk')) ? 0 : v('risk');
-
-  if (isNaN(stack) || stack <= 0) { setError('stack', true); errors = true; }
-  if (isNaN(buyin) || buyin <= 0) { setError('buyin', true); errors = true; }
-
-  let totalBountiesCalc, playersLeftCalc;
-  if (tagliaMode === 'diretta') {
-    const bm = v('bounty-media');
-    if (isNaN(bm) || bm <= 0) { setError('bounty-media', true); errors = true; }
-    totalBountiesCalc = bm; // verrà passato come avgBounty direttamente
-    playersLeftCalc = 1;    // avgBounty = totalBounties / playersLeft → se pl=1, avg=bm
-  } else {
-    const bt = v('bounty-tot'), pl = v('players');
-    if (isNaN(bt) || bt <= 0) { setError('bounty-tot', true); errors = true; }
-    if (isNaN(pl) || pl < 1)  { setError('players',    true); errors = true; }
-    totalBountiesCalc = bt;
-    playersLeftCalc = pl;
-  }
-
-  const potInput  = v('pot');
-  const callInput = v('call');
-  if (isNaN(potInput)  || potInput < 0)   { setError('pot',  true); errors = true; }
-  if (isNaN(callInput) || callInput <= 0) { setError('call', true); errors = true; }
-
-  if (errors) return;
-
-  const token = getToken();
-  if (!token) {
-    alert('Sessione scaduta. Effettua nuovamente il login.');
-    return;
-  }
-
-  try {
-    const resp = await fetch(`${API_URL}/api/mb`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        access_token: token,
-        call: callInput,
-        pot: potInput,
-        totalBounties: totalBountiesCalc,
-        playersLeft: playersLeftCalc,
-        startStack: stack,
-        buyIn: buyin,
-        riskPremium: risk / 100
-      })
-    });
-
-    if (!resp.ok) {
-      const err = await resp.json();
-      alert(err.error || 'Errore server.');
-      return;
-    }
-
-    const d = await resp.json();
-
-    const poBase  = d.potOddsBase * 100;
-    const poMod   = d.potOddsModified * 100;
-    const delta   = d.bountyDiscount * 100;
-    const equity  = d.finalEquity * 100;
-
-    document.getElementById('header-equity').textContent = equity.toFixed(1) + '%';
-    document.getElementById('header-sub').textContent    = risk > 0 ? 'incl. risk premium +' + risk.toFixed(1) + '%' : 'senza risk premium';
-    document.getElementById('header-result').classList.add('visible');
-
-    document.getElementById('out-po-base').textContent = poBase.toFixed(1) + '%';
-    document.getElementById('out-po-mod').textContent  = poMod.toFixed(1) + '%';
-    document.getElementById('out-delta').textContent   = '−' + delta.toFixed(1) + '%';
-    document.getElementById('out-risk').textContent    = risk > 0 ? '+' + risk.toFixed(1) + '%' : '0% (non impostato)';
-    document.getElementById('out-finale').textContent  = equity.toFixed(1) + '%';
-
-    document.getElementById('verdict').style.display = 'none';
-    document.getElementById('output').style.display = '';
-    document.getElementById('empty-state').style.display = 'none';
-
-  } catch (err) {
-    console.error('[mb_calc] Errore fetch:', err);
-    alert('Errore di connessione. Verifica la tua connessione e riprova.');
-  }
-}
-
-
-document.addEventListener('keydown', e => { if (e.key === 'Enter') calcola(); });
-
-function toggleRpInfo() {
-  const el = document.getElementById('rp-info');
-  el.style.display = el.style.display === 'none' ? '' : 'none';
-}
-
-// Expose public functions
-window.calcola = calcola;
-window.toggleRpInfo = toggleRpInfo;
-window.setTagliaMode = setTagliaMode;
-})();
-</script>
+<script src="js/mb.js"></script>
 </body>
 </html>
