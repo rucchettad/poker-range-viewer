@@ -124,9 +124,15 @@ function toggleRpInfo() {
   el.style.display = el.style.display === 'none' ? '' : 'none';
 }
 
+function toggleBuyinInfo() {
+  const el = document.getElementById('buyin-info');
+  el.style.display = el.style.display === 'none' ? '' : 'none';
+}
+
 // Expose public functions
 window.calcola = calcola;
 window.toggleRpInfo = toggleRpInfo;
+window.toggleBuyinInfo = toggleBuyinInfo;
 window.setTagliaMode = setTagliaMode;
 })();
 
@@ -135,5 +141,7 @@ window.setTagliaMode = setTagliaMode;
 document.getElementById('btn-mode-diretta')?.addEventListener('click', () => setTagliaMode('diretta'));
 document.getElementById('btn-mode-calcolata')?.addEventListener('click', () => setTagliaMode('calcolata'));
 document.querySelector('.btn-calc')?.addEventListener('click', calcola);
-document.querySelectorAll(".section button").forEach(btn => { if (btn.textContent.trim() === "?") btn.addEventListener("click", toggleRpInfo); });
-
+document.getElementById('btn-buyin-info')?.addEventListener('click', toggleBuyinInfo);
+document.querySelectorAll(".section button").forEach(btn => {
+  if (btn.textContent.trim() === "?" && btn.id !== 'btn-buyin-info') btn.addEventListener("click", toggleRpInfo);
+});

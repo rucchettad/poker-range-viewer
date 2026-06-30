@@ -41,9 +41,15 @@
         <span class="field-error">Campo obbligatorio</span>
       </div>
       <div class="field" id="f-buyin">
-        <label>Buy-in tot senza fee <span class="hint">(€)quanto va a prize pool + bounty pool</span></label>
+        <label style="display:flex;align-items:center;gap:6px">
+          Buy-in tot senza fee <span class="hint">(€)</span>
+          <button id="btn-buyin-info" type="button" style="background:none;border:1px solid var(--muted);color:var(--muted);border-radius:50%;width:16px;height:16px;font-size:10px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;line-height:1;flex-shrink:0">?</button>
+        </label>
         <input type="number" id="buyin" placeholder="€" min="0.01" step="0.01">
         <span class="field-error">Campo obbligatorio</span>
+        <div id="buyin-info" style="display:none;margin-top:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
+          <p style="font-size:11px;color:var(--muted);line-height:1.6;">Esempio: torneo con buy-in totale 10€, di cui 9€ vanno a montepremi + bounty pool e 1€ è fee. Inserisci <strong style="color:var(--accent)">9€</strong>.</p>
+        </div>
       </div>
     </div>
 
