@@ -40,7 +40,6 @@ function getToken() {
   return sessionStorage.getItem('poker_token') || sessionStorage.getItem('access_token') || '';
 }
 
-// Gestione visibilità campi SB/BB
 function setupBlindRadio() {
   document.getElementById('radioSB').addEventListener('change', function() {
     document.getElementById('blindSB').style.display = this.checked ? '' : 'none';
@@ -53,13 +52,60 @@ function setupBlindRadio() {
 }
 
 function getBlindHero() {
-  if (document.getElementById('radioSB').checked) {
-    return parseFloat(document.getElementById('blindSB').value) || 0;
-  }
-  if (document.getElementById('radioBB').checked) {
-    return parseFloat(document.getElementById('blindBB').value) || 0;
-  }
+  if (document.getElementById('radioSB').checked) return parseFloat(document.getElementById('blindSB').value) || 0;
+  if (document.getElementById('radioBB').checked) return parseFloat(document.getElementById('blindBB').value) || 0;
   return 0;
+}
+
+function showNoBounty(d) {
+  // Mostra solo pot odds semplici, nasconde sezioni BF
+  document.getElementById('coverageInfo').innerHTML =
+    '<span style="color:var(--warn);">⚠️ Hero non copre nessun villain — nessuna taglia disponibile. Calcolo pot odds standard.</span>';
+
+  document.getElementById('rCallEff').textContent = fmt(d.callEff) + ' chips';
+  document.getElementById('rPotTot').textContent  = fmt(d.potTot) + ' chips';
+  document.getElementById('rBountyTot').textContent = '—';
+  document.getElementById('rNTaglie').textContent  = '—';
+  document.getElementById('rNStack').textContent   = '—';
+  document.getElementById('rBF').textContent       = '—';
+  document.getElementById('rPO').textContent       = d.potOdds.toFixed(1) + '%';
+  document.getElementById('rDiscount').textContent = '—';
+  document.getElementById('rPOAdj').textContent    = '—';
+  document.getElementById('bfBody').innerHTML      = '';
+  document.querySelector('.bf-table-wrap').style.display = 'none';
+  document.getElementById('risultati').classList.add('show');
+}
+
+function showBounty(d) {
+  let covHtml = '';
+  for (const v of d.coperti)    covHtml += `<span class="ok">✓</span> ${v.label}: ${fmt(v.stack)} chips — bounty ${v.bounty.toFixed(2)}€ <span class="ok">(coperto)</span><br>`;
+  for (const v of d.nonCoperti) covHtml += `<span class="no">✗</span> ${v.label}: ${fmt(v.stack)} chips — bounty ${v.bounty.toFixed(2)}€ <span class="no">(non coperto, escluso dal calcolo)</span><br>`;
+  document.getElementById('coverageInfo').innerHTML = covHtml;
+
+  document.getElementById('rCallEff').textContent   = fmt(d.callEff) + ' chips';
+  document.getElementById('rPotTot').textContent    = fmt(d.potTot) + ' chips';
+  document.getElementById('rBountyTot').textContent = d.bountyTot.toFixed(2) + '€';
+  document.getElementById('rNTaglie').textContent   = d.nTaglie.toFixed(2);
+  document.getElementById('rNStack').textContent    = d.nStack.toFixed(2);
+  document.getElementById('rBF').textContent        = d.bFactor.toFixed(2);
+  document.getElementById('rPO').textContent        = d.potOdds.toFixed(1) + '%';
+  document.getElementById('rDiscount').textContent  = '-' + d.closest.d.toFixed(1) + '%';
+  document.getElementById('rPOAdj').textContent     = d.potOddsAdj.toFixed(1) + '%';
+
+  document.querySelector('.bf-table-wrap').style.display = '';
+  const tbody = document.getElementById('bfBody');
+  tbody.innerHTML = '';
+  for (const row of d.bfTableOut) {
+    const tr = document.createElement('tr');
+    if (row.isActive) tr.className = 'active-row';
+    tr.innerHTML = `
+      <td>${row.bf.toString().replace('.', ',')}${row.isActive ? '<span class="tag-bf">↑ tu</span>' : ''}</td>
+      <td>${row.d.toString().replace('.', ',')}%</td>
+      <td>${row.potOddsAdj.toFixed(1)}%</td>
+    `;
+    tbody.appendChild(tr);
+  }
+  document.getElementById('risultati').classList.add('show');
 }
 
 async function calcola() {
@@ -92,10 +138,7 @@ async function calcola() {
   }
 
   const token = getToken();
-  if (!token) {
-    alert('Sessione scaduta. Effettua nuovamente il login.');
-    return;
-  }
+  if (!token) { alert('Sessione scaduta. Effettua nuovamente il login.'); return; }
 
   try {
     const resp = await fetch(`${API_URL}/api/pko`, {
@@ -112,38 +155,11 @@ async function calcola() {
 
     const d = await resp.json();
 
-    // Coverage info
-    let covHtml = '';
-    for (const v of d.coperti)    covHtml += `<span class="ok">✓</span> ${v.label}: ${fmt(v.stack)} chips — bounty ${v.bounty.toFixed(2)}€ <span class="ok">(coperto)</span><br>`;
-    for (const v of d.nonCoperti) covHtml += `<span class="no">✗</span> ${v.label}: ${fmt(v.stack)} chips — bounty ${v.bounty.toFixed(2)}€ <span class="no">(non coperto, escluso dal calcolo)</span><br>`;
-    document.getElementById('coverageInfo').innerHTML = covHtml;
-
-    // Risultati
-    document.getElementById('rCallEff').textContent   = fmt(d.callEff) + ' chips';
-    document.getElementById('rPotTot').textContent    = fmt(d.potTot) + ' chips';
-    document.getElementById('rBountyTot').textContent = d.bountyTot.toFixed(2) + '€';
-    document.getElementById('rNTaglie').textContent   = d.nTaglie.toFixed(2);
-    document.getElementById('rNStack').textContent    = d.nStack.toFixed(2);
-    document.getElementById('rBF').textContent        = d.bFactor.toFixed(2);
-    document.getElementById('rPO').textContent        = d.potOdds.toFixed(1) + '%';
-    document.getElementById('rDiscount').textContent  = '-' + d.closest.d.toFixed(1) + '%';
-    document.getElementById('rPOAdj').textContent     = d.potOddsAdj.toFixed(1) + '%';
-
-    // Tabella completa
-    const tbody = document.getElementById('bfBody');
-    tbody.innerHTML = '';
-    for (const row of d.bfTableOut) {
-      const tr = document.createElement('tr');
-      if (row.isActive) tr.className = 'active-row';
-      tr.innerHTML = `
-        <td>${row.bf.toString().replace('.', ',')}${row.isActive ? '<span class="tag-bf">↑ tu</span>' : ''}</td>
-        <td>${row.d.toString().replace('.', ',')}%</td>
-        <td>${row.potOddsAdj.toFixed(1)}%</td>
-      `;
-      tbody.appendChild(tr);
+    if (d.scenario === 'no_bounty') {
+      showNoBounty(d);
+    } else {
+      showBounty(d);
     }
-
-    document.getElementById('risultati').classList.add('show');
 
   } catch (err) {
     console.error('[pko_calc] Errore fetch:', err);
@@ -153,14 +169,11 @@ async function calcola() {
 
 document.addEventListener('keydown', e => { if (e.key === 'Enter') calcola(); });
 
-// Expose public functions
 window.toggleVillain = toggleVillain;
 window.calcola = calcola;
 
-// Init
 setupBlindRadio();
 })();
-
 
 // ─── EVENT LISTENERS ─────────────────────────────────────
 document.getElementById('toggle2')?.addEventListener('click', () => toggleVillain(2));
