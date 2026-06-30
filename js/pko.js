@@ -45,12 +45,17 @@ async function calcola() {
   const taglia        = parseFloat(document.getElementById('taglia').value);
   const stackIniziale = parseFloat(document.getElementById('stackIniziale').value);
   const stackHero     = parseFloat(document.getElementById('stackHero').value);
-  const potAttuale    = parseFloat(document.getElementById('potAttuale').value);
+  const bbSbAnte      = parseFloat(document.getElementById('bbSbAnte').value) || 0;
+  const altreChips    = parseFloat(document.getElementById('altreChips').value) || 0;
+  const potAttuale    = bbSbAnte + altreChips;
   const sv1           = parseFloat(document.getElementById('sv1').value);
   const bv1           = parseFloat(document.getElementById('bv1').value);
 
-  if ([buyin, taglia, stackIniziale, stackHero, potAttuale, sv1, bv1].some(isNaN)) {
+  if ([buyin, taglia, stackIniziale, stackHero, sv1, bv1].some(isNaN)) {
     alert('Compila tutti i campi obbligatori.'); return;
+  }
+  if (bbSbAnte === 0 && altreChips === 0) {
+    alert('Inserisci almeno BB+SB+ANTE.'); return;
   }
 
   const villains = [{ stack: sv1, bounty: bv1, label: 'Villain 1' }];
