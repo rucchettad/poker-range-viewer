@@ -23,7 +23,7 @@ function fmtChips(n) {
 function setError(id, show) { document.getElementById('f-'+id)?.classList.toggle('has-error', show); }
 function clearErrors() { document.querySelectorAll('.field.has-error').forEach(f => f.classList.remove('has-error')); }
 
-const API_URL = 'http://localhost:3000';
+const API_URL = 'https://poker-range-api-production.up.railway.app';
 
 function getToken() {
   return sessionStorage.getItem('poker_token') || sessionStorage.getItem('access_token') || '';

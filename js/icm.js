@@ -353,7 +353,7 @@ function buildPrizesGrid() {
 }
 
 // ─── CONFIG ──────────────────────────────────────────────
-const API_URL = 'http://localhost:3000';
+const API_URL = 'https://poker-range-api-production.up.railway.app';
 
 function getToken() {
   return sessionStorage.getItem('poker_token') || sessionStorage.getItem('access_token') || '';
