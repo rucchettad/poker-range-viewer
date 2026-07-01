@@ -202,12 +202,13 @@
   }
   .villain-toggle:hover { border-color: var(--accent); color: var(--accent); }
   .villain-toggle.active { border-color: var(--danger); color: var(--danger); }
-  .villain-fields { display: none; margin-top: 12px; }
+  .villain-fields { display: none !important; margin-top: 12px; }
+  .villain-fields.show { display: block !important; }
   .villain-fields.show { display: block; }
 
   /* ── Radio blind hero ───────────────────────────────── */
   .radio-blind-row {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px;
+    display: flex; flex-direction: row; gap: 24px; margin-top: 12px; flex-wrap: wrap;
   }
   .radio-blind-field {
     display: flex; flex-direction: column; gap: 6px;
