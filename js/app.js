@@ -305,8 +305,12 @@ function aggiornaUI() {
     });
     if (ORDINE_POS.indexOf(responderSelezionato) <= idxO) {
       responderSelezionato = ORDINE_POS.slice(idxO + 1)[0] || 'BB';
-      _setActiveTab('#responderTabs .tab', t => t.getAttribute('data-pos') === responderSelezionato);
     }
+    // Evidenzia sempre il bottone corrispondente a responderSelezionato,
+    // non solo quando il valore precedente era invalido — altrimenti il
+    // bottone evidenziato resta "congelato" su una posizione vecchia anche
+    // quando il dato/matrice caricati sono già corretti (bug: lucina disallineata).
+    _setActiveTab('#responderTabs .tab', t => t.getAttribute('data-pos') === responderSelezionato);
   }
 
   if (azioneSelezionata === 'Vs 4Bet') {
