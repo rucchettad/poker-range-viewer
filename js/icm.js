@@ -652,15 +652,11 @@ document.getElementById('potSBBBAnte')?.addEventListener('keydown', e => { blocc
 document.getElementById('potBetVillain')?.addEventListener('input', aggiornaPotTotale);
 document.getElementById('potBetVillain')?.addEventListener('keydown', e => { bloccaPuntoVirgola(e); });
 
-document.querySelector('button[class="btn btn-primary"]')?.addEventListener('click', calculate);
-document.querySelector('button[class="btn btn-secondary"]')?.addEventListener('click', resetAll);
-
-// Bottoni con testo specifico
-document.querySelectorAll('button').forEach(btn => {
-  if (btn.textContent.trim() === '📋 Importa Hand History') btn.addEventListener('click', apriImportaHH);
-  if (btn.textContent.trim() === 'Importa') btn.addEventListener('click', importaHH);
-  if (btn.textContent.trim() === 'Annulla') btn.addEventListener('click', chiudiImportaHH);
-  if (btn.textContent.trim() === 'Simula Call') btn.addEventListener('click', simulateCall);
-});
+document.getElementById('btnCalcolaICM')?.addEventListener('click', calculate);
+document.getElementById('btnReset')?.addEventListener('click', resetAll);
+document.getElementById('btnSimulaCall')?.addEventListener('click', simulateCall);
+document.getElementById('btnApriImportaHH')?.addEventListener('click', apriImportaHH);
+document.getElementById('btnHhImporta')?.addEventListener('click', importaHH);
+document.getElementById('btnHhAnnulla')?.addEventListener('click', chiudiImportaHH);
 
 })();
