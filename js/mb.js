@@ -181,6 +181,9 @@ window.toggleQuotaInfo = toggleQuotaInfo;
 window.toggleAltreInfo = toggleAltreInfo;
 window.toggleVillain = toggleVillain;
 window.setTagliaMode = setTagliaMode;
+
+// Init
+setupBlindRadio();
 })();
 
 // ─── EVENT LISTENERS ─────────────────────────────────────
