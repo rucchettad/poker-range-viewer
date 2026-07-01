@@ -40,14 +40,19 @@
         <input type="number" id="stack" placeholder="chips" min="1">
         <span class="field-error">Campo obbligatorio</span>
       </div>
-      <div class="field" id="f-buyin">
+      <div class="field" id="f-stackHero">
+        <label>Stack Hero <span class="hint">(chips)</span></label>
+        <input type="number" id="stackHero" placeholder="chips" min="1">
+        <span class="field-error">Campo obbligatorio</span>
+      </div>
+      <div class="field" id="f-quotaMystery">
         <label style="display:flex;align-items:center;gap:6px">
           Quota mystery nel buy-in <span class="hint">(€)</span>
-          <button id="btn-buyin-info" type="button" style="background:none;border:1px solid var(--muted);color:var(--muted);border-radius:50%;width:16px;height:16px;font-size:10px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;line-height:1;flex-shrink:0">?</button>
+          <button id="btn-quotaMystery-info" type="button" style="background:none;border:1px solid var(--muted);color:var(--muted);border-radius:50%;width:16px;height:16px;font-size:10px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;line-height:1;flex-shrink:0">?</button>
         </label>
-        <input type="number" id="buyin" placeholder="€" min="0.01" step="0.01">
+        <input type="number" id="quotaMystery" placeholder="€" min="0.01" step="0.01">
         <span class="field-error">Campo obbligatorio</span>
-        <div id="buyin-info" style="display:none;margin-top:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
+        <div id="quotaMystery-info" style="display:none;margin-top:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
           <p style="font-size:11px;color:var(--muted);line-height:1.8;">La quota del buy-in destinata al bounty pool mystery.<br>
           50/50 → €10+€10+2€ fee → inserisci <strong style="color:var(--accent)">10€</strong>.<br>
           70/30 → €14+€6+2€ fee → inserisci <strong style="color:var(--accent)">14€</strong>.<br>
@@ -92,19 +97,95 @@
     </div>
   </div>
 
-  <!-- SEZIONE 2: Dati mano -->
+  <!-- SEZIONE 2: Villain nel pot -->
   <div class="section">
-    <div class="section-title">Dati mano</div>
-    <div class="grid">
-      <div class="field" id="f-pot">
-        <label id="lbl-pot">Piatto <span class="hint" id="hint-pot">(chips)</span></label>
-        <input type="number" id="pot" placeholder="chips" min="0" step="0.01">
-        <span class="field-error">Campo obbligatorio</span>
+    <div class="section-title">Villain nel pot</div>
+
+    <!-- VILLAIN 1 — sempre visibile -->
+    <div class="villain-block">
+      <div class="villain-header">
+        <span class="villain-title">Villain 1</span>
+        <span style="font-size:11px;color:var(--muted);">obbligatorio</span>
       </div>
-      <div class="field" id="f-call">
-        <label id="lbl-call">Call <span class="hint" id="hint-call">(chips)</span></label>
-        <input type="number" id="call" placeholder="chips" min="0.01" step="0.01">
-        <span class="field-error">Campo obbligatorio</span>
+      <div class="villain-fields show">
+        <div class="grid">
+          <div class="field">
+            <label>Stack Villain 1 <span class="hint">(chips)</span></label>
+            <input type="number" id="sv1" placeholder="chips" min="1">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VILLAIN 2 — opzionale -->
+    <div class="villain-block">
+      <div class="villain-header">
+        <span class="villain-title">Villain 2</span>
+        <button class="villain-toggle" id="toggle2">+ Aggiungi</button>
+      </div>
+      <div class="villain-fields" id="fields2">
+        <div class="grid">
+          <div class="field">
+            <label>Stack Villain 2 <span class="hint">(chips)</span></label>
+            <input type="number" id="sv2" placeholder="chips" min="1">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VILLAIN 3 — opzionale -->
+    <div class="villain-block">
+      <div class="villain-header">
+        <span class="villain-title">Villain 3</span>
+        <button class="villain-toggle" id="toggle3">+ Aggiungi</button>
+      </div>
+      <div class="villain-fields" id="fields3">
+        <div class="grid">
+          <div class="field">
+            <label>Stack Villain 3 <span class="hint">(chips)</span></label>
+            <input type="number" id="sv3" placeholder="chips" min="1">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEZIONE 3: Pot prima degli shove -->
+  <div class="section">
+    <div class="section-title">Pot prima degli shove</div>
+    <div class="grid">
+      <div class="field">
+        <label>BB + SB + ANTE <span class="hint">(chips)</span></label>
+        <input type="number" id="bbSbAnte" placeholder="chips" min="0">
+      </div>
+      <div class="field">
+        <label>Altre chips nel pot <span class="hint">(chips)</span>
+          <button id="btn-altre-info" type="button" style="background:none;border:1px solid var(--muted);color:var(--muted);border-radius:50%;width:16px;height:16px;font-size:10px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;line-height:1;flex-shrink:0">?</button>
+        </label>
+        <input type="number" id="altreChips" placeholder="0" min="0">
+        <div id="altre-info" style="display:none;margin-top:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
+          <p style="font-size:11px;color:var(--muted);line-height:1.6;">Eventuali chips da azione preflop precedente allo shove: limp, raise/fold, 3bet/fold, cold call to fold. Lascia 0 se non c'è stata altra azione.</p>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:12px;">
+      <div class="grid">
+        <div class="field">
+          <label style="display:flex;align-items:center;gap:8px;">
+            <input type="radio" name="blindHero" id="radioSB" value="sb" style="accent-color:var(--accent);cursor:pointer;"/>
+            Sei da Small Blind?
+            <span class="hint" style="font-size:10px;">inserisci valore SB in chips</span>
+          </label>
+          <input type="number" id="blindSB" placeholder="chips" style="display:none;margin-top:6px;" min="0">
+        </div>
+        <div class="field">
+          <label style="display:flex;align-items:center;gap:8px;">
+            <input type="radio" name="blindHero" id="radioBB" value="bb" style="accent-color:var(--accent);cursor:pointer;"/>
+            Sei da Big Blind?
+            <span class="hint" style="font-size:10px;">inserisci valore BB in chips</span>
+          </label>
+          <input type="number" id="blindBB" placeholder="chips" style="display:none;margin-top:6px;" min="0">
+        </div>
       </div>
     </div>
   </div>

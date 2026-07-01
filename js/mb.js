@@ -1,6 +1,7 @@
 
 (function() {
 let tagliaMode = 'diretta';
+const villainActive = { 2: false, 3: false };
 
 function setTagliaMode(mode) {
   tagliaMode = mode;
@@ -10,15 +11,41 @@ function setTagliaMode(mode) {
   document.getElementById('btn-mode-calcolata').classList.toggle('active', mode === 'calcolata');
 }
 
+function toggleVillain(n) {
+  villainActive[n] = !villainActive[n];
+  const fields = document.getElementById('fields' + n);
+  const btn = document.getElementById('toggle' + n);
+  if (villainActive[n]) {
+    fields.classList.add('show');
+    btn.textContent = '− Rimuovi';
+    btn.classList.add('active');
+  } else {
+    fields.classList.remove('show');
+    btn.textContent = '+ Aggiungi';
+    btn.classList.remove('active');
+    document.getElementById('sv' + n).value = '';
+  }
+}
+
+function setupBlindRadio() {
+  document.getElementById('radioSB').addEventListener('change', function() {
+    document.getElementById('blindSB').style.display = this.checked ? '' : 'none';
+    document.getElementById('blindBB').style.display = 'none';
+  });
+  document.getElementById('radioBB').addEventListener('change', function() {
+    document.getElementById('blindBB').style.display = this.checked ? '' : 'none';
+    document.getElementById('blindSB').style.display = 'none';
+  });
+}
+
+function getBlindHero() {
+  if (document.getElementById('radioSB').checked) return parseFloat(document.getElementById('blindSB').value) || 0;
+  if (document.getElementById('radioBB').checked) return parseFloat(document.getElementById('blindBB').value) || 0;
+  return 0;
+}
 
 function v(id) { return parseFloat(document.getElementById(id).value); }
 function fmt(n, dec=2) { return isNaN(n) ? '—' : n.toFixed(dec); }
-function fmtChips(n) {
-  if (isNaN(n)) return '—';
-  if (n >= 1000000) return (n/1000000).toFixed(3) + 'M';
-  if (n >= 1000)    return (n/1000).toFixed(1) + 'K';
-  return n.toFixed(0);
-}
 
 function setError(id, show) { document.getElementById('f-'+id)?.classList.toggle('has-error', show); }
 function clearErrors() { document.querySelectorAll('.field.has-error').forEach(f => f.classList.remove('has-error')); }
@@ -33,19 +60,21 @@ async function calcola() {
   clearErrors();
   let errors = false;
 
-  const stack = v('stack');
-  const buyin = v('buyin');
-  const risk  = isNaN(v('risk')) ? 0 : v('risk');
+  const stack        = v('stack');
+  const stackHero    = v('stackHero');
+  const quotaMystery = v('quotaMystery');
+  const risk         = isNaN(v('risk')) ? 0 : v('risk');
 
-  if (isNaN(stack) || stack <= 0) { setError('stack', true); errors = true; }
-  if (isNaN(buyin) || buyin <= 0) { setError('buyin', true); errors = true; }
+  if (isNaN(stack)        || stack <= 0)        { setError('stack', true); errors = true; }
+  if (isNaN(stackHero)    || stackHero <= 0)    { setError('stackHero', true); errors = true; }
+  if (isNaN(quotaMystery) || quotaMystery <= 0) { setError('quotaMystery', true); errors = true; }
 
   let totalBountiesCalc, playersLeftCalc;
   if (tagliaMode === 'diretta') {
     const bm = v('bounty-media');
     if (isNaN(bm) || bm <= 0) { setError('bounty-media', true); errors = true; }
-    totalBountiesCalc = bm; // verrà passato come avgBounty direttamente
-    playersLeftCalc = 1;    // avgBounty = totalBounties / playersLeft → se pl=1, avg=bm
+    totalBountiesCalc = bm;
+    playersLeftCalc = 1;
   } else {
     const bt = v('bounty-tot'), pl = v('players');
     if (isNaN(bt) || bt <= 0) { setError('bounty-tot', true); errors = true; }
@@ -54,17 +83,26 @@ async function calcola() {
     playersLeftCalc = pl;
   }
 
-  const potInput  = v('pot');
-  const callInput = v('call');
-  if (isNaN(potInput)  || potInput < 0)   { setError('pot',  true); errors = true; }
-  if (isNaN(callInput) || callInput <= 0) { setError('call', true); errors = true; }
+  const sv1 = v('sv1');
+  if (isNaN(sv1) || sv1 <= 0) { alert('Inserisci lo stack di Villain 1.'); return; }
+
+  const bbSbAnte   = parseFloat(document.getElementById('bbSbAnte').value) || 0;
+  const altreChips = parseFloat(document.getElementById('altreChips').value) || 0;
+  const blindHero  = getBlindHero();
 
   if (errors) return;
 
   const token = getToken();
-  if (!token) {
-    alert('Sessione scaduta. Effettua nuovamente il login.');
-    return;
+  if (!token) { alert('Sessione scaduta. Effettua nuovamente il login.'); return; }
+
+  // Costruisci array villain
+  const villains = [{ stack: sv1, label: 'Villain 1' }];
+  for (const n of [2, 3]) {
+    if (villainActive[n]) {
+      const sv = parseFloat(document.getElementById('sv' + n).value);
+      if (isNaN(sv) || sv <= 0) { alert(`Compila lo stack di Villain ${n} o rimuovilo.`); return; }
+      villains.push({ stack: sv, label: 'Villain ' + n });
+    }
   }
 
   try {
@@ -73,12 +111,15 @@ async function calcola() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         access_token: token,
-        call: callInput,
-        pot: potInput,
         totalBounties: totalBountiesCalc,
         playersLeft: playersLeftCalc,
         startStack: stack,
-        buyIn: buyin,
+        stackHero,
+        quotaMystery,
+        bbSbAnte,
+        altreChips,
+        blindHero,
+        villains,
         riskPremium: risk / 100
       })
     });
@@ -116,7 +157,6 @@ async function calcola() {
   }
 }
 
-
 document.addEventListener('keydown', e => { if (e.key === 'Enter') calcola(); });
 
 function toggleRpInfo() {
@@ -124,43 +164,37 @@ function toggleRpInfo() {
   el.style.display = el.style.display === 'none' ? '' : 'none';
 }
 
-function toggleBuyinInfo() {
-  const el = document.getElementById('buyin-info');
+function toggleQuotaInfo() {
+  const el = document.getElementById('quotaMystery-info');
   el.style.display = el.style.display === 'none' ? '' : 'none';
 }
 
-function togglePotInfo() {
-  const el = document.getElementById('pot-info');
+function toggleAltreInfo() {
+  const el = document.getElementById('altre-info');
   el.style.display = el.style.display === 'none' ? '' : 'none';
 }
 
-function toggleCallInfo() {
-  const el = document.getElementById('call-info');
-  el.style.display = el.style.display === 'none' ? '' : 'none';
-}
-
-// Expose public functions
+// Expose
 window.calcola = calcola;
 window.toggleRpInfo = toggleRpInfo;
-window.toggleBuyinInfo = toggleBuyinInfo;
-window.togglePotInfo = togglePotInfo;
-window.toggleCallInfo = toggleCallInfo;
+window.toggleQuotaInfo = toggleQuotaInfo;
+window.toggleAltreInfo = toggleAltreInfo;
+window.toggleVillain = toggleVillain;
 window.setTagliaMode = setTagliaMode;
 })();
-
 
 // ─── EVENT LISTENERS ─────────────────────────────────────
 document.getElementById('btn-mode-diretta')?.addEventListener('click', () => setTagliaMode('diretta'));
 document.getElementById('btn-mode-calcolata')?.addEventListener('click', () => setTagliaMode('calcolata'));
 document.querySelector('.btn-calc')?.addEventListener('click', calcola);
-document.getElementById('btn-buyin-info')?.addEventListener('click', toggleBuyinInfo);
-document.getElementById('btn-pot-info')?.addEventListener('click', togglePotInfo);
-document.getElementById('btn-call-info')?.addEventListener('click', toggleCallInfo);
+document.getElementById('btn-quotaMystery-info')?.addEventListener('click', toggleQuotaInfo);
+document.getElementById('btn-altre-info')?.addEventListener('click', toggleAltreInfo);
+document.getElementById('toggle2')?.addEventListener('click', () => toggleVillain(2));
+document.getElementById('toggle3')?.addEventListener('click', () => toggleVillain(3));
 document.querySelectorAll(".section button").forEach(btn => {
-  if (btn.textContent.trim() === "?" && 
-      btn.id !== 'btn-buyin-info' && 
-      btn.id !== 'btn-pot-info' && 
-      btn.id !== 'btn-call-info') {
+  if (btn.textContent.trim() === "?" &&
+      btn.id !== 'btn-quotaMystery-info' &&
+      btn.id !== 'btn-altre-info') {
     btn.addEventListener("click", toggleRpInfo);
   }
 });
