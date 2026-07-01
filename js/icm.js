@@ -381,6 +381,11 @@ async function calculate() {
     return;
   }
 
+  const btn = document.getElementById('btnCalcolaICM');
+  const btnOriginalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Calcolo in corso...';
+
   try {
     const resp = await fetch(`${API_URL}/api/icm`, {
       method:  'POST',
@@ -416,6 +421,9 @@ async function calculate() {
   } catch (err) {
     errEl.textContent = '⚠ Errore di connessione. Riprova.';
     errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = btnOriginalText;
   }
 }
 
@@ -430,6 +438,11 @@ async function simulateCall() {
 
   const token = getToken();
   if (!token) { alert('Sessione scaduta. Effettua nuovamente il login.'); return; }
+
+  const btn = document.getElementById('btnSimulaCall');
+  const btnOriginalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Calcolo in corso...';
 
   try {
     const resp = await fetch(`${API_URL}/api/icm`, {
@@ -462,6 +475,9 @@ async function simulateCall() {
 
   } catch (err) {
     alert('Errore di connessione. Riprova.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = btnOriginalText;
   }
 }
 
