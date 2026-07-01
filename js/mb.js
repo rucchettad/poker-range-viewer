@@ -181,9 +181,7 @@ window.toggleQuotaInfo = toggleQuotaInfo;
 window.toggleAltreInfo = toggleAltreInfo;
 window.toggleVillain = toggleVillain;
 window.setTagliaMode = setTagliaMode;
-
-// Init
-setupBlindRadio();
+window.setupBlindRadio = setupBlindRadio;
 })();
 
 // ─── EVENT LISTENERS ─────────────────────────────────────
@@ -194,6 +192,7 @@ document.getElementById('btn-quotaMystery-info')?.addEventListener('click', togg
 document.getElementById('btn-altre-info')?.addEventListener('click', toggleAltreInfo);
 document.getElementById('toggle2')?.addEventListener('click', () => toggleVillain(2));
 document.getElementById('toggle3')?.addEventListener('click', () => toggleVillain(3));
+setupBlindRadio();
 document.querySelectorAll(".section button").forEach(btn => {
   if (btn.textContent.trim() === "?" &&
       btn.id !== 'btn-quotaMystery-info' &&
