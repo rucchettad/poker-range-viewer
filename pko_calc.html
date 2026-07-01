@@ -14,9 +14,7 @@
 
 <h2>🎯 PKO Bounty Calculator</h2>
 <p class="subtitle">Calcola le Pot Odds aggiustate — scenario call all-in (fino a 3 villain)</p>
-<div style="background:#3a2a00;border:1px solid #f59e0b;border-radius:8px;padding:10px 16px;margin:12px 0;font-size:13px;color:#fbbf24;">
-  ⚠️ Beta — Verifica sempre i risultati. Segnala anomalie a <a href="mailto:rucchettad@gmail.com" style="color:#fbbf24;text-decoration:underline;">rucchettad@gmail.com</a>
-</div>
+
 
 <p class="section-label">Dati torneo</p>
 <div class="grid2">
@@ -24,6 +22,11 @@
   <div class="field"><label>Taglia iniziale (€) <span class="tip" data-tip="Valore base del bounty assegnato a ogni giocatore a inizio torneo">?</span></label><input type="number" id="taglia" placeholder="Es. 11.25" step="0.01"/></div>
   <div class="field"><label>Stack iniziale torneo (chips) <span class="tip" data-tip="Stack in chips con cui ogni giocatore inizia il torneo">?</span></label><input type="number" id="stackIniziale" placeholder="Es. 10000"/></div>
   <div class="field"><label>Stack Hero (chips) <span class="tip" data-tip="Il tuo stack attuale al momento della decisione. Serve solo per capire chi copri.">?</span></label><input type="number" id="stackHero" placeholder="Es. 80000"/></div>
+</div>
+
+<div class="field" style="margin-bottom:12px;">
+  <label>Pot attuale prima della tua azione (chips) <span class="tip" data-tip="Tutto ciò che è già nel mezzo prima che tu agisca: ante, blind, shove dell'avversario, eventuali call precedenti">?</span></label>
+  <input type="number" id="potAttuale" placeholder="Es. 25000"/>
 </div>
 
 <hr class="section-sep"/>
@@ -67,41 +70,6 @@
     <div class="grid2">
       <div class="field"><label>Stack Villain 3 (chips) <span class="tip" data-tip="Stack del terzo villain nel pot. Inserisci solo se ha già agito prima di te.">?</span></label><input type="number" id="sv3" placeholder="Es. 30000"/></div>
       <div class="field"><label>Bounty Villain 3 (€) <span class="tip" data-tip="Bounty del terzo villain. Incluso nel calcolo solo se Hero lo copre.">?</span></label><input type="number" id="bv3" placeholder="Es. 10.00" step="0.01"/></div>
-    </div>
-  </div>
-</div>
-
-<hr class="section-sep"/>
-<p class="section-label">Pot prima degli shove</p>
-<div class="grid2">
-  <div class="field">
-    <label>BB + SB + ANTE (chips) <span class="tip" data-tip="Inserisci la somma di big blind + small blind + ante totale del tavolo. Non includere altro.">?</span></label>
-    <input type="number" id="bbSbAnte" placeholder="Es. 3000"/>
-  </div>
-  <div class="field">
-    <label>Altre chips nel pot (chips) <span class="tip" data-tip="Eventuali chips aggiuntive già nel piatto da azione preflop precedente allo shove: limp, raise/fold, 3bet/fold, cold call to fold. Lascia 0 se non c'è stata altra azione.">?</span></label>
-    <input type="number" id="altreChips" placeholder="0"/>
-  </div>
-</div>
-
-<!-- BLIND HERO -->
-<div style="margin-top:12px;">
-  <div class="grid2">
-    <div class="field">
-      <label style="display:flex;align-items:center;gap:8px;">
-        <input type="radio" name="blindHero" id="radioSB" value="sb" style="accent-color:var(--accent);cursor:pointer;"/>
-        Sei da Small Blind?
-        <span class="tip" data-tip="Inserisci il valore dello small blind in chips (es. 500 se il livello è 500/1000).">?</span>
-      </label>
-      <input type="number" id="blindSB" placeholder="Es. 500" style="display:none;margin-top:6px;" min="0"/>
-    </div>
-    <div class="field">
-      <label style="display:flex;align-items:center;gap:8px;">
-        <input type="radio" name="blindHero" id="radioBB" value="bb" style="accent-color:var(--accent);cursor:pointer;"/>
-        Sei da Big Blind?
-        <span class="tip" data-tip="Inserisci il valore del big blind in chips (es. 1000 se il livello è 500/1000).">?</span>
-      </label>
-      <input type="number" id="blindBB" placeholder="Es. 1000" style="display:none;margin-top:6px;" min="0"/>
     </div>
   </div>
 </div>
