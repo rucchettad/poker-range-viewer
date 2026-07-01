@@ -450,9 +450,9 @@ async function simulateCall() {
     document.getElementById('simLoseDelta').textContent = `-€ ${s.lossIfLose.toFixed(2)} vs ora`;
 
     document.getElementById('metricChipOdds').textContent = (s.chipOdds * 100).toFixed(1) + '%';
-    document.getElementById('metricBF').textContent       = s.BF.toFixed(2) + 'x';
-    document.getElementById('metricMinEq').textContent    = (s.minEqICM * 100).toFixed(1) + '%';
-    document.getElementById('metricRP').textContent       = (s.riskPremium >= 0 ? '+' : '') + (s.riskPremium * 100).toFixed(1) + '%';
+    document.getElementById('metricBF').textContent       = s.BF !== null ? s.BF.toFixed(2) + 'x' : 'n/d';
+    document.getElementById('metricMinEq').textContent    = s.minEqICM !== null ? (s.minEqICM * 100).toFixed(1) + '%' : 'n/d';
+    document.getElementById('metricRP').textContent       = s.riskPremium !== null ? (s.riskPremium >= 0 ? '+' : '') + (s.riskPremium * 100).toFixed(1) + '%' : 'n/d';
 
     document.getElementById('simResults').style.display = 'block';
 
