@@ -444,19 +444,6 @@ input[type="number"]::-webkit-inner-spin-button { opacity: 0.4; }
 .text-accent { color: var(--accent); }
 .text-accent-bold { color: var(--accent); font-weight: 700; }
 
-/* ── Beta banner ────────────────────────────────────────── */
-.beta-banner {
-  background: #1a1400;
-  border: 1px solid #f59e0b44;
-  border-radius: 8px;
-  padding: 6px 14px;
-  margin-bottom: 12px;
-  text-align: center;
-  font-size: 12px;
-  color: #f59e0b;
-}
-.beta-banner a { color: #f59e0b; font-weight: 700; }
-
 /* ── Caption sopra un campo (es. "N. giocatori") ──────────── */
 .field-caption {
   color: var(--muted);
