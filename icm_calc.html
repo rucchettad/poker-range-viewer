@@ -26,7 +26,7 @@
 
   <div style="margin-bottom:12px;">
     <div style="max-width:160px;margin-bottom:10px;">
-      <label style="color:var(--muted);font-size:12px;display:block;margin-bottom:4px;">N. giocatori</label>
+      <label for="numPlayers" style="color:var(--muted);font-size:12px;display:block;margin-bottom:4px;">N. giocatori</label>
       <select id="numPlayers" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;padding:7px 10px;width:100%;outline:none;">
         <option value="2">2</option>
         <option value="3">3</option>
@@ -78,7 +78,7 @@
 
   <div class="row" style="margin-bottom:12px;">
     <div class="field-group" style="max-width:160px;">
-      <label>Posti pagati</label>
+      <label for="numPrizes">Posti pagati</label>
       <select id="numPrizes">
         <option value="1">1</option>
         <option value="2">2</option>
@@ -134,28 +134,28 @@
 
     <div class="hero-select-row">
       <div class="field-group">
-        <label>Hero</label>
+        <label for="simHero">Hero</label>
         <select id="simHero"></select>
       </div>
       <div class="field-group">
-        <label>Villain</label>
+        <label for="simVillain">Villain</label>
         <select id="simVillain"></select>
       </div>
     </div>
 
     <div class="row" style="margin-bottom:8px;">
       <div class="field-group">
-        <label>Call Hero</label>
+        <label for="callAmount">Call Hero</label>
         <input type="number" id="callAmount" placeholder="auto: min stack" min="0">
       </div>
       <div class="field-group">
-        <label>SB + BB + Ante</label>
+        <label for="potSBBBAnte">SB + BB + Ante</label>
         <input type="number" id="potSBBBAnte" placeholder="es. 7500" min="0">
       </div>
     </div>
     <div class="row" style="margin-bottom:12px;">
       <div class="field-group">
-        <label>Pot Totale</label>
+        <label for="potBetVillain">Pot Totale</label>
         <input type="number" id="potBetVillain" placeholder="auto: min stack" min="0">
       </div>
     </div>
