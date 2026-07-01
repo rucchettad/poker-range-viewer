@@ -129,10 +129,22 @@ function toggleBuyinInfo() {
   el.style.display = el.style.display === 'none' ? '' : 'none';
 }
 
+function togglePotInfo() {
+  const el = document.getElementById('pot-info');
+  el.style.display = el.style.display === 'none' ? '' : 'none';
+}
+
+function toggleCallInfo() {
+  const el = document.getElementById('call-info');
+  el.style.display = el.style.display === 'none' ? '' : 'none';
+}
+
 // Expose public functions
 window.calcola = calcola;
 window.toggleRpInfo = toggleRpInfo;
 window.toggleBuyinInfo = toggleBuyinInfo;
+window.togglePotInfo = togglePotInfo;
+window.toggleCallInfo = toggleCallInfo;
 window.setTagliaMode = setTagliaMode;
 })();
 
@@ -142,6 +154,8 @@ document.getElementById('btn-mode-diretta')?.addEventListener('click', () => set
 document.getElementById('btn-mode-calcolata')?.addEventListener('click', () => setTagliaMode('calcolata'));
 document.querySelector('.btn-calc')?.addEventListener('click', calcola);
 document.getElementById('btn-buyin-info')?.addEventListener('click', toggleBuyinInfo);
+document.getElementById('btn-pot-info')?.addEventListener('click', togglePotInfo);
+document.getElementById('btn-call-info')?.addEventListener('click', toggleCallInfo);
 document.querySelectorAll(".section button").forEach(btn => {
   if (btn.textContent.trim() === "?" && btn.id !== 'btn-buyin-info') btn.addEventListener("click", toggleRpInfo);
 });

@@ -94,14 +94,24 @@
     <div class="section-title">Dati mano</div>
     <div class="grid">
       <div class="field" id="f-pot">
-        <label id="lbl-pot">Piatto <span class="hint" id="hint-pot">(chips)</span></label>
+        <label id="lbl-pot" style="display:flex;align-items:center;gap:6px">Piatto <span class="hint" id="hint-pot">(chips)</span>
+          <button id="btn-pot-info" type="button" style="background:none;border:1px solid var(--muted);color:var(--muted);border-radius:50%;width:16px;height:16px;font-size:10px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;line-height:1;flex-shrink:0">?</button>
+        </label>
         <input type="number" id="pot" placeholder="chips" min="0" step="0.01">
         <span class="field-error">Campo obbligatorio</span>
+        <div id="pot-info" style="display:none;margin-top:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
+          <p style="font-size:11px;color:var(--muted);line-height:1.6;">Tutto ciò che è già nel mezzo prima del tuo call: blind, ante, bet/raise del villain, eventuali call precedenti di altri giocatori. <strong style="color:var(--accent)">Non includere il tuo call</strong> — va inserito nel campo apposito.</p>
+        </div>
       </div>
       <div class="field" id="f-call">
-        <label id="lbl-call">Call <span class="hint" id="hint-call">(chips)</span></label>
+        <label id="lbl-call" style="display:flex;align-items:center;gap:6px">Call <span class="hint" id="hint-call">(chips)</span>
+          <button id="btn-call-info" type="button" style="background:none;border:1px solid var(--muted);color:var(--muted);border-radius:50%;width:16px;height:16px;font-size:10px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;line-height:1;flex-shrink:0">?</button>
+        </label>
         <input type="number" id="call" placeholder="chips" min="0.01" step="0.01">
         <span class="field-error">Campo obbligatorio</span>
+        <div id="call-info" style="display:none;margin-top:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;">
+          <p style="font-size:11px;color:var(--muted);line-height:1.6;">L'importo che devi aggiungere per restare nel pot. <strong style="color:var(--accent)">Non includere il piatto</strong> — va inserito nel campo apposito.</p>
+        </div>
       </div>
     </div>
   </div>
