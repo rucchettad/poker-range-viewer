@@ -184,3 +184,39 @@
     line-height: 1.7; white-space: pre-wrap;
   }
 
+
+  /* ── Villain blocks ─────────────────────────────────── */
+  .villain-block {
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px 16px; margin-bottom: 12px;
+  }
+  .villain-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 0;
+  }
+  .villain-title { font-size: 13px; font-weight: 700; color: var(--text); }
+  .villain-toggle {
+    background: none; border: 1px solid var(--border); color: var(--muted);
+    border-radius: 6px; font-size: 11px; font-weight: 600;
+    padding: 4px 10px; cursor: pointer; transition: all 0.15s;
+  }
+  .villain-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  .villain-toggle.active { border-color: var(--danger); color: var(--danger); }
+  .villain-fields { display: none; margin-top: 12px; }
+  .villain-fields.show { display: block; }
+
+  /* ── Radio blind hero ───────────────────────────────── */
+  .radio-blind-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px;
+  }
+  .radio-blind-field {
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .radio-blind-label {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--label); font-weight: 500; cursor: pointer;
+  }
+  .radio-blind-label input[type="radio"] {
+    accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer;
+    flex-shrink: 0;
+  }
