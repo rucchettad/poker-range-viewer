@@ -355,7 +355,8 @@ input[type="number"]::-webkit-inner-spin-button { opacity: 0.4; }
   z-index: 10;
   line-height: 1.5;
 }
-.tooltip-wrap:hover .tooltip-box { display: block; }
+.tooltip-wrap:hover .tooltip-box,
+.tooltip-wrap.active .tooltip-box { display: block; }
 
 .hero-select-row {
   display: grid;

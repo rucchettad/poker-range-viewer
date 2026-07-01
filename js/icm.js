@@ -639,8 +639,28 @@ function resetAll() {
   document.getElementById('errorMsg').style.display   = 'none';
 }
 
+// ─── TOOLTIP TOUCH SUPPORT ────────────────────────────────
+// I tooltip usano :hover in CSS, che su mobile/touch non scatta mai.
+// Qui aggiungiamo il supporto al tap, senza toccare il comportamento
+// hover esistente per desktop.
+function initTooltips() {
+  document.querySelectorAll('.tooltip-icon').forEach(icon => {
+    icon.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const wrap = icon.closest('.tooltip-wrap');
+      const wasActive = wrap.classList.contains('active');
+      document.querySelectorAll('.tooltip-wrap.active').forEach(w => w.classList.remove('active'));
+      if (!wasActive) wrap.classList.add('active');
+    });
+  });
+  // Tap fuori da un tooltip aperto → chiude
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.tooltip-wrap.active').forEach(w => w.classList.remove('active'));
+  });
+}
+
 // ─── INIT ─────────────────────────────────────────────────
-setTimeout(() => { buildPlayersGrid(); aggiornaLegenda(9); }, 100);
+setTimeout(() => { buildPlayersGrid(); aggiornaLegenda(9); initTooltips(); }, 100);
 
 // ─── EXPOSE PUBLIC FUNCTIONS ──────────────────────────────
 window.buildPlayersGrid  = buildPlayersGrid;
