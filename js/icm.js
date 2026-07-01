@@ -405,9 +405,13 @@ async function calculate() {
     renderDealTable();
     buildSimSelects();
 
-    document.getElementById('results').style.display = 'block';
+    const resultsEl = document.getElementById('results');
+    resultsEl.style.display = 'block';
+    resultsEl.classList.remove('fade-in');
+    void resultsEl.offsetWidth; // forza il reflow, altrimenti la classe riapplicata non rianima
+    resultsEl.classList.add('fade-in');
     document.getElementById('simResults').style.display = 'none';
-    document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   } catch (err) {
     errEl.textContent = '⚠ Errore di connessione. Riprova.';
