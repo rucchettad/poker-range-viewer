@@ -41,19 +41,25 @@ function getToken() {
 }
 
 function setupBlindRadio() {
-  document.getElementById('radioSB').addEventListener('change', function() {
-    document.getElementById('blindSB').style.display = this.checked ? '' : 'none';
-    document.getElementById('blindBB').style.display = 'none';
+  document.getElementById('radioSB')?.addEventListener('change', function() {
+    const blindSB = document.getElementById('blindSB');
+    const blindBB = document.getElementById('blindBB');
+    if (blindSB) blindSB.style.display = this.checked ? '' : 'none';
+    if (blindBB) blindBB.style.display = 'none';
   });
-  document.getElementById('radioBB').addEventListener('change', function() {
-    document.getElementById('blindBB').style.display = this.checked ? '' : 'none';
-    document.getElementById('blindSB').style.display = 'none';
+  document.getElementById('radioBB')?.addEventListener('change', function() {
+    const blindSB = document.getElementById('blindSB');
+    const blindBB = document.getElementById('blindBB');
+    if (blindBB) blindBB.style.display = this.checked ? '' : 'none';
+    if (blindSB) blindSB.style.display = 'none';
   });
 }
 
 function getBlindHero() {
-  if (document.getElementById('radioSB').checked) return parseFloat(document.getElementById('blindSB').value) || 0;
-  if (document.getElementById('radioBB').checked) return parseFloat(document.getElementById('blindBB').value) || 0;
+  const radioSB = document.getElementById('radioSB');
+  const radioBB = document.getElementById('radioBB');
+  if (radioSB?.checked) return parseFloat(document.getElementById('blindSB')?.value) || 0;
+  if (radioBB?.checked) return parseFloat(document.getElementById('blindBB')?.value) || 0;
   return 0;
 }
 
@@ -172,10 +178,15 @@ document.addEventListener('keydown', e => { if (e.key === 'Enter') calcola(); })
 window.toggleVillain = toggleVillain;
 window.calcola = calcola;
 
-setupBlindRadio();
+// ─── INIT ─────────────────────────────────────────────────
+// Wrapper con delay: quando questo script viene caricato dentro l'overlay
+// dell'app (fetch+inject), il DOM può non essere ancora completamente
+// renderizzato nel momento esatto in cui lo script parte. Stesso fix già
+// applicato su icm.js per lo stesso tipo di problema.
+setTimeout(() => {
+  setupBlindRadio();
+  document.getElementById('toggle2')?.addEventListener('click', () => toggleVillain(2));
+  document.getElementById('toggle3')?.addEventListener('click', () => toggleVillain(3));
+  document.querySelector('.calc-btn')?.addEventListener('click', calcola);
+}, 100);
 })();
-
-// ─── EVENT LISTENERS ─────────────────────────────────────
-document.getElementById('toggle2')?.addEventListener('click', () => toggleVillain(2));
-document.getElementById('toggle3')?.addEventListener('click', () => toggleVillain(3));
-document.querySelector('.calc-btn')?.addEventListener('click', calcola);

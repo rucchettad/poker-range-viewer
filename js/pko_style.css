@@ -79,3 +79,22 @@
   .bf-table tr.active-row td:last-child { color: var(--success); }
   .tag-bf { display: inline-block; background: var(--btn); color: white; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-left: 6px; }
 
+  .blind-radio-row {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px 14px;
+  }
+  .blind-radio-option {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 13px; font-weight: 600; color: var(--text); cursor: pointer;
+  }
+  .blind-radio-option input[type="radio"] {
+    accent-color: var(--btn); width: 15px; height: 15px; cursor: pointer;
+  }
+  .blind-radio-row input[type="number"] {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+    padding: 6px 10px; color: var(--text); font-size: 13px; outline: none;
+    width: 110px; transition: border-color 0.2s;
+  }
+  .blind-radio-row input[type="number"]:focus { border-color: var(--btn); }
+
