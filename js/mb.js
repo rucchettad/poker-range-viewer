@@ -157,5 +157,10 @@ document.getElementById('btn-buyin-info')?.addEventListener('click', toggleBuyin
 document.getElementById('btn-pot-info')?.addEventListener('click', togglePotInfo);
 document.getElementById('btn-call-info')?.addEventListener('click', toggleCallInfo);
 document.querySelectorAll(".section button").forEach(btn => {
-  if (btn.textContent.trim() === "?" && btn.id !== 'btn-buyin-info') btn.addEventListener("click", toggleRpInfo);
+  if (btn.textContent.trim() === "?" && 
+      btn.id !== 'btn-buyin-info' && 
+      btn.id !== 'btn-pot-info' && 
+      btn.id !== 'btn-call-info') {
+    btn.addEventListener("click", toggleRpInfo);
+  }
 });
