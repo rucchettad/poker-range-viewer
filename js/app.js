@@ -271,7 +271,8 @@ function aggiornaUI() {
     let nascondi = false;
     if (azioneSelezionata === 'Call Shove' && !['5bb','7bb','10bb','13bb','15bb','17bb','20bb','23bb','25bb'].includes(orig)) nascondi = true;
     if (['SB Limp vs BB ISO','BB vs SB Limp'].includes(azioneSelezionata) && orig === '5bb') nascondi = true;
-    if (['Vs 3Bet NAI','Vs RFI','Vs RFI e Flat'].includes(azioneSelezionata) && ['5bb','7bb'].includes(orig)) nascondi = true;
+    if (['Vs 3Bet NAI','Vs RFI'].includes(azioneSelezionata) && ['5bb','7bb'].includes(orig)) nascondi = true;
+    if (azioneSelezionata === 'Vs RFI e Flat' && ['5bb','7bb','10bb','13bb'].includes(orig)) nascondi = true;
     if (azioneSelezionata === 'Vs 3Bet AI' && !['10bb','13bb','15bb','17bb','20bb','23bb','25bb','32bb','36bb','40bb','50bb','60bb'].includes(orig)) nascondi = true;
     if (azioneSelezionata === 'Vs 4Bet' && ['5bb','7bb','10bb','13bb','15bb','17bb'].includes(orig)) nascondi = true;
     btn.style.display = nascondi ? 'none' : 'inline-block';
