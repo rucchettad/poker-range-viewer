@@ -271,7 +271,7 @@ function aggiornaUI() {
     let nascondi = false;
     if (azioneSelezionata === 'Call Shove' && !['5bb','7bb','10bb','13bb','15bb','17bb','20bb','23bb','25bb'].includes(orig)) nascondi = true;
     if (['SB Limp vs BB ISO','BB vs SB Limp'].includes(azioneSelezionata) && orig === '5bb') nascondi = true;
-    if (['Vs 3Bet NAI','Vs RFI','Vs RFI e Flat','BB vs SB Limp'].includes(azioneSelezionata) && ['5bb','7bb'].includes(orig)) nascondi = true;
+    if (['Vs 3Bet NAI','Vs RFI','Vs RFI e Flat'].includes(azioneSelezionata) && ['5bb','7bb'].includes(orig)) nascondi = true;
     if (azioneSelezionata === 'Vs 3Bet AI' && !['10bb','13bb','15bb','17bb','20bb','23bb','25bb','32bb','36bb','40bb','50bb','60bb'].includes(orig)) nascondi = true;
     if (azioneSelezionata === 'Vs 4Bet' && ['5bb','7bb','10bb','13bb','15bb','17bb'].includes(orig)) nascondi = true;
     btn.style.display = nascondi ? 'none' : 'inline-block';
@@ -314,9 +314,13 @@ function aggiornaUI() {
   }
 
   if (azioneSelezionata === 'Vs 4Bet') {
+    document.querySelectorAll('#openerTabs .tab').forEach(t => {
+      const match = t.textContent.trim() === apritoreSelezionato;
+      t.style.display = match ? 'inline-block' : 'none';
+    });
     document.querySelectorAll('#responderTabs .tab').forEach(t => {
       const pos = t.getAttribute('data-pos');
-      if (pos) t.style.display = pos === apritoreSelezionato ? 'none' : 'inline-block';
+      t.style.display = pos === responderSelezionato ? 'inline-block' : 'none';
     });
   }
 
@@ -341,6 +345,14 @@ function aggiornaUI() {
       _setActiveTab('#responderTabs .tab', t => t.getAttribute('data-pos') === responderSelezionato);
     }
   }
+
+  // Sincronizzazione universale dell'evidenziazione: eseguita sempre, dopo che
+  // tutti i rami sopra hanno già deciso i valori finali di apritoreSelezionato/
+  // responderSelezionato/flatPosizioneSelezionata. Elimina i bug "lucina" residui
+  // (evidenziazione congelata su un valore vecchio anche quando il dato è già corretto).
+  _setActiveTab('#openerTabs .tab', t => t.textContent.trim() === apritoreSelezionato);
+  _setActiveTab('#responderTabs .tab', t => t.getAttribute('data-pos') === responderSelezionato);
+  _setActiveTab('.flat-tab', t => t.getAttribute('data-flat-pos') === flatPosizioneSelezionata);
 
   let titolo;
   if (azioneSelezionata === 'RFI/OSHOVE')
