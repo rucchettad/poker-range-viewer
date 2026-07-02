@@ -15,6 +15,20 @@ export function apriTool(url, titolo) {
   overlay.style.display = 'flex';
   document.body.style.overflow = 'hidden';
 
+  // Spinner mostrato finché l'iframe non ha finito di caricare
+  const spinner = document.createElement('div');
+  spinner.setAttribute('data-tool-spinner', '');
+  spinner.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#0d0f14;';
+  spinner.innerHTML = '<div style="width:40px;height:40px;border:3px solid rgba(255,255,255,0.15);border-top-color:#4a9eff;border-radius:50%;animation:toolSpinRotate 0.8s linear infinite;"></div>';
+  if (!document.getElementById('toolSpinnerStyle')) {
+    const style = document.createElement('style');
+    style.id = 'toolSpinnerStyle';
+    style.textContent = '@keyframes toolSpinRotate{to{transform:rotate(360deg);}}';
+    document.head.appendChild(style);
+  }
+  content.style.position = 'relative';
+  content.appendChild(spinner);
+
   const iframe = document.createElement('iframe');
   iframe.src = url + '?v=' + Date.now();
   iframe.style.width  = '100%';
@@ -22,6 +36,7 @@ export function apriTool(url, titolo) {
   iframe.style.border = 'none';
   iframe.style.display = 'block';
   iframe.style.background = '#0d0f14';
+  iframe.addEventListener('load', () => spinner.remove());
   content.appendChild(iframe);
 }
 
