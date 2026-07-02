@@ -390,10 +390,11 @@ function _aggiornaSwitchButtons() {
   function show(id) { el(id).style.display = 'inline-block'; sc.classList.add('show'); }
   if (azioneSelezionata === 'RFI/OSHOVE') {
     if (!['5bb','7bb'].includes(stackSelezionato))                        show('switchTo3BetNAI');
-    if (!['5bb','7bb','80bb','100bb'].includes(stackSelezionato))         show('switchTo3BetAI');
+    if (!['5bb','7bb','50bb','60bb','80bb','100bb'].includes(stackSelezionato))         show('switchTo3BetAI');
     if (apritoreSelezionato === 'SB' && stackSelezionato !== '5bb')       show('switchToIso');
   } else if (azioneSelezionata === 'Vs RFI') {
-    show('switchTo4Bet'); show('switchToVsRFIFlat');
+    if (!['5bb','7bb','10bb','13bb','15bb','17bb'].includes(stackSelezionato)) show('switchTo4Bet');
+    if (!['5bb','7bb','10bb','13bb'].includes(stackSelezionato)) show('switchToVsRFIFlat');
     if (apritoreSelezionato === 'SB' && responderSelezionato === 'BB') show('switchToBBvsSBLimp');
   } else if (azioneSelezionata === 'Vs RFI e Flat') { show('switchBackToVsRFI'); }
   else if (['Vs 3Bet NAI','Vs 3Bet AI'].includes(azioneSelezionata)) { show('switchBackToRFI'); }
@@ -402,13 +403,13 @@ function _aggiornaSwitchButtons() {
     if (bbLimpSubMode !== 'base') { show('switchBackToBaseLimp'); }
     else {
       if (!['5bb','7bb','10bb','13bb','15bb'].includes(stackSelezionato)) show('switchToVSLimp3BetNAI');
-      if (!['5bb','80bb','100bb'].includes(stackSelezionato))             show('switchToVSLimp3BetAI');
+      if (!['5bb'].includes(stackSelezionato))             show('switchToVSLimp3BetAI');
     }
   } else if (azioneSelezionata === 'SB Limp vs BB ISO') {
     if (sbIsoSubMode !== 'base') { show('switchBackToBaseIso'); }
     else {
       if (!['5bb','7bb','10bb','13bb','15bb','17bb','20bb','23bb','25bb','28bb','30bb','32bb'].includes(stackSelezionato)) show('switchToVsBBIsoNAI');
-      if (!['5bb','7bb','10bb','13bb','15bb','80bb','100bb'].includes(stackSelezionato))                                   show('switchToVsBBIsoAI');
+      if (!['5bb','7bb','10bb','13bb','15bb'].includes(stackSelezionato))                                   show('switchToVsBBIsoAI');
     }
   }
 }
