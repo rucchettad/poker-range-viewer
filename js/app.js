@@ -216,6 +216,28 @@ function _setActiveTab(selector, matchFn) {
   document.querySelectorAll(selector).forEach(t => t.classList.toggle('active', matchFn(t)));
 }
 
+// Corregge stack e coppia opener/responder quando si entra in Vs 3Bet NAI/AI
+// tramite click diretto sul tab (a differenza dei quick-switch button, che
+// partono sempre da RFI/OSHOVE con uno stato già coerente). Lo stack invalido
+// per la modalità di destinazione viene resettato a 25bb (valido in entrambe).
+// La coppia opener/responder viene resettata a EP/EP1 solo se non è già valida
+// (opener diverso da BB e responder in una posizione successiva all'opener);
+// la correzione fine del responder resta comunque a carico di aggiornaUI().
+function _correggiIngressoDirettoVs3Bet() {
+  const stackValidoNAI = !['5bb','7bb','10bb','13bb','15bb'].includes(stackSelezionato);
+  const stackValidoAI  = ['10bb','13bb','15bb','17bb','20bb','23bb','25bb','32bb','36bb','40bb'].includes(stackSelezionato);
+  const stackValido = azioneSelezionata === 'Vs 3Bet NAI' ? stackValidoNAI : stackValidoAI;
+  if (!stackValido) stackSelezionato = '25bb';
+
+  const idxO = ORDINE_POS.indexOf(apritoreSelezionato);
+  const idxR = ORDINE_POS.indexOf(responderSelezionato);
+  const coppiaValida = apritoreSelezionato !== 'BB' && idxO !== -1 && idxR !== -1 && idxR > idxO;
+  if (!coppiaValida) {
+    apritoreSelezionato  = 'EP';
+    responderSelezionato = 'EP1';
+  }
+}
+
 function aggiornaUI() {
   if (_RATE_LIMITED) return;
   const responderTabs = el('responderTabs');
@@ -435,6 +457,9 @@ function impostaEventListener() {
       azioneSelezionata = tab.textContent;
       if (azioneSelezionata === 'BB vs SB Limp') bbLimpSubMode = 'base';
       if (azioneSelezionata === 'SB Limp vs BB ISO') sbIsoSubMode = 'base';
+      if (['Vs 3Bet NAI', 'Vs 3Bet AI'].includes(azioneSelezionata)) {
+        _correggiIngressoDirettoVs3Bet();
+      }
       _setActiveTab('#modeTabs .tab', t => t === tab);
       aggiornaUI();
     };
