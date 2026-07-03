@@ -372,11 +372,14 @@ function aggiornaUI() {
 
   // Sincronizzazione universale dell'evidenziazione: eseguita sempre, dopo che
   // tutti i rami sopra hanno già deciso i valori finali di apritoreSelezionato/
-  // responderSelezionato/flatPosizioneSelezionata. Elimina i bug "lucina" residui
-  // (evidenziazione congelata su un valore vecchio anche quando il dato è già corretto).
+  // responderSelezionato/flatPosizioneSelezionata/stackSelezionato. Elimina i bug
+  // "lucina" residui (evidenziazione congelata su un valore vecchio anche quando
+  // il dato è già corretto) — incluso il caso in cui stackSelezionato viene
+  // corretto programmaticamente (es. ingresso diretto in Vs 3Bet NAI/AI).
   _setActiveTab('#openerTabs .tab', t => t.textContent.trim() === apritoreSelezionato);
   _setActiveTab('#responderTabs .tab', t => t.getAttribute('data-pos') === responderSelezionato);
   _setActiveTab('.flat-tab', t => t.getAttribute('data-flat-pos') === flatPosizioneSelezionata);
+  _setActiveTab('#stackGrid .cellBtn', b => (b.getAttribute('data-orig') || b.textContent.trim()) === stackSelezionato);
 
   let titolo;
   if (azioneSelezionata === 'RFI/OSHOVE')
