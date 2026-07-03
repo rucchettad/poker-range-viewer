@@ -4,9 +4,9 @@
  */
 'use strict';
 
-import { fetchRange, fetchNota, svuotaCache, RateLimitError } from './api.js?v=20260703c';
-import { mostraSessioneScaduta, avviaPollingSessione } from './auth.js?v=20260703c';
-import { inizializzaMobile } from './mobile.js?v=20260703c';
+import { fetchRange, fetchNota, svuotaCache, RateLimitError } from './api.js';
+import { mostraSessioneScaduta, avviaPollingSessione } from './auth.js';
+import { inizializzaMobile } from './mobile.js';
 
 const MANI = [
   ['AA','AKs','AQs','AJs','ATs','A9s','A8s','A7s','A6s','A5s','A4s','A3s','A2s'],
