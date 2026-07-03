@@ -59,16 +59,22 @@ export function inizializzaMobile({ aggiornaUI }) {
         opt.style.display = nascondi ? 'none' : '';
       });
 
-      _clickTab('#modeTabs .tab', t => t.textContent === azione);
+      const modeTabAttivo = document.querySelector('#modeTabs .tab.active');
+      const modeCambiato  = !modeTabAttivo || modeTabAttivo.textContent !== azione;
 
-      // Alcune modalità (es. Vs 3Bet NAI/AI raggiunte con stack o posizioni
-      // non validi per la nuova modalità) possono auto-correggere stack e/o
-      // posizioni dentro il click handler desktop. Sincronizza i controlli
-      // mobile con lo stato desktop risultante PRIMA di forzare eventuali
-      // click successivi basati sui vecchi valori del dropdown, altrimenti
-      // si rischia di sovrascrivere silenziosamente la correzione appena
-      // applicata (mismatch mobile-desktop).
-      _sincronizzaControlliDaDesktop();
+      if (modeCambiato) {
+        _clickTab('#modeTabs .tab', t => t.textContent === azione);
+
+        // Il cambio modalità (es. ingresso in Vs 3Bet NAI/AI con stack o
+        // posizioni non validi) può auto-correggere stack/posizioni dentro
+        // il click handler desktop. Sincronizza i controlli mobile con lo
+        // stato desktop risultante SOLO in questo caso — altrimenti, se lo
+        // facessimo ad ogni interazione, sovrascriveremmo la scelta appena
+        // fatta dall'utente (es. nuovo stack) con quella precedente, dato
+        // che il tab modalità viene ri-cliccato ad ogni cambio di opener/
+        // responder/stack anche se la modalità resta la stessa.
+        _sincronizzaControlliDaDesktop();
+      }
 
       _clickTab('#openerTabs .tab', t => t.textContent.trim() === mOpener.value);
       if (azione !== 'RFI/OSHOVE') _clickTab('#responderTabs .tab', t => t.getAttribute('data-pos') === mResponder.value);
