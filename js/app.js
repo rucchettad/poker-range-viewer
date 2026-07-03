@@ -395,8 +395,9 @@ function _aggiornaSwitchButtons() {
     if (!['5bb','7bb','50bb','60bb','80bb','100bb'].includes(stackSelezionato))         show('switchTo3BetAI');
     if (apritoreSelezionato === 'SB' && stackSelezionato !== '5bb')       show('switchToIso');
   } else if (azioneSelezionata === 'Vs RFI') {
-    if (!['5bb','7bb','10bb','13bb','15bb','17bb'].includes(stackSelezionato)) show('switchTo4Bet');
-    if (!['5bb','7bb','10bb','13bb'].includes(stackSelezionato)) show('switchToVsRFIFlat');
+    // TEMPORANEAMENTE NASCOSTI IN PRODUZIONE — dati ancora incompleti (rimuovere il commento quando pronti)
+    // if (!['5bb','7bb','10bb','13bb','15bb','17bb'].includes(stackSelezionato)) show('switchTo4Bet');
+    // if (!['5bb','7bb','10bb','13bb'].includes(stackSelezionato)) show('switchToVsRFIFlat');
     if (apritoreSelezionato === 'SB' && responderSelezionato === 'BB') show('switchToBBvsSBLimp');
   } else if (azioneSelezionata === 'Vs RFI e Flat') { show('switchBackToVsRFI'); }
   else if (['Vs 3Bet NAI','Vs 3Bet AI'].includes(azioneSelezionata)) { show('switchBackToRFI'); }
