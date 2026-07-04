@@ -55,7 +55,7 @@ export function inizializzaMobile({ aggiornaUI }) {
         if (['Vs 3Bet NAI','Vs RFI','Vs RFI e Flat','BB vs SB Limp'].includes(azione) && ['5bb','7bb'].includes(v)) nascondi = true;
         if (azione === 'Vs 3Bet AI' && !['10bb','13bb','15bb','17bb','20bb','23bb','25bb','32bb','36bb','40bb','50bb','60bb'].includes(v)) nascondi = true;
         if (azione === 'Vs 4Bet' && ['5bb','7bb','10bb','13bb','15bb','17bb'].includes(v)) nascondi = true;
-        opt.style.display = nascondi ? 'none' : '';
+        opt.disabled = nascondi;
       });
 
       _clickTab('#modeTabs .tab', t => t.textContent === azione);
