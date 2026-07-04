@@ -216,19 +216,41 @@ function _setActiveTab(selector, matchFn) {
   document.querySelectorAll(selector).forEach(t => t.classList.toggle('active', matchFn(t)));
 }
 
-// Corregge stack e coppia opener/responder quando si entra in Vs 3Bet NAI/AI
-// tramite click diretto sul tab (a differenza dei quick-switch button, che
-// partono sempre da RFI/OSHOVE con uno stato già coerente). Lo stack invalido
-// per la modalità di destinazione viene resettato a 25bb (valido in entrambe).
-// La coppia opener/responder viene resettata a EP/EP1 solo se non è già valida
-// (opener diverso da BB e responder in una posizione successiva all'opener);
-// la correzione fine del responder resta comunque a carico di aggiornaUI().
-function _correggiIngressoDirettoVs3Bet() {
-  const stackValidoNAI = !['5bb','7bb','10bb','13bb','15bb'].includes(stackSelezionato);
-  const stackValidoAI  = ['10bb','13bb','15bb','17bb','20bb','23bb','25bb','32bb','36bb','40bb'].includes(stackSelezionato);
-  const stackValido = azioneSelezionata === 'Vs 3Bet NAI' ? stackValidoNAI : stackValidoAI;
-  if (!stackValido) stackSelezionato = '25bb';
+// Verifica se uno stack è valido per una data modalità, rispecchiando
+// esattamente le stesse regole di nascondimento bottoni usate in aggiornaUI().
+// Tenuta come UNICA fonte di verità: se le regole di validità stack in
+// aggiornaUI() cambiano, aggiornare anche qui.
+function _stackValidoPerModo(azione, stack) {
+  if (azione === 'Call Shove') return ['5bb','7bb','10bb','13bb','15bb','17bb','20bb','23bb','25bb'].includes(stack);
+  if (['SB Limp vs BB ISO', 'BB vs SB Limp'].includes(azione)) return stack !== '5bb';
+  if (azione === 'Vs RFI') return !['5bb','7bb'].includes(stack);
+  if (azione === 'Vs 3Bet NAI') return !['5bb','7bb','10bb','13bb','15bb'].includes(stack);
+  if (azione === 'Vs RFI e Flat') return !['5bb','7bb','10bb','13bb'].includes(stack);
+  if (azione === 'Vs 3Bet AI') return ['10bb','13bb','15bb','17bb','20bb','23bb','25bb','32bb','36bb','40bb'].includes(stack);
+  if (azione === 'Vs 4Bet') return !['5bb','7bb','10bb','13bb','15bb','17bb'].includes(stack);
+  return true; // RFI/OSHOVE: nessuna restrizione
+}
 
+// Corregge lo stack quando si entra in una modalità tramite click diretto sul
+// tab, se lo stack attuale non è valido per la modalità di destinazione (es.
+// da RFI/OSHOVE a 80bb -> Call Shove, dove 80bb non esiste). Applicata a
+// TUTTE le modalità - prima veniva corretto solo per Vs 3Bet NAI/AI, lasciando
+// per tutte le altre una matrice vuota senza spiegazione quando lo stack
+// portato dalla modalità precedente non era valido nella nuova.
+// 25bb è valido in ogni modalità (verificato contro tutte le regole sopra),
+// quindi è il fallback sicuro universale.
+function _correggiStackIngressoDiretto(azione) {
+  if (!_stackValidoPerModo(azione, stackSelezionato)) stackSelezionato = '25bb';
+}
+
+// Corregge la coppia opener/responder quando si entra in Vs 3Bet NAI/AI
+// tramite click diretto sul tab (a differenza dei quick-switch button, che
+// partono sempre da RFI/OSHOVE con uno stato già coerente). La coppia viene
+// resettata a EP/EP1 solo se non è già valida (opener diverso da BB e
+// responder in una posizione successiva all'opener); la correzione fine del
+// responder resta comunque a carico di aggiornaUI() (già universale per
+// tutte le altre modalità, per questo qui serve solo per Vs 3Bet NAI/AI).
+function _correggiPosizioniIngressoDirettoVs3Bet() {
   const idxO = ORDINE_POS.indexOf(apritoreSelezionato);
   const idxR = ORDINE_POS.indexOf(responderSelezionato);
   const coppiaValida = apritoreSelezionato !== 'BB' && idxO !== -1 && idxR !== -1 && idxR > idxO;
@@ -460,8 +482,9 @@ function impostaEventListener() {
       azioneSelezionata = tab.textContent;
       if (azioneSelezionata === 'BB vs SB Limp') bbLimpSubMode = 'base';
       if (azioneSelezionata === 'SB Limp vs BB ISO') sbIsoSubMode = 'base';
+      _correggiStackIngressoDiretto(azioneSelezionata);
       if (['Vs 3Bet NAI', 'Vs 3Bet AI'].includes(azioneSelezionata)) {
-        _correggiIngressoDirettoVs3Bet();
+        _correggiPosizioniIngressoDirettoVs3Bet();
       }
       _setActiveTab('#modeTabs .tab', t => t === tab);
       aggiornaUI();
