@@ -19,7 +19,7 @@
 <p class="section-label">Dati torneo</p>
 <div class="grid2">
   <div class="field"><label>Buy-in (€) <span class="tip" data-tip="Importo totale del buy-in del torneo (es. 50€)">?</span></label><input type="number" id="buyin" placeholder="Es. 50" step="0.01"/></div>
-  <div class="field"><label>Taglia iniziale (€) <span class="tip" data-tip="Valore base del bounty assegnato a ogni giocatore a inizio torneo">?</span></label><input type="number" id="taglia" placeholder="Es. 11.25" step="0.01"/></div>
+  <div class="field"><label>Taglia iniziale (€) <span class="tip" data-tip="Es: buy-in 15€ (6,75 bounty + 6,75 prize pool + 1,5 fee) → inserisci 3,37€ (6,75€/2=3,37€ metà del bounty, quella che vinci subito).">?</span></label><input type="number" id="taglia" placeholder="Es. 11.25" step="0.01"/></div>
   <div class="field"><label>Stack iniziale torneo (chips) <span class="tip" data-tip="Stack in chips con cui ogni giocatore inizia il torneo">?</span></label><input type="number" id="stackIniziale" placeholder="Es. 10000"/></div>
   <div class="field"><label>Stack Hero (chips) <span class="tip" data-tip="Il tuo stack attuale al momento della decisione. Serve solo per capire chi copri.">?</span></label><input type="number" id="stackHero" placeholder="Es. 80000"/></div>
 </div>
@@ -52,7 +52,7 @@
   <div class="villain-fields show">
     <div class="grid2">
       <div class="field"><label>Stack Villain 1 (chips) <span class="tip" data-tip="Stack del villain che ha shovato. Se coperto da Hero, determina il call effettivo.">?</span></label><input type="number" id="sv1" placeholder="Es. 60000"/></div>
-      <div class="field"><label>Bounty Villain 1 (€) <span class="tip" data-tip="Importo del bounty attuale del villain. Lo vinci se lo elimini.">?</span></label><input type="number" id="bv1" placeholder="Es. 22.50" step="0.01"/></div>
+      <div class="field"><label>Bounty Villain 1 (€) <span class="tip" data-tip="Inserisci la bounty in € che vedi su Villain al tavolo.">?</span></label><input type="number" id="bv1" placeholder="Es. 22.50" step="0.01"/></div>
     </div>
   </div>
 </div>
@@ -66,7 +66,7 @@
   <div class="villain-fields" id="fields2">
     <div class="grid2">
       <div class="field"><label>Stack Villain 2 (chips) <span class="tip" data-tip="Stack del secondo villain nel pot. Inserisci solo se ha già agito prima di te.">?</span></label><input type="number" id="sv2" placeholder="Es. 40000"/></div>
-      <div class="field"><label>Bounty Villain 2 (€) <span class="tip" data-tip="Bounty del secondo villain. Incluso nel calcolo solo se Hero lo copre.">?</span></label><input type="number" id="bv2" placeholder="Es. 15.00" step="0.01"/></div>
+      <div class="field"><label>Bounty Villain 2 (€) <span class="tip" data-tip="Inserisci la bounty in € che vedi su Villain al tavolo.">?</span></label><input type="number" id="bv2" placeholder="Es. 15.00" step="0.01"/></div>
     </div>
   </div>
 </div>
@@ -80,7 +80,7 @@
   <div class="villain-fields" id="fields3">
     <div class="grid2">
       <div class="field"><label>Stack Villain 3 (chips) <span class="tip" data-tip="Stack del terzo villain nel pot. Inserisci solo se ha già agito prima di te.">?</span></label><input type="number" id="sv3" placeholder="Es. 30000"/></div>
-      <div class="field"><label>Bounty Villain 3 (€) <span class="tip" data-tip="Bounty del terzo villain. Incluso nel calcolo solo se Hero lo copre.">?</span></label><input type="number" id="bv3" placeholder="Es. 10.00" step="0.01"/></div>
+      <div class="field"><label>Bounty Villain 3 (€) <span class="tip" data-tip="Inserisci la bounty in € che vedi su Villain al tavolo.">?</span></label><input type="number" id="bv3" placeholder="Es. 10.00" step="0.01"/></div>
     </div>
   </div>
 </div>
