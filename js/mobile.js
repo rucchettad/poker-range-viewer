@@ -55,7 +55,8 @@ export function inizializzaMobile({ aggiornaUI }) {
         if (['SB Limp vs BB ISO','BB vs SB Limp'].includes(azione) && v === '5bb') nascondi = true;
         if (['Vs RFI','Vs RFI e Flat','BB vs SB Limp'].includes(azione) && ['5bb','7bb'].includes(v)) nascondi = true;
         if (azione === 'Vs 3Bet NAI' && ['5bb','7bb','10bb','13bb','15bb'].includes(v)) nascondi = true;
-        if (azione === 'Vs 3Bet AI' && !['10bb','13bb','15bb','17bb','20bb','23bb','25bb','32bb','36bb','40bb'].includes(v)) nascondi = true;
+        // 40bb temporaneamente escluso: dato non ancora presente nel DB (verificato su backup 2026-08-26).
+        if (azione === 'Vs 3Bet AI' && !['10bb','13bb','15bb','17bb','20bb','23bb','25bb','32bb','36bb'].includes(v)) nascondi = true;
         if (azione === 'Vs 4Bet' && ['5bb','7bb','10bb','13bb','15bb','17bb'].includes(v)) nascondi = true;
         opt.disabled = nascondi;
       });
@@ -129,7 +130,8 @@ export function inizializzaMobile({ aggiornaUI }) {
       return !['5bb','7bb','10bb','13bb','15bb'].includes(stack);
     }
     if (azioneBase === 'BB vs SB Limp' && submode === 'ai') {
-      return stack !== '5bb';
+      // Tetto 60bb: oltre non esistono dati nel DB (80bb/100bb assenti, verificato su backup 2026-08-26).
+      return stack !== '5bb' && !['80bb','100bb'].includes(stack);
     }
     return true;
   }
