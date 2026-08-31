@@ -309,15 +309,18 @@ async function doLogin(email, password) {
     loginData = await apiLogin(email, password);
   } catch (e) {
     setLoading('loginLoading', false);
-    if (e.message === 'TRIAL_EXPIRED') {
+    if (e.message === 'TRIAL_EXPIRED' || e.message === 'SUBSCRIPTION_EXPIRED') {
+      // Sia trial scaduto sia abbonamento pagante scaduto: offri il rinnovo, non un ban.
       window._TRIAL_EMAIL = email;
       showScreen('trialScadutoScreen');
       return;
     }
-    if (e.message && (e.message.includes('sospeso') || e.message.includes('coach') || e.message.includes('scaduto'))) {
+    if (e.message === 'ACCOUNT_BLOCKED' || e instanceof RateLimitError) {
       const errEl = el('loginError');
       errEl.innerHTML = '🚫 Accesso negato.<br>Per assistenza: <a href="mailto:rucchettad@gmail.com" style="color:var(--btn);">rucchettad@gmail.com</a>';
       errEl.style.display = 'block';
+    } else if (e.message === 'ACCOUNT_PENDING') {
+      setError('loginError', 'Account in attesa di approvazione.');
     } else {
       setError('loginError', 'Email o password errati.');
     }
@@ -341,6 +344,12 @@ async function doLogin(email, password) {
       clearSession();
       setError('loginError', "⚠️ Sessione non valida. Un altro dispositivo ha effettuato l'accesso con questo account.");
       showScreen('loginScreen');
+      return;
+    }
+    if (e.message === 'TRIAL_EXPIRED' || e.message === 'SUBSCRIPTION_EXPIRED') {
+      clearSession();
+      window._TRIAL_EMAIL = loginData.user.email;
+      showScreen('trialScadutoScreen');
       return;
     }
   }
