@@ -226,9 +226,38 @@ function _stackValidoPerModo(azione, stack) {
   if (azione === 'Vs RFI') return !['5bb','7bb'].includes(stack);
   if (azione === 'Vs 3Bet NAI') return !['5bb','7bb','10bb','13bb','15bb'].includes(stack);
   if (azione === 'Vs RFI e Flat') return !['5bb','7bb','10bb','13bb'].includes(stack);
-  if (azione === 'Vs 3Bet AI') return ['10bb','13bb','15bb','17bb','20bb','23bb','25bb','32bb','36bb','40bb'].includes(stack);
+  // 40bb temporaneamente escluso: dato non ancora presente nel DB (verificato
+  // su backup 2026-08-26). Riabilitare non appena popolato in admin panel.
+  if (azione === 'Vs 3Bet AI') return ['10bb','13bb','15bb','17bb','20bb','23bb','25bb','32bb','36bb'].includes(stack);
   if (azione === 'Vs 4Bet') return !['5bb','7bb','10bb','13bb','15bb','17bb'].includes(stack);
   return true; // RFI/OSHOVE: nessuna restrizione
+}
+
+// Verifica se uno stack è valido per i sotto-modi NAI/AI di 'BB vs SB Limp' e
+// 'SB Limp vs BB ISO' (bbLimpSubMode / sbIsoSubMode), non coperti da
+// _stackValidoPerModo() perché dipendono da uno stato aggiuntivo rispetto ad
+// azioneSelezionata. Range confermati contro il backup range 2026-08-26.
+// Tenuta allineata alle stesse regole già in uso in mobile.js
+// (_stackValidoPerSottoModo) — se una soglia cambia, aggiornare in entrambi i file.
+function _stackValidoPerSubMode() {
+  if (azioneSelezionata === 'BB vs SB Limp') {
+    if (bbLimpSubMode === 'nai') return !['5bb','7bb','10bb','13bb','15bb'].includes(stackSelezionato);
+    // 60bb tetto: oltre non esistono dati nel DB (80bb/100bb assenti).
+    if (bbLimpSubMode === 'ai')  return stackSelezionato !== '5bb' && !['80bb','100bb'].includes(stackSelezionato);
+  }
+  if (azioneSelezionata === 'SB Limp vs BB ISO') {
+    if (sbIsoSubMode === 'nai') return !['5bb','7bb','10bb','13bb','15bb','17bb','20bb','23bb','25bb','32bb'].includes(stackSelezionato);
+    if (sbIsoSubMode === 'ai')  return !['5bb','7bb','10bb','13bb','15bb'].includes(stackSelezionato);
+  }
+  return true; // modalità base: nessuna restrizione aggiuntiva oltre a _stackValidoPerModo
+}
+
+// Fallback specifico per sotto-modo quando lo stack corrente non è valido
+// (stesso principio di _correggiStackIngressoDiretto, ma 25bb non è valido
+// per 'vs BB 4Bet NAI', quindi qui serve un fallback per-caso).
+function _stackFallbackPerSubMode(subMode) {
+  if (subMode === 'iso-nai') return '36bb';
+  return subMode === 'limp-nai' ? '17bb' : subMode === 'limp-ai' ? '7bb' : '17bb'; // iso-ai
 }
 
 // Corregge lo stack quando si entra in una modalità tramite click diretto sul
@@ -318,8 +347,14 @@ function aggiornaUI() {
     if (azioneSelezionata === 'Vs RFI' && ['5bb','7bb'].includes(orig)) nascondi = true;
     if (azioneSelezionata === 'Vs 3Bet NAI' && ['5bb','7bb','10bb','13bb','15bb'].includes(orig)) nascondi = true;
     if (azioneSelezionata === 'Vs RFI e Flat' && ['5bb','7bb','10bb','13bb'].includes(orig)) nascondi = true;
-    if (azioneSelezionata === 'Vs 3Bet AI' && !['10bb','13bb','15bb','17bb','20bb','23bb','25bb','32bb','36bb','40bb'].includes(orig)) nascondi = true;
+    // 40bb temporaneamente escluso: dato non ancora presente nel DB (verificato su backup 2026-08-26).
+    if (azioneSelezionata === 'Vs 3Bet AI' && !['10bb','13bb','15bb','17bb','20bb','23bb','25bb','32bb','36bb'].includes(orig)) nascondi = true;
     if (azioneSelezionata === 'Vs 4Bet' && ['5bb','7bb','10bb','13bb','15bb','17bb'].includes(orig)) nascondi = true;
+    // Sotto-modi NAI/AI: soglie più strette del modo base, non coperte sopra.
+    if (azioneSelezionata === 'BB vs SB Limp' && bbLimpSubMode === 'nai' && ['5bb','7bb','10bb','13bb','15bb'].includes(orig)) nascondi = true;
+    if (azioneSelezionata === 'BB vs SB Limp' && bbLimpSubMode === 'ai'  && (orig === '5bb' || ['80bb','100bb'].includes(orig))) nascondi = true;
+    if (azioneSelezionata === 'SB Limp vs BB ISO' && sbIsoSubMode === 'nai' && ['5bb','7bb','10bb','13bb','15bb','17bb','20bb','23bb','25bb','32bb'].includes(orig)) nascondi = true;
+    if (azioneSelezionata === 'SB Limp vs BB ISO' && sbIsoSubMode === 'ai'  && ['5bb','7bb','10bb','13bb','15bb'].includes(orig)) nascondi = true;
     btn.style.display = nascondi ? 'none' : 'inline-block';
     btn.textContent = orig;
   });
@@ -453,7 +488,8 @@ function _aggiornaSwitchButtons() {
     if (bbLimpSubMode !== 'base') { show('switchBackToBaseLimp'); }
     else {
       if (!['5bb','7bb','10bb','13bb','15bb'].includes(stackSelezionato)) show('switchToVSLimp3BetNAI');
-      if (!['5bb'].includes(stackSelezionato))             show('switchToVSLimp3BetAI');
+      // Tetto 60bb: oltre non esistono dati nel DB (80bb/100bb assenti, verificato su backup 2026-08-26).
+      if (stackSelezionato !== '5bb' && !['80bb','100bb'].includes(stackSelezionato)) show('switchToVSLimp3BetAI');
     }
   } else if (azioneSelezionata === 'SB Limp vs BB ISO') {
     if (sbIsoSubMode !== 'base') { show('switchBackToBaseIso'); }
@@ -504,11 +540,11 @@ function impostaEventListener() {
     switchTo4Bet:    () => { const h = apritoreSelezionato, o = responderSelezionato; apritoreSelezionato = o; responderSelezionato = h; _switchAzione('Vs 4Bet'); },
     switchToVsRFIFlat: () => { const idxO = ORDINE_POS.indexOf(apritoreSelezionato), idxH = ORDINE_POS.indexOf(responderSelezionato), tra = ORDINE_POS.slice(idxO + 1, idxH); flatPosizioneSelezionata = tra.length > 0 ? tra[tra.length - 1] : ORDINE_POS[idxO + 1]; _switchAzione('Vs RFI e Flat'); },
     switchToBBvsSBLimp:     () => { bbLimpSubMode = 'base'; _switchAzione('BB vs SB Limp'); },
-    switchToVSLimp3BetNAI:  () => { bbLimpSubMode = 'nai'; aggiornaUI(); },
-    switchToVSLimp3BetAI:   () => { bbLimpSubMode = 'ai';  aggiornaUI(); },
+    switchToVSLimp3BetNAI:  () => { bbLimpSubMode = 'nai'; if (!_stackValidoPerSubMode()) stackSelezionato = _stackFallbackPerSubMode('limp-nai'); aggiornaUI(); },
+    switchToVSLimp3BetAI:   () => { bbLimpSubMode = 'ai';  if (!_stackValidoPerSubMode()) stackSelezionato = _stackFallbackPerSubMode('limp-ai');  aggiornaUI(); },
     switchBackToBaseLimp:   () => { bbLimpSubMode = 'base'; aggiornaUI(); },
-    switchToVsBBIsoNAI:     () => { sbIsoSubMode  = 'nai'; aggiornaUI(); },
-    switchToVsBBIsoAI:      () => { sbIsoSubMode  = 'ai';  aggiornaUI(); },
+    switchToVsBBIsoNAI:     () => { sbIsoSubMode  = 'nai'; if (!_stackValidoPerSubMode()) stackSelezionato = _stackFallbackPerSubMode('iso-nai'); aggiornaUI(); },
+    switchToVsBBIsoAI:      () => { sbIsoSubMode  = 'ai';  if (!_stackValidoPerSubMode()) stackSelezionato = _stackFallbackPerSubMode('iso-ai');  aggiornaUI(); },
     switchBackToBaseIso:    () => { sbIsoSubMode  = 'base'; aggiornaUI(); },
     switchBackToVsRFI:      () => _switchAzione('Vs RFI'),
     switchBackToRFI:        () => _switchAzione('RFI/OSHOVE'),
