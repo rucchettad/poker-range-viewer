@@ -26,7 +26,7 @@ const MANI = [
 
 const COLORI = {
   fold:'#87ceeb', flat:'#16a34a', threebfold:'#ffe57f', threebbroke:'#ff6600',
-  threebshove:'#dc2626', open:'#ffb347', limpflat:'#9333ea', limpthreebet:'#ffc0cb',
+  threebshove:'#dc2626', open:'#ffb347',
   isotobrokefold:'#ffa500', checkback:'#16a34a', bbshovebase:'#dc2626',
   shove:'#dc2626', callnai:'#16a34a', '4betbrokenai':'#ffa500', '4betnaitofold':'#ffe57f', foldnai:'#87ceeb',
   callai:'#16a34a', foldai:'#87ceeb',
@@ -36,7 +36,7 @@ const COLORI = {
 };
 
 const ORDINE_AZIONI = [
-  'threebshove','threebbroke','threebfold','open','flat','limpthreebet','limpflat',
+  'threebshove','threebbroke','threebfold','open','flat',
   'isotobrokefold','checkback','bbshovebase','shove','callnai','4betbrokenai',
   '4betnaitofold','foldnai','callai','foldai','raisevsiso','shovevsiso','callvsiso',
   'foldvsiso','shovevsbbiso','callvsbbiso','foldvsbbiso','callvsbbisoai','foldvsbbisoai','fold',
@@ -44,7 +44,7 @@ const ORDINE_AZIONI = [
 
 const ETICHETTE = {
   fold:'Fold', flat:'Flat/Call', threebfold:'3Bet/4Bet Fold', threebbroke:'3Bet/4Bet Broke',
-  threebshove:'3Bet Shove', open:'Open', limpflat:'Limp/Flat', limpthreebet:'Limp/3Bet',
+  threebshove:'3Bet Shove', open:'Open',
   isotobrokefold:'ISO to Broke/Fold', checkback:'Check Back', bbshovebase:'Shove (base)',
   shove:'Shove (NAI)', callnai:'Call (NAI)', '4betbrokenai':'4Bet Broke NAI',
   '4betnaitofold':'4Bet NAI to Fold', foldnai:'Fold (NAI)', callai:'Call (AI)', foldai:'Fold (AI)',
@@ -162,7 +162,8 @@ function aggiornaStatistiche() {
   let html = `<div class="stat"><div class="stat-color" style="background:linear-gradient(45deg,#16a34a,#ffe57f,#ff6600,#dc2626,#ffb347)"></div><div class="stat-content"><div class="stat-label">Range Totale (senza Fold)</div><div class="stat-value">${Math.round(tot)} (${((tot / 1326) * 100).toFixed(1)}%)</div></div></div>`;
   Object.keys(contatori).forEach(az => {
     if (contatori[az] <= 0) return;
-    html += `<div class="stat"><div class="stat-color" style="background:${COLORI[az]}"></div><div class="stat-content"><div class="stat-label">${ETICHETTE[az] || az}</div><div class="stat-value">${Math.round(contatori[az])} (${((contatori[az] / 1326) * 100).toFixed(1)}%)</div></div></div>`;
+    const etichettaAz = (az === 'threebshove' && azioneSelezionata === 'RFI/OSHOVE') ? 'Open Shove' : (ETICHETTE[az] || az);
+    html += `<div class="stat"><div class="stat-color" style="background:${COLORI[az]}"></div><div class="stat-content"><div class="stat-label">${etichettaAz}</div><div class="stat-value">${Math.round(contatori[az])} (${((contatori[az] / 1326) * 100).toFixed(1)}%)</div></div></div>`;
   });
   el('rangeStats').innerHTML = html;
 }
