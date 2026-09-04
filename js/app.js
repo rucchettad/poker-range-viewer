@@ -45,7 +45,7 @@ const ORDINE_AZIONI = [
 const ETICHETTE = {
   fold:'Fold', flat:'Flat/Call', threebfold:'3Bet/4Bet Fold', threebbroke:'3Bet/4Bet Broke',
   threebshove:'3Bet Shove', open:'Open',
-  isotobrokefold:'ISO to Broke/Fold', checkback:'Check Back', bbshovebase:'Shove (base)',
+  isotobrokefold:'ISO to Broke/Fold', checkback:'Check Back', bbshovebase:'ISO Shove',
   shove:'Shove (NAI)', callnai:'Call (NAI)', '4betbrokenai':'4Bet Broke NAI',
   '4betnaitofold':'4Bet NAI to Fold', foldnai:'Fold (NAI)', callai:'Call (AI)', foldai:'Fold (AI)',
   raisevsiso:'Limp 3Bet', foldvsiso:'Fold vs ISO', shovevsiso:'Shove vs ISO', callvsiso:'Call vs ISO',
