@@ -19,9 +19,9 @@
   body {
     background: var(--bg); color: var(--text);
     font-family: 'Inter', system-ui, sans-serif;
-    font-size: 15px; min-height: 100vh; padding: 32px 16px 64px;
+    font-size: 15px; min-height: 100vh; padding: 24px 16px 48px;
   }
-  .wrapper { max-width: 720px; margin: 0 auto; }
+  .wrapper { max-width: 1040px; margin: 0 auto; }
 
   /* Header */
   .header { margin-bottom: 28px; }
@@ -73,16 +73,16 @@
   /* Section */
   .section {
     background: var(--card); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 24px; margin-bottom: 16px;
+    border-radius: var(--radius); padding: 18px 20px; margin-bottom: 14px;
   }
   .section-title {
     font-size: 11px; font-weight: 600; letter-spacing: 0.1em;
     text-transform: uppercase; color: var(--muted);
-    margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
+    margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border);
   }
 
   /* Grid */
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
   .grid.three { grid-template-columns: 1fr 1fr 1fr; }
   @media (max-width: 560px) { .grid, .grid.three { grid-template-columns: 1fr; } }
 
@@ -122,11 +122,11 @@
   /* Output */
   .output {
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 24px; margin-bottom: 16px;
+    border-radius: var(--radius); padding: 20px; margin-bottom: 14px;
   }
   .output-title {
     font-size: 11px; font-weight: 600; letter-spacing: 0.1em;
-    text-transform: uppercase; color: var(--muted); margin-bottom: 20px;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 16px;
   }
   .result-main { display: flex; align-items: baseline; gap: 8px; margin-bottom: 24px; }
   .result-value {
