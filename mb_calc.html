@@ -188,7 +188,11 @@
 
   <!-- SEZIONE 3: Risk premium -->
   <div class="section">
-    <div class="section-title">ICM / Risk premium <span class="opt-tag">Opzionale</span></div>
+    <div class="section-title" id="riskSectionToggle" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
+      <span>ICM / Risk premium <span class="opt-tag">Opzionale</span></span>
+      <span id="riskSectionArrow" style="font-size:10px;transition:transform 0.2s;">▶</span>
+    </div>
+    <div id="riskSectionBody" style="display:none;margin-top:16px;">
     <div style="max-width:300px">
       <div class="field">
         <label style="display:flex;align-items:center;gap:6px">
@@ -231,6 +235,7 @@
         </tbody>
       </table>
       <p style="font-size:11px;color:var(--muted);line-height:1.6;">Post flop solitamente 2–8%. Il RP reale dipende da stack, struttura premi, avversario specifico, stage e tipologia del torneo (es. PKO, satellite, normal, turbo ecc.). Per un calcolo preciso usa ICMizer o HRC.</p>
+    </div>
     </div>
   </div>
 

@@ -200,3 +200,12 @@ document.querySelectorAll(".section button").forEach(btn => {
     btn.addEventListener("click", toggleRpInfo);
   }
 });
+
+// ─── TOGGLE SEZIONE RISK PREMIUM (collassata di default) ──
+document.getElementById('riskSectionToggle')?.addEventListener('click', () => {
+  const body = document.getElementById('riskSectionBody');
+  const arrow = document.getElementById('riskSectionArrow');
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : '';
+  arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
+});
