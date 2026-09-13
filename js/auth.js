@@ -18,7 +18,7 @@ const SESSION_TK  = 'poker_session';
 function el(id) { return document.getElementById(id); }
 
 function showScreen(id) {
-  ['loginScreen','forgotScreen','resetScreen','trialScadutoScreen','registrazioneScreen','appScreen']
+  ['loginScreen','forgotScreen','resetScreen','trialScadutoScreen','registrazioneScreen','verificaOtpScreen','appScreen']
     .forEach(s => { const e = el(s); if (e) e.style.display = 'none'; });
   const target = el(id);
   if (target) target.style.display = ['appScreen'].includes(id) ? 'block' : 'flex';
@@ -223,6 +223,51 @@ function toggleRakeback(cb) {
   if (pct) { pct.style.display = cb.checked ? 'inline-block' : 'none'; if (!cb.checked) pct.value = ''; }
 }
 
+// ===== VERIFICA OTP =====
+
+function initVerificaOtp() {
+  el('verifyOtpBtn')?.addEventListener('click', async () => {
+    const otpCode = el('otpCode').value.trim();
+    const phone = window._TEMP_PHONE;
+    const token = window._TEMP_TOKEN;
+    
+    if (!otpCode || otpCode.length !== 6) { setError('otpError', 'Inserisci un codice OTP valido (6 cifre).'); return; }
+    if (!phone || !token) { setError('otpError', 'Errore interno. Riprova.'); return; }
+    
+    setError('otpError', '');
+    setLoading('otpLoading', true);
+    
+    try {
+      await apiFetch('/api/verify-otp', {
+        method: 'POST',
+        body: JSON.stringify({ access_token: token, phone_number: phone, otp_code: otpCode })
+      });
+      
+      setError('otpError', '✓ Numero di telefono verificato! Reindirizzamento al login...', true);
+      el('verifyOtpBtn').disabled = true; el('verifyOtpBtn').style.opacity = '0.6';
+      
+      setTimeout(() => {
+        el('loginEmail').value = window._TEMP_EMAIL || '';
+        setError('loginError', '✓ Registrazione completata! Accedi ora.', true);
+        showScreen('loginScreen');
+        // Pulisci i dati temporanei
+        window._TEMP_PHONE = null;
+        window._TEMP_TOKEN = null;
+        window._TEMP_EMAIL = null;
+      }, 2000);
+    } catch (e) {
+      setError('otpError', e.message || 'Errore nella verifica del codice OTP.');
+    } finally {
+      setLoading('otpLoading', false);
+    }
+  });
+}
+
+function toggleRakeback(cb) {
+  const pct = document.querySelector(`.reg-room-pct[data-room="${cb.value}"]`);
+  if (pct) { pct.style.display = cb.checked ? 'inline-block' : 'none'; if (!cb.checked) pct.value = ''; }
+}
+
 function initRegistrazione() {
   el('registrazioneLink').addEventListener('click', () => {
     setError('regError', '');
@@ -246,9 +291,10 @@ function initRegistrazione() {
     const nome     = el('regNome').value.trim();
     const email    = el('regEmail').value.trim();
     const password = el('regPassword').value;
+    const phone    = el('regPhone').value.trim();
     setError('regError', '');
     if (!el('regGdprChk').checked) { setError('regError', 'Devi accettare la Privacy Policy per procedere.'); return; }
-    if (!nome || !email || !password) { setError('regError', 'Compila tutti i campi obbligatori.'); return; }
+    if (!nome || !email || !password || !phone) { setError('regError', 'Compila tutti i campi obbligatori (incluso il telefono).'); return; }
     if (password.length < 6) { setError('regError', 'La password deve essere di almeno 6 caratteri.'); return; }
     const roomSelezionate = [];
     document.querySelectorAll('.reg-room-cb:checked').forEach(cb => {
@@ -264,13 +310,31 @@ function initRegistrazione() {
     setLoading('regLoading', true);
     try {
       await apiRegistrazione({ nome_cognome: nome, email, password, room_principale: roomSelezionate.join(', ') });
-      setError('regError', '✓ Registrazione completata! Controlla la tua email (anche nella cartella spam). Reindirizzamento...', true);
+      
+      // Registrazione ok — adesso invia OTP via SMS
+      // Ottieni il token di accesso temporaneo per mandare l'OTP
+      const loginResponse = await apiLogin(email, password);
+      const tempToken = loginResponse.access_token;
+      
+      // Salva dati temporanei per la verifica OTP
+      window._TEMP_PHONE = phone;
+      window._TEMP_TOKEN = tempToken;
+      window._TEMP_EMAIL = email;
+      
+      // Invia l'OTP
+      await apiFetch('/api/send-otp', {
+        method: 'POST',
+        body: JSON.stringify({ access_token: tempToken, phone_number: phone })
+      });
+      
+      setError('regError', '✓ Registrazione OK! Controlla la tua email. Un codice OTP è stato inviato al tuo telefono.', true);
       el('regBtn').disabled = true; el('regBtn').style.opacity = '0.6';
+      
       setTimeout(() => {
-        el('loginEmail').value = email;
-        setError('loginError', '✓ Account creato! Inserisci la password per accedere.', true);
-        showScreen('loginScreen');
-      }, 3000);
+        showScreen('verificaOtpScreen');
+        el('otpCode').value = '';
+        el('otpCode').focus();
+      }, 1500);
     } catch (e) {
       setError('regError', e.message || 'Errore durante la registrazione.');
     } finally {
@@ -444,6 +508,7 @@ export function initAuth() {
   initForgotPassword();
   initResetPassword();
   initRegistrazione();
+  initVerificaOtp();
   initTrialScaduto();
 
   el('accountBtn')?.addEventListener('click', toggleAccountPanel);

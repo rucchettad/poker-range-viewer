@@ -65,6 +65,19 @@
   </div>
 </div>
 
+<!-- VERIFICA OTP SCREEN -->
+<div id="verificaOtpScreen" style="display:none;align-items:center;justify-content:center;min-height:100vh;background:var(--bg);padding:20px;box-sizing:border-box;">
+  <div class="login-box" style="width:400px;max-width:100%;">
+    <div class="login-logo">&#9829; Poker Range &#9824;</div>
+    <div class="login-title">Verifica il numero di telefono</div>
+    <div style="font-size:13px;color:var(--muted);text-align:center;line-height:1.6;margin-bottom:16px;">Abbiamo inviato un codice OTP al tuo numero di telefono. Inseriscilo per continuare.</div>
+    <input class="login-input" id="otpCode" placeholder="Codice OTP (6 cifre)" type="text" maxlength="6"/>
+    <button class="login-btn" id="verifyOtpBtn">Verifica codice</button>
+    <div class="login-error" id="otpError"></div>
+    <div class="login-loading" id="otpLoading">Verifica in corso...</div>
+  </div>
+</div>
+
 <!-- TRIAL SCADUTO SCREEN -->
 <div id="trialScadutoScreen" style="display:none;align-items:center;justify-content:center;min-height:100vh;background:var(--bg);">
   <div class="login-box" style="width:400px;max-width:100%;gap:16px;">
@@ -94,6 +107,7 @@
     <input class="login-input" id="regNome" placeholder="Nome e cognome *" type="text"/>
     <input class="login-input" id="regEmail" placeholder="Email *" type="email"/>
     <input class="login-input" id="regPassword" placeholder="Password (min. 6 caratteri) *" type="password"/>
+    <input class="login-input" id="regPhone" placeholder="Numero di telefono (es. +39123456789) *" type="tel"/>
 
     <div style="margin-top:4px;">
       <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">
