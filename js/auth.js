@@ -341,14 +341,10 @@ function initRegistrazione() {
   
 } catch (e) {
   setError('regError', e.message || 'Errore durante la registrazione.');
-}
-    } catch (e) {
-      setError('regError', e.message || 'Errore durante la registrazione.');
-    } finally {
-      setLoading('regLoading', false);
-    }
-  });
-}
+} finally {
+  setLoading('regLoading', false);
+} 
+
 // Validazione telefono in tempo reale
 const phoneInput = el('regPhone');
 const regBtn = el('regBtn');
