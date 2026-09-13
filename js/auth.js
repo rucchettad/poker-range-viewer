@@ -346,8 +346,10 @@ const regBtn = el('regBtn');
 if (phoneInput && regBtn) {
   const phoneError = document.createElement('div');
   phoneError.id = 'phoneError';
-  phoneError.style.cssText = 'color:#dc2626;font-size:12px;margin-top:6px;display:none;';
-  phoneInput.parentElement?.insertAdjacentElement('afterend', phoneError);
+  phoneError.style.cssText = 'color:#dc2626;font-size:14px;margin:16px 0 12px 0;display:none;padding:10px 12px;background:rgba(220,38,38,0.1);border-left:3px solid #dc2626;border-radius:4px;line-height:1.5;font-weight:600;text-align:center;';
+  
+  // Inserisci il messaggio PRIMA del bottone Registrati
+  regBtn.parentElement.insertBefore(phoneError, regBtn);
 
   phoneInput.addEventListener('input', () => {
     const phone = phoneInput.value.trim();
@@ -372,6 +374,7 @@ if (phoneInput && regBtn) {
       regBtn.style.cursor = 'pointer';
     }
   });
+}
 }
 
 // ===== TRIAL SCADUTO =====
