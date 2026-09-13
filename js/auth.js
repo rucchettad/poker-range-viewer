@@ -338,6 +338,30 @@ function initRegistrazione() {
       setLoading('regLoading', false);
     }
   });
+  // Validazione telefono in tempo reale
+  const phoneInput = el('regPhone');
+  const regBtn = el('regBtn');
+  const phoneError = document.createElement('div');
+  phoneError.id = 'phoneError';
+  phoneError.style.cssText = 'color:#dc2626;font-size:12px;margin-top:6px;display:none;';
+  phoneInput?.parentElement?.insertAdjacentElement('afterend', phoneError);
+
+  phoneInput?.addEventListener('input', () => {
+    const phone = phoneInput.value.trim();
+    const isValid = phone.startsWith('+') && phone.length >= 10;
+    
+    if (!phone) {
+      phoneError.style.display = 'none';
+      regBtn.disabled = false;
+    } else if (!isValid) {
+      phoneError.textContent = '⚠ Inserisci il numero completo con prefisso internazionale (es. +393331234567)';
+      phoneError.style.display = 'block';
+      regBtn.disabled = true;
+    } else {
+      phoneError.style.display = 'none';
+      regBtn.disabled = false;
+    }
+  });
 }
 
 // ===== TRIAL SCADUTO =====
