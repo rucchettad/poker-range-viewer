@@ -306,32 +306,42 @@ function initRegistrazione() {
     });
     setLoading('regLoading', true);
     try {
-      await apiRegistrazione({ nome_cognome: nome, email, password, room_principale: roomSelezionate.join(', ') });
-      
-      // Registrazione ok — adesso invia OTP via SMS
-      // Ottieni il token di accesso temporaneo per mandare l'OTP
-      const loginResponse = await apiLogin(email, password);
-      const tempToken = loginResponse.access_token;
-      
-      // Salva dati temporanei per la verifica OTP
-      window._TEMP_PHONE = phone;
-      window._TEMP_TOKEN = tempToken;
-      window._TEMP_EMAIL = email;
-      
-      // Invia l'OTP
-      await apiFetch('/api/send-otp', {
-        method: 'POST',
-        body: JSON.stringify({ access_token: tempToken, phone_number: phone })
-      });
-      
-      setError('regError', '✓ Registrazione OK! Controlla la tua email. Un codice OTP è stato inviato al tuo telefono.', true);
-      el('regBtn').disabled = true; el('regBtn').style.opacity = '0.6';
-      
-      setTimeout(() => {
-        showScreen('verificaOtpScreen');
-        el('otpCode').value = '';
-        el('otpCode').focus();
-      }, 1500);
+  // 1️⃣ Crea account
+  await apiRegistrazione({ nome_cognome: nome, email, password, room_principale: roomSelezionate.join(', ') });
+  
+  // 2️⃣ Fai login per ottenere token
+  const loginResponse = await apiLogin(email, password);
+  const tempToken = loginResponse.access_token;
+  
+  // 3️⃣ PROVA SMS SUBITO (PRIMA di considerare successo)
+  try {
+    await apiFetch('/api/send-otp', {
+      method: 'POST',
+      body: JSON.stringify({ access_token: tempToken, phone_number: phone })
+    });
+  } catch (smsError) {
+    // SMS FALLITO → CANCELLA account appena creato
+    // TODO: Implementare DELETE account
+    throw new Error('Errore nell\'invio SMS. Registrazione annullata.');
+  }
+  
+  // 4️⃣ SMS OK → Salva dati e mostra OTP
+  window._TEMP_PHONE = phone;
+  window._TEMP_TOKEN = tempToken;
+  window._TEMP_EMAIL = email;
+  
+  setError('regError', '✓ Registrazione OK! Controlla la tua email. Un codice OTP è stato inviato al tuo telefono.', true);
+  el('regBtn').disabled = true; el('regBtn').style.opacity = '0.6';
+  
+  setTimeout(() => {
+    showScreen('verificaOtpScreen');
+    el('otpCode').value = '';
+    el('otpCode').focus();
+  }, 1500);
+  
+} catch (e) {
+  setError('regError', e.message || 'Errore durante la registrazione.');
+}
     } catch (e) {
       setError('regError', e.message || 'Errore durante la registrazione.');
     } finally {
