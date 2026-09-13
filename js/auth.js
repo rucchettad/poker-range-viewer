@@ -263,10 +263,7 @@ function initVerificaOtp() {
   });
 }
 
-function toggleRakeback(cb) {
-  const pct = document.querySelector(`.reg-room-pct[data-room="${cb.value}"]`);
-  if (pct) { pct.style.display = cb.checked ? 'inline-block' : 'none'; if (!cb.checked) pct.value = ''; }
-}
+
 
 function initRegistrazione() {
   el('registrazioneLink').addEventListener('click', () => {
