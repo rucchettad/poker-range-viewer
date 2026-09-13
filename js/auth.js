@@ -375,7 +375,7 @@ if (phoneInput && regBtn) {
     }
   });
 }
-}
+
 
 // ===== TRIAL SCADUTO =====
 
