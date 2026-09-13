@@ -263,7 +263,10 @@ function initVerificaOtp() {
   });
 }
 
-
+function toggleRakeback(cb) {
+  const pct = document.querySelector(`.reg-room-pct[data-room="${cb.value}"]`);
+  if (pct) { pct.style.display = cb.checked ? 'inline-block' : 'none'; if (!cb.checked) pct.value = ''; }
+}
 
 function initRegistrazione() {
   el('registrazioneLink').addEventListener('click', () => {
@@ -306,82 +309,39 @@ function initRegistrazione() {
     });
     setLoading('regLoading', true);
     try {
-  // 1️⃣ Crea account
-  await apiRegistrazione({ nome_cognome: nome, email, password, room_principale: roomSelezionate.join(', ') });
-  
-  // 2️⃣ Fai login per ottenere token
-  const loginResponse = await apiLogin(email, password);
-  const tempToken = loginResponse.access_token;
-  
-  // 3️⃣ PROVA SMS SUBITO (PRIMA di considerare successo)
-  try {
-    await apiFetch('/api/send-otp', {
-      method: 'POST',
-      body: JSON.stringify({ access_token: tempToken, phone_number: phone })
-    });
-  } catch (smsError) {
-    // SMS FALLITO → CANCELLA account appena creato
-    // TODO: Implementare DELETE account
-    throw new Error('Errore nell\'invio SMS. Registrazione annullata.');
-  }
-  
-  // 4️⃣ SMS OK → Salva dati e mostra OTP
-  window._TEMP_PHONE = phone;
-  window._TEMP_TOKEN = tempToken;
-  window._TEMP_EMAIL = email;
-  
-  setError('regError', '✓ Registrazione OK! Controlla la tua email. Un codice OTP è stato inviato al tuo telefono.', true);
-  el('regBtn').disabled = true; el('regBtn').style.opacity = '0.6';
-  
-  setTimeout(() => {
-    showScreen('verificaOtpScreen');
-    el('otpCode').value = '';
-    el('otpCode').focus();
-  }, 1500);
-  
-} catch (e) {
-  setError('regError', e.message || 'Errore durante la registrazione.');
-} finally {
-  setLoading('regLoading', false);
-} 
-
-// Validazione telefono in tempo reale
-const phoneInput = el('regPhone');
-const regBtn = el('regBtn');
-
-if (phoneInput && regBtn) {
-  const phoneError = document.createElement('div');
-  phoneError.id = 'phoneError';
-  phoneError.style.cssText = 'color:#dc2626;font-size:14px;margin:16px 0 12px 0;display:none;padding:10px 12px;background:rgba(220,38,38,0.1);border-left:3px solid #dc2626;border-radius:4px;line-height:1.5;font-weight:600;text-align:center;';
-  
-  // Inserisci il messaggio PRIMA del bottone Registrati
-  regBtn.parentElement.insertBefore(phoneError, regBtn);
-
-  phoneInput.addEventListener('input', () => {
-    const phone = phoneInput.value.trim();
-    const isValid = phone.startsWith('+') && phone.length >= 10;
-    
-    console.log('📱 Validazione telefono:', { phone, isValid });
-    
-    if (!phone) {
-      phoneError.style.display = 'none';
-      regBtn.disabled = false;
-      regBtn.style.opacity = '1';
-    } else if (!isValid) {
-      phoneError.textContent = '⚠ Inserisci il numero completo con prefisso internazionale (es. +393331234567)';
-      phoneError.style.display = 'block';
-      regBtn.disabled = true;
-      regBtn.style.opacity = '0.5';
-      regBtn.style.cursor = 'not-allowed';
-    } else {
-      phoneError.style.display = 'none';
-      regBtn.disabled = false;
-      regBtn.style.opacity = '1';
-      regBtn.style.cursor = 'pointer';
+      await apiRegistrazione({ nome_cognome: nome, email, password, room_principale: roomSelezionate.join(', ') });
+      
+      // Registrazione ok — adesso invia OTP via SMS
+      // Ottieni il token di accesso temporaneo per mandare l'OTP
+      const loginResponse = await apiLogin(email, password);
+      const tempToken = loginResponse.access_token;
+      
+      // Salva dati temporanei per la verifica OTP
+      window._TEMP_PHONE = phone;
+      window._TEMP_TOKEN = tempToken;
+      window._TEMP_EMAIL = email;
+      
+      // Invia l'OTP
+      await apiFetch('/api/send-otp', {
+        method: 'POST',
+        body: JSON.stringify({ access_token: tempToken, phone_number: phone })
+      });
+      
+      setError('regError', '✓ Registrazione OK! Controlla la tua email. Un codice OTP è stato inviato al tuo telefono.', true);
+      el('regBtn').disabled = true; el('regBtn').style.opacity = '0.6';
+      
+      setTimeout(() => {
+        showScreen('verificaOtpScreen');
+        el('otpCode').value = '';
+        el('otpCode').focus();
+      }, 1500);
+    } catch (e) {
+      setError('regError', e.message || 'Errore durante la registrazione.');
+    } finally {
+      setLoading('regLoading', false);
     }
   });
 }
-
 
 // ===== TRIAL SCADUTO =====
 
