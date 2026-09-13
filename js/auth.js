@@ -326,42 +326,41 @@ function initRegistrazione() {
       
       setError('regError', '✓ Registrazione OK! Controlla la tua email. Un codice OTP è stato inviato al tuo telefono.', true);
       el('regBtn').disabled = true; el('regBtn').style.opacity = '0.6';
-      
-      setTimeout(() => {
-        showScreen('verificaOtpScreen');
-        el('otpCode').value = '';
-        el('otpCode').focus();
-      }, 1500);
-    } catch (e) {
-      setError('regError', e.message || 'Errore durante la registrazione.');
-    } finally {
-      setLoading('regLoading', false);
-    }
-  });
-  // Validazione telefono in tempo reale
-  const phoneInput = el('regPhone');
-  const regBtn = el('regBtn');
+      // Validazione telefono in tempo reale
+const phoneInput = el('regPhone');
+const regBtn = el('regBtn');
+
+if (phoneInput && regBtn) {  // ← Check se gli elementi esistono
   const phoneError = document.createElement('div');
   phoneError.id = 'phoneError';
   phoneError.style.cssText = 'color:#dc2626;font-size:12px;margin-top:6px;display:none;';
-  phoneInput?.parentElement?.insertAdjacentElement('afterend', phoneError);
+  phoneInput.parentElement?.insertAdjacentElement('afterend', phoneError);
 
-  phoneInput?.addEventListener('input', () => {
+  phoneInput.addEventListener('input', () => {
     const phone = phoneInput.value.trim();
     const isValid = phone.startsWith('+') && phone.length >= 10;
+    
+    console.log('📱 Validazione telefono:', { phone, isValid }); // Debug
     
     if (!phone) {
       phoneError.style.display = 'none';
       regBtn.disabled = false;
+      regBtn.style.opacity = '1';
     } else if (!isValid) {
       phoneError.textContent = '⚠ Inserisci il numero completo con prefisso internazionale (es. +393331234567)';
       phoneError.style.display = 'block';
       regBtn.disabled = true;
+      regBtn.style.opacity = '0.5';  // ← Feedback visuale aggiunto
+      regBtn.style.cursor = 'not-allowed';  // ← Cursor cambia
     } else {
       phoneError.style.display = 'none';
       regBtn.disabled = false;
+      regBtn.style.opacity = '1';
+      regBtn.style.cursor = 'pointer';
     }
   });
+} else {
+  console.warn('⚠️ regPhone o regBtn non trovati nel DOM');
 }
 
 // ===== TRIAL SCADUTO =====
