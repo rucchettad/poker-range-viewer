@@ -306,7 +306,7 @@ function initRegistrazione() {
     });
     setLoading('regLoading', true);
     try {
-      await apiRegistrazione({ nome_cognome: nome, email, password, room_principale: roomSelezionate.join(', ') });
+      await apiRegistrazione({ nome_cognome: nome, email, password, phone_number: phone, room_principale: roomSelezionate.join(', ') });
       
       // Registrazione ok — adesso invia OTP via SMS
       // Ottieni il token di accesso temporaneo per mandare l'OTP
