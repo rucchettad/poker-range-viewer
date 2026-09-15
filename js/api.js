@@ -57,9 +57,10 @@ export function apiResetPasswordRequest(email) {
 export function apiNuovaPassword(token, password) {
   return apiFetch('/api/nuova-password', { method: 'POST', body: JSON.stringify({ token, password }) });
 }
-export function apiRegistrazione({ nome_cognome, email, password, room_principale }) {
-  return apiFetch('/api/registrazione', { method: 'POST', body: JSON.stringify({ nome_cognome, email, password, room_principale }) });
+export function apiRegistrazione({ nome_cognome, email, password, phone_number, room_principale }) {
+  return apiFetch('/api/registrazione', { method: 'POST', body: JSON.stringify({ nome_cognome, email, password, phone_number, room_principale }) });
 }
+
 export async function apiCreaCheckout(email, password) {
   let res, data;
   try {
