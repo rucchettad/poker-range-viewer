@@ -9,6 +9,7 @@ import {
   apiFetch, apiLogin, apiCheckStatus,
   apiResetPasswordRequest, apiNuovaPassword,
   apiRegistrazione, apiCreaCheckout, apiDisdici,
+  apiSendOtpRegistration, apiVerifyOtpRegistration,
 } from './api.js';
 
 const SESSION_KEY = 'poker_token';
@@ -224,35 +225,30 @@ function toggleRakeback(cb) {
 }
 
 // ===== VERIFICA OTP =====
-
+// MODIFICA: usa apiVerifyOtpRegistration invece di /api/verify-otp
 function initVerificaOtp() {
   el('verifyOtpBtn')?.addEventListener('click', async () => {
     const otpCode = el('otpCode').value.trim();
     const phone = window._TEMP_PHONE;
-    const token = window._TEMP_TOKEN;
-    
+
     if (!otpCode || otpCode.length !== 6) { setError('otpError', 'Inserisci un codice OTP valido (6 cifre).'); return; }
-    if (!phone || !token) { setError('otpError', 'Errore interno. Riprova.'); return; }
-    
+    if (!phone) { setError('otpError', 'Errore interno. Riprova.'); return; }
+
     setError('otpError', '');
     setLoading('otpLoading', true);
-    
+
     try {
-      await apiFetch('/api/verify-otp', {
-        method: 'POST',
-        body: JSON.stringify({ access_token: token, phone_number: phone, otp_code: otpCode })
-      });
-      
-      setError('otpError', '✓ Numero di telefono verificato! Reindirizzamento al login...', true);
+      await apiVerifyOtpRegistration({ phone_number: phone, otp_code: otpCode });
+
+      setError('otpError', '✓ Registrazione completata! Reindirizzamento al login...', true);
       el('verifyOtpBtn').disabled = true; el('verifyOtpBtn').style.opacity = '0.6';
-      
+
       setTimeout(() => {
         el('loginEmail').value = window._TEMP_EMAIL || '';
         setError('loginError', '✓ Registrazione completata! Accedi ora.', true);
         showScreen('loginScreen');
         // Pulisci i dati temporanei
         window._TEMP_PHONE = null;
-        window._TEMP_TOKEN = null;
         window._TEMP_EMAIL = null;
       }, 2000);
     } catch (e) {
@@ -284,6 +280,7 @@ function initRegistrazione() {
   el('privacyOpenBtn')?.addEventListener('click', () => { el('privacyModal').style.display = 'flex'; });
   el('privacyCloseBtn')?.addEventListener('click', () => { el('privacyModal').style.display = 'none'; });
 
+  // MODIFICA: usa apiSendOtpRegistration invece di apiRegistrazione + login + send-otp
   el('regBtn').addEventListener('click', async () => {
     const nome     = el('regNome').value.trim();
     const email    = el('regEmail').value.trim();
@@ -306,27 +303,21 @@ function initRegistrazione() {
     });
     setLoading('regLoading', true);
     try {
-      await apiRegistrazione({ nome_cognome: nome, email, password, phone_number: phone, room_principale: roomSelezionate.join(', ') });
-      
-      // Registrazione ok — adesso invia OTP via SMS
-      // Ottieni il token di accesso temporaneo per mandare l'OTP
-      const loginResponse = await apiLogin(email, password);
-      const tempToken = loginResponse.access_token;
-      
+      await apiSendOtpRegistration({
+        nome_cognome: nome,
+        email,
+        password,
+        phone_number: phone,
+        room_principale: roomSelezionate.join(', ')
+      });
+
       // Salva dati temporanei per la verifica OTP
       window._TEMP_PHONE = phone;
-      window._TEMP_TOKEN = tempToken;
       window._TEMP_EMAIL = email;
-      
-      // Invia l'OTP
-      await apiFetch('/api/send-otp', {
-        method: 'POST',
-        body: JSON.stringify({ access_token: tempToken, phone_number: phone })
-      });
-      
-      setError('regError', '✓ Registrazione OK! Controlla la tua email. Un codice OTP è stato inviato al tuo telefono.', true);
+
+      setError('regError', '✓ Codice OTP inviato al tuo telefono. Inseriscilo per completare la registrazione.', true);
       el('regBtn').disabled = true; el('regBtn').style.opacity = '0.6';
-      
+
       setTimeout(() => {
         showScreen('verificaOtpScreen');
         el('otpCode').value = '';
