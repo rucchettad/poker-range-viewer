@@ -63,11 +63,11 @@ export function apiRegistrazione({ nome_cognome, email, password, phone_number, 
 
 // ===== NUOVE FUNZIONI: FLUSSO OTP A 2 STEP =====
 export function apiSendOtpRegistration({ nome_cognome, email, password, phone_number, username_poker, room_principale, stack_medio }) {
-  return apiFetch('/auth/send-otp-registration', { method: 'POST', body: JSON.stringify({ nome_cognome, email, password, phone_number, username_poker, room_principale, stack_medio }) });
+  return apiFetch('/api/send-otp-registration', { method: 'POST', body: JSON.stringify({ nome_cognome, email, password, phone_number, username_poker, room_principale, stack_medio }) });
 }
 
 export function apiVerifyOtpRegistration({ phone_number, otp_code }) {
-  return apiFetch('/auth/verify-otp-registration', { method: 'POST', body: JSON.stringify({ phone_number, otp_code }) });
+  return apiFetch('/api/verify-otp-registration', { method: 'POST', body: JSON.stringify({ phone_number, otp_code }) });
 }
 
 export async function apiCreaCheckout(email, password) {
