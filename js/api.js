@@ -1,94 +1,240 @@
 /**
- * POKER RANGE VIEWER — API layer
- * © 2026 pokerrange.online - Danilo Rucchetta
+ * API Client - PokerRange Viewer
+ * Nuovo flusso OTP a 2 step
+ * 1. apiSendOtpRegistration() - Manda OTP
+ * 2. apiVerifyOtpRegistration() - Verifica OTP e crea account
  */
-'use strict';
 
-const API_URL = 'https://poker-range-api-production.up.railway.app';
+const API_BASE = 'https://poker-range-api.production.up.railway.app';
 
-let _authToken = null;
-export function getToken()      { return _authToken; }
-export function setToken(t)     { _authToken = t; }
-export function clearToken()    { _authToken = null; }
-
-export class RateLimitError extends Error {
-  constructor() {
-    super('Account temporaneamente sospeso per troppe richieste.');
-    this.name = 'RateLimitError';
-  }
-}
-
-export async function apiFetch(endpoint, opts = {}) {
-  const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
-  if (_authToken) headers['Authorization'] = 'Bearer ' + _authToken;
-  let res, json;
+// ===== REGISTRAZIONE STEP 1: SEND OTP =====
+async function apiSendOtpRegistration(email, password, nome_cognome, username_poker, room_principale, stack_medio, phone_number) {
   try {
-    res  = await fetch(API_URL + endpoint, { ...opts, headers });
-    json = await res.json();
-  } catch (e) {
-    throw new Error('Errore di rete: ' + e.message);
+    const response = await fetch(`${API_BASE}/auth/send-otp-registration`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        password,
+        nome_cognome,
+        username_poker,
+        room_principale,
+        stack_medio,
+        phone_number
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Errore nell\'invio del codice OTP');
+    }
+
+    return {
+      success: true,
+      message: data.message,
+      phone_number: phone_number
+    };
+  } catch (error) {
+    console.error('apiSendOtpRegistration error:', error);
+    throw error;
   }
-  if (res.status === 429 || (json && json.error === 'RATE_LIMIT_BLOCKED')) throw new RateLimitError();
-  if (!res.ok) throw new Error(json.error || 'Errore server');
-  return json;
 }
 
-const _CACHE = {};
-const _CACHE_TTL = 5 * 60 * 1000;
-
-function cacheGet(key) {
-  const e = _CACHE[key];
-  if (!e) return undefined;
-  if (Date.now() - e.ts > _CACHE_TTL) { delete _CACHE[key]; return undefined; }
-  return e.val;
-}
-function cacheSet(key, val) { _CACHE[key] = { val, ts: Date.now() }; }
-export function svuotaCache() { Object.keys(_CACHE).forEach(k => delete _CACHE[k]); }
-
-export function apiLogin(email, password) {
-  return apiFetch('/api/login', { method: 'POST', body: JSON.stringify({ email, password }) });
-}
-export function apiCheckStatus(accessToken, sessionToken) {
-  return apiFetch('/api/check-status', { method: 'POST', body: JSON.stringify({ access_token: accessToken, session_token: sessionToken }) });
-}
-export function apiResetPasswordRequest(email) {
-  return apiFetch('/api/reset-password', { method: 'POST', body: JSON.stringify({ email }) });
-}
-export function apiNuovaPassword(token, password) {
-  return apiFetch('/api/nuova-password', { method: 'POST', body: JSON.stringify({ token, password }) });
-}
-export function apiRegistrazione({ nome_cognome, email, password, phone_number, room_principale }) {
-  return apiFetch('/api/registrazione', { method: 'POST', body: JSON.stringify({ nome_cognome, email, password, phone_number, room_principale }) });
-}
-
-export async function apiCreaCheckout(email, password) {
-  let res, data;
+// ===== REGISTRAZIONE STEP 2: VERIFY OTP =====
+async function apiVerifyOtpRegistration(phone_number, otp_code) {
   try {
-    res  = await fetch(API_URL + '/api/crea-checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
-    data = await res.json();
-  } catch (e) {
-    throw new Error('Errore di rete: ' + e.message);
+    const response = await fetch(`${API_BASE}/auth/verify-otp-registration`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        phone_number,
+        otp_code
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Errore nella verifica del codice OTP');
+    }
+
+    return {
+      success: true,
+      message: data.message
+    };
+  } catch (error) {
+    console.error('apiVerifyOtpRegistration error:', error);
+    throw error;
   }
-  if (!res.ok || !data.checkout_url) throw new Error(data.error || 'Errore pagamento');
-  return data.checkout_url;
 }
-export function apiDisdici(accessToken) {
-  return apiFetch('/api/disdici', { method: 'POST', body: JSON.stringify({ access_token: accessToken }) });
+
+// ===== LOGIN =====
+async function apiLogin(email, password) {
+  try {
+    const response = await fetch(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Errore durante il login');
+    }
+
+    // Salva token in localStorage
+    localStorage.setItem('access_token', data.access_token);
+    localStorage.setItem('refresh_token', data.refresh_token);
+    localStorage.setItem('user_id', data.user.id);
+    localStorage.setItem('user_email', data.user.email);
+
+    return data;
+  } catch (error) {
+    console.error('apiLogin error:', error);
+    throw error;
+  }
 }
-export async function fetchRange(chiave) {
-  const cached = cacheGet('r:' + chiave);
-  if (cached !== undefined) return cached;
-  const data = await apiFetch('/api/range', { method: 'POST', body: JSON.stringify({ access_token: _authToken, range_key: chiave }) });
-  if (data && data.error === 'RATE_LIMIT_BLOCKED') throw new RateLimitError();
-  const result = data.hands || null;
-  cacheSet('r:' + chiave, result);
-  return result;
+
+// ===== CHECK STATUS =====
+async function apiCheckStatus() {
+  try {
+    const access_token = localStorage.getItem('access_token');
+    const session_token = localStorage.getItem('session_token');
+
+    if (!access_token) {
+      throw new Error('Token non trovato');
+    }
+
+    const response = await fetch(`${API_BASE}/auth/check-status`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ access_token, session_token })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Errore nel check dello status');
+    }
+
+    return data;
+  } catch (error) {
+    console.error('apiCheckStatus error:', error);
+    throw error;
+  }
 }
-export async function fetchNota(chiave) {
-  const cached = cacheGet('n:' + chiave);
-  if (cached !== undefined) return cached;
-  const data = await apiFetch('/api/nota', { method: 'POST', body: JSON.stringify({ access_token: _authToken, range_key: chiave }) });
-  const result = data.note || null;
-  cacheSet('n:' + chiave, result);
-  return result;
+
+// ===== RESET PASSWORD =====
+async function apiResetPassword(email) {
+  try {
+    const response = await fetch(`${API_BASE}/auth/reset-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Errore nell\'invio email reset');
+    }
+
+    return data;
+  } catch (error) {
+    console.error('apiResetPassword error:', error);
+    throw error;
+  }
+}
+
+// ===== NUOVA PASSWORD =====
+async function apiNuovaPassword(token, password) {
+  try {
+    const response = await fetch(`${API_BASE}/auth/nuova-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ token, password })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Errore nell\'aggiornamento password');
+    }
+
+    return data;
+  } catch (error) {
+    console.error('apiNuovaPassword error:', error);
+    throw error;
+  }
+}
+
+// ===== SEND OTP (PER VERIFICA NUMERO DURANTE LOGIN) =====
+async function apiSendOtp(access_token, phone_number) {
+  try {
+    const response = await fetch(`${API_BASE}/auth/send-otp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ access_token, phone_number })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Errore nell\'invio OTP');
+    }
+
+    return data;
+  } catch (error) {
+    console.error('apiSendOtp error:', error);
+    throw error;
+  }
+}
+
+// ===== VERIFY OTP (PER VERIFICA NUMERO DURANTE LOGIN) =====
+async function apiVerifyOtp(access_token, phone_number, otp_code) {
+  try {
+    const response = await fetch(`${API_BASE}/auth/verify-otp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ access_token, phone_number, otp_code })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Errore nella verifica OTP');
+    }
+
+    return data;
+  } catch (error) {
+    console.error('apiVerifyOtp error:', error);
+    throw error;
+  }
+}
+
+// ===== LOGOUT =====
+function apiLogout() {
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
+  localStorage.removeItem('user_id');
+  localStorage.removeItem('user_email');
+  localStorage.removeItem('session_token');
 }
