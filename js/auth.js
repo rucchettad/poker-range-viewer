@@ -480,9 +480,12 @@ export function avviaPollingSessione() {
         clearSession();
         showScreen('loginScreen');
         setError('loginError', "⚠️ Sessione non valida. Un altro dispositivo ha effettuato l'accesso con questo account.");
-      } else if (e.message === 'TRIAL_EXPIRED') {
+      } else if (e.message === 'TRIAL_EXPIRED' || e.message === 'SUBSCRIPTION_EXPIRED') {
+        // Prova o abbonamento terminati durante l'uso: schermata di rinnovo.
+        // L'email va letta prima di clearSession(), che la cancella.
+        const email = sessionStorage.getItem(EMAIL_KEY) || '';
         clearSession();
-        window._TRIAL_EMAIL = sessionStorage.getItem(EMAIL_KEY) || '';
+        window._TRIAL_EMAIL = email;
         showScreen('trialScadutoScreen');
       }
     }
