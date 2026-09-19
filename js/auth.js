@@ -419,6 +419,11 @@ function initLogin() {
 
 export async function ripristinaSessione() {
   const urlParams = new URLSearchParams(window.location.search);
+  // Link "Registrati" della landing (https://pokerrange.online/?registrati):
+  // se l'utente non è loggato apre direttamente la schermata di registrazione.
+  // L'indirizzo viene ripulito subito, così un ricaricamento torna al login normale.
+  const vuoleRegistrarsi = urlParams.has('registrati');
+  if (vuoleRegistrarsi) history.replaceState(null, '', window.location.pathname);
   if (urlParams.get('payment') === 'success') {
     history.replaceState(null, '', window.location.pathname);
     setError('loginError', '✓ Pagamento completato! Accedi con le tue credenziali.', true);
@@ -462,7 +467,7 @@ export async function ripristinaSessione() {
     }
     mostraDisclaimerPoiApp({ email });
   } else {
-    showScreen('loginScreen');
+    showScreen(vuoleRegistrarsi ? 'registrazioneScreen' : 'loginScreen');
   }
 }
 
