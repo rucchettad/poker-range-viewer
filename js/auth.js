@@ -89,7 +89,7 @@ async function disdiciAbbonamento() {
     const s = el('accountStatus');
     if (s) { s.textContent = '🔴 Disdetto'; s.style.color = '#dc2626'; }
   } catch (e) {
-    msgEl.textContent = '⚠ ' + (e.message || 'Errore. Contatta rucchettad@gmail.com');
+    msgEl.textContent = '⚠ ' + (e.message || 'Errore. Contatta assistenza@pokerrange.online');
     msgEl.style.color = '#dc2626'; msgEl.style.display = 'block';
     btn.disabled = false; btn.textContent = 'Disdici abbonamento';
   }
@@ -276,9 +276,6 @@ function initRegistrazione() {
   document.querySelectorAll('.reg-room-cb').forEach(cb => {
     cb.addEventListener('change', () => toggleRakeback(cb));
   });
-  // Privacy modal
-  el('privacyOpenBtn')?.addEventListener('click', () => { el('privacyModal').style.display = 'flex'; });
-  el('privacyCloseBtn')?.addEventListener('click', () => { el('privacyModal').style.display = 'none'; });
 
   // MODIFICA: usa apiSendOtpRegistration invece di apiRegistrazione + login + send-otp
   el('regBtn').addEventListener('click', async () => {
@@ -287,7 +284,7 @@ function initRegistrazione() {
     const password = el('regPassword').value;
     const phone    = el('regPhone').value.trim();
     setError('regError', '');
-    if (!el('regGdprChk').checked) { setError('regError', 'Devi accettare la Privacy Policy per procedere.'); return; }
+    if (!el('regGdprChk').checked) { setError('regError', 'Devi accettare i Termini di servizio e la Privacy per procedere.'); return; }
     if (!nome || !email || !password || !phone) { setError('regError', 'Compila tutti i campi obbligatori (incluso il telefono).'); return; }
     if (password.length < 6) { setError('regError', 'La password deve essere di almeno 6 caratteri.'); return; }
     const roomSelezionate = [];
@@ -369,7 +366,7 @@ async function doLogin(email, password) {
     }
     if (e.message === 'ACCOUNT_BLOCKED' || e instanceof RateLimitError) {
       const errEl = el('loginError');
-      errEl.innerHTML = '🚫 Accesso negato.<br>Per assistenza: <a href="mailto:rucchettad@gmail.com" style="color:var(--btn);">rucchettad@gmail.com</a>';
+      errEl.innerHTML = '🚫 Accesso negato.<br>Per assistenza: <a href="mailto:assistenza@pokerrange.online" style="color:var(--btn);">assistenza@pokerrange.online</a>';
       errEl.style.display = 'block';
     } else if (e.message === 'ACCOUNT_PENDING') {
       setError('loginError', 'Account in attesa di approvazione.');
@@ -387,7 +384,7 @@ async function doLogin(email, password) {
     if (e instanceof RateLimitError) {
       clearSession();
       const errEl = el('loginError');
-      errEl.innerHTML = '🚫 Il tuo account è stato sospeso per uso anomalo.<br>Contatta: <a href="mailto:rucchettad@gmail.com" style="color:var(--btn);">rucchettad@gmail.com</a>';
+      errEl.innerHTML = '🚫 Il tuo account è stato sospeso per uso anomalo.<br>Contatta: <a href="mailto:assistenza@pokerrange.online" style="color:var(--btn);">assistenza@pokerrange.online</a>';
       errEl.style.display = 'block';
       showScreen('loginScreen');
       return;
