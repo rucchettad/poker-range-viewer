@@ -88,11 +88,11 @@
     <div style="background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px;">
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <span style="font-size:13px;color:var(--muted);">Abbonamento mensile</span>
-        <span style="font-size:18px;font-weight:700;color:white;">7,99€</span>
+        <span id="trialPrezzo" style="font-size:18px;font-weight:700;color:white;">7,99€</span>
       </div>
       <div style="font-size:11px;color:var(--muted);border-top:1px solid var(--line);padding-top:8px;margin-top:4px;">Rinnovo automatico mensile. Cancella quando vuoi.</div>
     </div>
-    <button class="login-btn" id="trialCheckoutBtn" style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);">Abbonati ora — 7,99€</button>
+    <button class="login-btn" id="trialCheckoutBtn" style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);">Abbonati ora — <span id="trialPrezzoBtn">7,99€</span></button>
     <div class="login-loading" id="trialLoading" style="display:none;">Reindirizzamento al pagamento...</div>
     <div class="login-error" id="trialError" style="display:none;"></div>
     <button class="login-link" id="trialLogoutLink" style="margin-top:4px;font-size:13px;">← Torna al login</button>

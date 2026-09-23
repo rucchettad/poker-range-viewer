@@ -330,6 +330,18 @@ function initRegistrazione() {
 
 // ===== TRIAL SCADUTO =====
 
+// Mostra la schermata "Accesso scaduto" con il prezzo di questo utente (arriva dal backend).
+// Se il prezzo non arriva, resta quello scritto in index.html.
+function mostraAccessoScaduto(email, prezzo) {
+  window._TRIAL_EMAIL = email;
+  if (prezzo) {
+    const p1 = el('trialPrezzo'), p2 = el('trialPrezzoBtn');
+    if (p1) p1.textContent = prezzo;
+    if (p2) p2.textContent = prezzo;
+  }
+  showScreen('trialScadutoScreen');
+}
+
 function initTrialScaduto() {
   el('trialCheckoutBtn').addEventListener('click', async () => {
     setLoading('trialLoading', true);
@@ -360,8 +372,7 @@ async function doLogin(email, password) {
     setLoading('loginLoading', false);
     if (e.message === 'TRIAL_EXPIRED' || e.message === 'SUBSCRIPTION_EXPIRED') {
       // Sia trial scaduto sia abbonamento pagante scaduto: offri il rinnovo, non un ban.
-      window._TRIAL_EMAIL = email;
-      showScreen('trialScadutoScreen');
+      mostraAccessoScaduto(email, e.prezzo);
       return;
     }
     if (e.message === 'ACCOUNT_BLOCKED' || e instanceof RateLimitError) {
@@ -397,8 +408,7 @@ async function doLogin(email, password) {
     }
     if (e.message === 'TRIAL_EXPIRED' || e.message === 'SUBSCRIPTION_EXPIRED') {
       clearSession();
-      window._TRIAL_EMAIL = loginData.user.email;
-      showScreen('trialScadutoScreen');
+      mostraAccessoScaduto(loginData.user.email, e.prezzo);
       return;
     }
   }
@@ -487,8 +497,7 @@ export function avviaPollingSessione() {
         // L'email va letta prima di clearSession(), che la cancella.
         const email = sessionStorage.getItem(EMAIL_KEY) || '';
         clearSession();
-        window._TRIAL_EMAIL = email;
-        showScreen('trialScadutoScreen');
+        mostraAccessoScaduto(email, e.prezzo);
       }
     }
   }, 30_000);

@@ -29,7 +29,12 @@ export async function apiFetch(endpoint, opts = {}) {
     throw new Error('Errore di rete: ' + e.message);
   }
   if (res.status === 429 || (json && json.error === 'RATE_LIMIT_BLOCKED')) throw new RateLimitError();
-  if (!res.ok) throw new Error(json.error || 'Errore server');
+  if (!res.ok) {
+    const err = new Error(json.error || 'Errore server');
+    // Accesso scaduto: il backend manda anche il prezzo da mostrare (lib/prezzo.js)
+    if (json && json.prezzo) err.prezzo = json.prezzo;
+    throw err;
+  }
   return json;
 }
 
