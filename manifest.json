@@ -1,7 +1,7 @@
 {
   "name": "Poker Range",
   "short_name": "Poker Range",
-  "description": "Visualizzatore range preflop MTT",
+  "description": "Range preflop MTT e calcolatori PKO, Mystery e ICM",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#0b0c10",
