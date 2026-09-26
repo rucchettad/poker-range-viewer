@@ -311,8 +311,12 @@ function inserisciNellaBarra() {
     b.setAttribute('aria-haspopup', 'dialog');
     b.addEventListener('click', () => apri());
     acc.insertAdjacentElement('afterend', b);
+    // Quando la barra compare o sparisce (login, sessione ripristinata, cambio computer/telefono)
+    // il "?" cambia dimensione: ricontrolla quale pulsante mostrare
+    if (roBarra) roBarra.observe(b);
   });
 }
+const roBarra = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => aggiornaPulsante()) : null;
 
 function barraVisibile() {
   return [...document.querySelectorAll('.gd-bar')].some(b => b.getClientRects().length > 0);
