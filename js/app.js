@@ -168,18 +168,33 @@ function aggiornaStatistiche() {
   el('rangeStats').innerHTML = html;
 }
 
-const MSG_RATE_LIMIT = "⚠️ Rallenta!\nHai effettuato troppe richieste in poco tempo. Se stavi semplicemente navigando, ricorda di effettuare meno richieste consecutive in rapida successione.\nAttendi che il monitoraggio si concluda — potrebbe richiedere fino a 10 minuti — dopodiché potrai accedere nuovamente.\nL'accesso anomalo ai dati è monitorato e può comportare la sospensione permanente dell'account.";
+// Testi del blocco per troppe richieste (il backend dice se è temporaneo o permanente)
+const MSG_RATE_LIMIT_TEMP = "⚠️ Rallenta! Hai aperto troppi range in poco tempo. L'accesso è sospeso per 10 minuti, poi potrai continuare normalmente. L'uso anomalo è monitorato e, se si ripete, può portare alla sospensione dell'account.";
+const MSG_RATE_LIMIT_PERM = "🚫 Il tuo account è stato sospeso per uso anomalo. Se pensi sia un errore, scrivi ad assistenza@pokerrange.online.";
+const ATTESA_SBLOCCO_MS   = 10 * 60 * 1000 + 15 * 1000; // 10 minuti + margine
 
-function mostraBannerRateLimit() {
+let _timerSblocco = null;
+
+function mostraBannerRateLimit(permanente = false) {
   _RATE_LIMITED = true;
   svuotaCache();
-  el('errorBannerText').textContent = MSG_RATE_LIMIT;
+  el('errorBannerText').textContent = permanente ? MSG_RATE_LIMIT_PERM : MSG_RATE_LIMIT_TEMP;
   el('retryBtn').style.display      = 'none';
   el('errorBanner').style.display   = 'block';
-  el('noteContent').textContent     = 'Account sospeso per uso anomalo.';
+  el('noteContent').textContent     = permanente ? 'Account sospeso per uso anomalo.' : 'Accesso sospeso per 10 minuti.';
   percentualiMani = {};
   aggiornaStatistiche();
   aggiornaVisualizzazioneMatrice();
+
+  // Blocco temporaneo: dopo 10 minuti l'app si sblocca da sola e ricarica il range
+  if (!permanente) {
+    clearTimeout(_timerSblocco);
+    _timerSblocco = setTimeout(() => {
+      _RATE_LIMITED = false;
+      el('errorBanner').style.display = 'none';
+      aggiornaUI();
+    }, ATTESA_SBLOCCO_MS);
+  }
 }
 
 async function caricaRangeCorrente() {
@@ -192,7 +207,7 @@ async function caricaRangeCorrente() {
   } catch (e) {
     if (idRichiesta !== richiestaInCorsoId) return;
     if (e instanceof RateLimitError) {
-      mostraBannerRateLimit();
+      mostraBannerRateLimit(e.permanent);
     } else if (e.message && /token|jwt|non valido|unauthorized|scadut/i.test(e.message)) {
       mostraSessioneScaduta();
     } else {

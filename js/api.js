@@ -11,10 +11,13 @@ export function getToken()      { return _authToken; }
 export function setToken(t)     { _authToken = t; }
 export function clearToken()    { _authToken = null; }
 
+// Blocco per troppe richieste deciso dal backend.
+// permanent = false: sospensione di 10 minuti che scade da sola; true: account sospeso.
 export class RateLimitError extends Error {
-  constructor() {
+  constructor(permanent = false) {
     super('Account temporaneamente sospeso per troppe richieste.');
     this.name = 'RateLimitError';
+    this.permanent = !!permanent;
   }
 }
 
@@ -28,9 +31,13 @@ export async function apiFetch(endpoint, opts = {}) {
   } catch (e) {
     throw new Error('Errore di rete: ' + e.message);
   }
-  if (res.status === 429 || (json && json.error === 'RATE_LIMIT_BLOCKED')) throw new RateLimitError();
+  // Solo il vero blocco dell'account è un RateLimitError. Gli altri "troppe richieste"
+  // (codici SMS, tentativi di login, account per connessione) mostrano il messaggio del backend.
+  if (json && json.error === 'RATE_LIMIT_BLOCKED') throw new RateLimitError(json.permanent);
   if (!res.ok) {
-    const err = new Error(json.error || 'Errore server');
+    const err = new Error((json && json.error) || 'Errore server');
+    // Blocco al login: il backend dice se è temporaneo o permanente
+    if (json && json.permanent !== undefined) err.permanent = !!json.permanent;
     // Accesso scaduto: il backend manda anche il prezzo da mostrare (lib/prezzo.js)
     if (json && json.prezzo) err.prezzo = json.prezzo;
     throw err;
@@ -93,7 +100,7 @@ export async function fetchRange(chiave) {
   const cached = cacheGet('r:' + chiave);
   if (cached !== undefined) return cached;
   const data = await apiFetch('/api/range', { method: 'POST', body: JSON.stringify({ access_token: _authToken, range_key: chiave }) });
-  if (data && data.error === 'RATE_LIMIT_BLOCKED') throw new RateLimitError();
+  if (data && data.error === 'RATE_LIMIT_BLOCKED') throw new RateLimitError(data.permanent);
   const result = data.hands || null;
   cacheSet('r:' + chiave, result);
   return result;

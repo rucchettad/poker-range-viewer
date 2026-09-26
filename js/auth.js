@@ -153,15 +153,32 @@ function chiudiSessioneScaduta() {
 
 // ===== BANNER RATE LIMIT =====
 
-export function mostraBannerRateLimitAlCaricamento() {
-  const MSG = "⚠️ Rallenta!\nHai effettuato troppe richieste in poco tempo.\nAttendi che il monitoraggio si concluda — potrebbe richiedere fino a 10 minuti.\nL'accesso anomalo ai dati è monitorato e può comportare la sospensione permanente dell'account.";
-  el('errorBannerText').textContent = MSG;
+// Testi del blocco per troppe richieste (uguali a quelli di app.js)
+const MSG_BLOCCO_TEMP = "⚠️ Rallenta! Hai aperto troppi range in poco tempo. L'accesso è sospeso per 10 minuti, poi potrai continuare normalmente. L'uso anomalo è monitorato e, se si ripete, può portare alla sospensione dell'account.";
+const MSG_BLOCCO_PERM = "🚫 Il tuo account è stato sospeso per uso anomalo. Se pensi sia un errore, scrivi ad assistenza@pokerrange.online.";
+const HTML_LOGIN_BLOCCO_TEMP = '⚠️ Accesso sospeso per 10 minuti per troppe richieste. Riprova tra poco.';
+const HTML_LOGIN_BLOCCO_PERM = '🚫 Il tuo account è stato sospeso per uso anomalo.<br>Se pensi sia un errore, scrivi ad <a href="mailto:assistenza@pokerrange.online" style="color:var(--btn);">assistenza@pokerrange.online</a>.';
+
+export function mostraBannerRateLimitAlCaricamento(permanente = false) {
+  el('errorBannerText').textContent = permanente ? MSG_BLOCCO_PERM : MSG_BLOCCO_TEMP;
   el('retryBtn').style.display = 'none';
   el('errorBanner').style.display = 'block';
   document.querySelectorAll('.tab, .flat-tab, .cellBtn').forEach(e => {
     e.style.pointerEvents = 'none';
     e.style.opacity = '0.4';
   });
+  // Blocco temporaneo: dopo 10 minuti la pagina si ricarica e l'app riparte normalmente
+  if (!permanente) setTimeout(() => location.reload(), 10 * 60 * 1000 + 15 * 1000);
+}
+
+// Pulizia del numero di telefono prima dell'invio: toglie spazi, punti e trattini,
+// trasforma 0039 in +39 e aggiunge +39 se manca (es. 3451234567 -> +393451234567)
+function normalizzaTelefono(valore) {
+  let n = String(valore || '').replace(/[\s.\-()\/]/g, '');
+  if (n.startsWith('0039')) n = '+39' + n.slice(4);
+  else if (/^39\d{9,10}$/.test(n)) n = '+' + n;
+  else if (/^3\d{8,9}$/.test(n)) n = '+39' + n;
+  return n;
 }
 
 // ===== FORGOT PASSWORD =====
@@ -231,7 +248,7 @@ function initVerificaOtp() {
     const otpCode = el('otpCode').value.trim();
     const phone = window._TEMP_PHONE;
 
-    if (!otpCode || otpCode.length !== 6) { setError('otpError', 'Inserisci un codice OTP valido (6 cifre).'); return; }
+    if (!otpCode || otpCode.length !== 6) { setError('otpError', 'Inserisci il codice di 6 cifre ricevuto via SMS.'); return; }
     if (!phone) { setError('otpError', 'Errore interno. Riprova.'); return; }
 
     setError('otpError', '');
@@ -252,7 +269,7 @@ function initVerificaOtp() {
         window._TEMP_EMAIL = null;
       }, 2000);
     } catch (e) {
-      setError('otpError', e.message || 'Errore nella verifica del codice OTP.');
+      setError('otpError', e.message || 'Errore nella verifica del codice. Riprova.');
     } finally {
       setLoading('otpLoading', false);
     }
@@ -282,7 +299,7 @@ function initRegistrazione() {
     const nome     = el('regNome').value.trim();
     const email    = el('regEmail').value.trim();
     const password = el('regPassword').value;
-    const phone    = el('regPhone').value.trim();
+    const phone    = normalizzaTelefono(el('regPhone').value);
     setError('regError', '');
     if (!el('regGdprChk').checked) { setError('regError', 'Devi accettare i Termini di servizio e la Privacy per procedere.'); return; }
     if (!nome || !email || !password || !phone) { setError('regError', 'Compila tutti i campi obbligatori (incluso il telefono).'); return; }
@@ -312,7 +329,7 @@ function initRegistrazione() {
       window._TEMP_PHONE = phone;
       window._TEMP_EMAIL = email;
 
-      setError('regError', '✓ Codice OTP inviato al tuo telefono. Inseriscilo per completare la registrazione.', true);
+      setError('regError', '✓ Codice inviato via SMS. Inseriscilo per completare la registrazione.', true);
       el('regBtn').disabled = true; el('regBtn').style.opacity = '0.6';
 
       setTimeout(() => {
@@ -377,10 +394,13 @@ async function doLogin(email, password) {
     }
     if (e.message === 'ACCOUNT_BLOCKED' || e instanceof RateLimitError) {
       const errEl = el('loginError');
-      errEl.innerHTML = '🚫 Accesso negato.<br>Per assistenza: <a href="mailto:assistenza@pokerrange.online" style="color:var(--btn);">assistenza@pokerrange.online</a>';
+      errEl.innerHTML = e.permanent ? HTML_LOGIN_BLOCCO_PERM : HTML_LOGIN_BLOCCO_TEMP;
       errEl.style.display = 'block';
     } else if (e.message === 'ACCOUNT_PENDING') {
       setError('loginError', 'Account in attesa di approvazione.');
+    } else if (/^Troppi tentativi/i.test(e.message || '')) {
+      // Troppe password errate: il backend dice tra quanti minuti riprovare
+      setError('loginError', e.message);
     } else {
       setError('loginError', 'Email o password errati.');
     }
@@ -395,7 +415,7 @@ async function doLogin(email, password) {
     if (e instanceof RateLimitError) {
       clearSession();
       const errEl = el('loginError');
-      errEl.innerHTML = '🚫 Il tuo account è stato sospeso per uso anomalo.<br>Contatta: <a href="mailto:assistenza@pokerrange.online" style="color:var(--btn);">assistenza@pokerrange.online</a>';
+      errEl.innerHTML = e.permanent ? HTML_LOGIN_BLOCCO_PERM : HTML_LOGIN_BLOCCO_TEMP;
       errEl.style.display = 'block';
       showScreen('loginScreen');
       return;
@@ -462,7 +482,7 @@ export async function ripristinaSessione() {
         showScreen('appScreen');
         el('appContainer').style.display = 'block';
         el('loadingMsg').style.display   = 'none';
-        mostraBannerRateLimitAlCaricamento();
+        mostraBannerRateLimitAlCaricamento(e.permanent);
         return;
       }
       if (e.message === 'SESSION_DUPLICATE') {
