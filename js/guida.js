@@ -129,6 +129,8 @@ const STILE = `
 .gd-btn.gd-visibile{display:inline-flex}
 .gd-btn:focus-visible,.gd-panel :focus-visible{outline:2px solid rgb(80,200,255);outline-offset:2px}
 
+.gd-bar{cursor:pointer}
+.gd-bar:hover{background:rgba(255,255,255,.28)!important}
 .gd-velo{position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .2s}
 .gd-panel{position:fixed;z-index:10002;top:0;right:0;height:100%;width:min(420px,100%);display:flex;flex-direction:column;
   background:#0e1118;color:#e3e7ef;border-left:1px solid rgba(80,200,255,.22);box-shadow:-12px 0 40px rgba(0,0,0,.5);
@@ -281,12 +283,39 @@ function visibile(id) {
 function aggiornaPulsante() {
   if (!pulsante || aperta()) return;
   const accesso = visibile('loginScreen') || visibile('registrazioneScreen');
+  if (!accesso && barraVisibile()) { pulsante.classList.remove('gd-visibile'); return; }
   pulsante.classList.toggle('gd-pill', accesso);
   pulsante.textContent = accesso ? T.pulsanteAccesso : '?';
   pulsante.setAttribute('aria-label', accesso ? T.pulsanteAccesso : T.pulsanteApp);
   pulsante.title = accesso ? '' : T.pulsanteApp;
   pulsante.classList.add('gd-visibile');
   posiziona();
+}
+
+// ---- "?" nella barra in alto, subito dopo il pulsante Account (computer e telefono) ----
+function inserisciNellaBarra() {
+  ['accountBtn', 'accountBtnMobile'].forEach(id => {
+    const acc = document.getElementById(id);
+    if (!acc || acc.nextElementSibling?.classList.contains('gd-bar')) return;
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'gd-bar';
+    b.style.cssText = acc.style.cssText;            // stesso stile di Account
+    b.style.fontSize = '14px';                      // "?" un po' piu' leggibile
+    b.style.lineHeight = '1';
+    const gap = getComputedStyle(acc.parentElement).columnGap;
+    if (!gap || gap === 'normal' || gap === '0px') b.style.marginLeft = '6px';
+    b.textContent = '?';
+    b.title = T.pulsanteApp;
+    b.setAttribute('aria-label', T.pulsanteApp);
+    b.setAttribute('aria-haspopup', 'dialog');
+    b.addEventListener('click', () => apri());
+    acc.insertAdjacentElement('afterend', b);
+  });
+}
+
+function barraVisibile() {
+  return [...document.querySelectorAll('.gd-bar')].some(b => b.getClientRects().length > 0);
 }
 
 // ---- Pillola subito sotto il riquadro di accesso/registrazione ----
@@ -337,7 +366,7 @@ function posiziona() {
 
 let tentativi = 0;
 function osserva() {
-  const obs = new MutationObserver(aggiornaPulsante);
+  const obs = new MutationObserver(() => { aggiornaPulsante(); setTimeout(aggiornaPulsante, 300); });
   let collegati = 0;
   ['loginScreen', 'registrazioneScreen'].forEach(id => {
     const el = document.getElementById(id);
@@ -354,7 +383,9 @@ function osserva() {
 function avvia() {
   crea();
   osserva();
-  window.addEventListener('resize', posiziona);
+  inserisciNellaBarra();
+  setTimeout(aggiornaPulsante, 800);   // l'app compare poco dopo il login
+  window.addEventListener('resize', () => { aggiornaPulsante(); posiziona(); });
   window.addEventListener('scroll', posiziona, true);
   window.apriGuida = apri;
   window.chiudiGuida = chiudi;
