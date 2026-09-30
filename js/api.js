@@ -6,10 +6,78 @@
 
 const API_URL = 'https://poker-range-api-production.up.railway.app';
 
-let _authToken = null;
-export function getToken()      { return _authToken; }
-export function setToken(t)     { _authToken = t; }
-export function clearToken()    { _authToken = null; }
+let _authToken    = null;
+let _refreshToken = null;
+export function getToken()        { return _authToken; }
+export function setToken(t)       { _authToken = t; }
+export function setRefreshToken(t){ _refreshToken = t || null; }
+export function clearToken()      { _authToken = null; _refreshToken = null; }
+
+// ===== RINNOVO AUTOMATICO DEL TOKEN =====
+// Il token di Supabase dura 1 ora: prima che scada (o se il server lo rifiuta)
+// l'app ne chiede uno nuovo a /api/refresh con il refresh token.
+// Il backend rinnova SOLO se l'abbonamento o la prova sono ancora validi.
+let _gestione = { sessionToken: () => null, salva: () => {} };
+export function impostaGestioneRinnovo(g) { _gestione = { ..._gestione, ...g }; }
+
+const ENDPOINT_SENZA_RINNOVO = ['/api/login', '/api/refresh'];
+const ERRORI_DA_PROPAGARE    = ['SESSION_DUPLICATE', 'TRIAL_EXPIRED', 'SUBSCRIPTION_EXPIRED'];
+
+// Scadenza del token (millisecondi), letta dal token stesso; 0 se non leggibile
+function scadenzaToken(t) {
+  try {
+    const payload = JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return (payload.exp || 0) * 1000;
+  } catch (e) { return 0; }
+}
+
+// Un solo rinnovo alla volta: le richieste contemporanee aspettano lo stesso rinnovo
+let _rinnovoInCorso = null;
+function rinnovaToken() {
+  if (!_refreshToken) return Promise.resolve(false);
+  if (_rinnovoInCorso) return _rinnovoInCorso;
+  _rinnovoInCorso = (async () => {
+    try {
+      let res, json;
+      try {
+        res  = await fetch(API_URL + '/api/refresh', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token: _refreshToken, session_token: _gestione.sessionToken() }),
+        });
+        json = await res.json();
+      } catch (e) {
+        return false; // rete: si riprova alla richiesta successiva
+      }
+      if (json && json.error === 'RATE_LIMIT_BLOCKED') throw new RateLimitError(json.permanent);
+      if (!res.ok || !json || !json.access_token) {
+        const err = new Error((json && json.error) || 'REFRESH_FAILED');
+        if (json && json.prezzo) err.prezzo = json.prezzo;
+        throw err;
+      }
+      _authToken    = json.access_token;
+      _refreshToken = json.refresh_token || _refreshToken;
+      _gestione.salva(_authToken, _refreshToken);
+      return true;
+    } finally {
+      _rinnovoInCorso = null;
+    }
+  })();
+  return _rinnovoInCorso;
+}
+
+// Alcune richieste portano il token anche nel corpo: dopo un rinnovo va aggiornato
+function aggiornaTokenNelCorpo(opts) {
+  if (!_authToken || typeof opts.body !== 'string') return opts;
+  try {
+    const corpo = JSON.parse(opts.body);
+    if (corpo && corpo.access_token && corpo.access_token !== _authToken) {
+      corpo.access_token = _authToken;
+      return { ...opts, body: JSON.stringify(corpo) };
+    }
+  } catch (e) { /* corpo non JSON: si lascia com'è */ }
+  return opts;
+}
 
 // Blocco per troppe richieste deciso dal backend.
 // permanent = false: sospensione di 10 minuti che scade da sola; true: account sospeso.
@@ -21,7 +89,15 @@ export class RateLimitError extends Error {
   }
 }
 
-export async function apiFetch(endpoint, opts = {}) {
+export async function apiFetch(endpoint, opts = {}, _giaRiprovato = false) {
+  const rinnovabile = !ENDPOINT_SENZA_RINNOVO.includes(endpoint);
+
+  // Rinnovo preventivo: se il token scade entro 2 minuti, rinnovalo prima della richiesta
+  if (rinnovabile && _refreshToken && _authToken && scadenzaToken(_authToken) - Date.now() < 2 * 60 * 1000) {
+    try { await rinnovaToken(); } catch (e) { /* ci pensa la richiesta: il server risponde con l'errore giusto */ }
+  }
+  opts = aggiornaTokenNelCorpo(opts);
+
   const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
   if (_authToken) headers['Authorization'] = 'Bearer ' + _authToken;
   let res, json;
@@ -34,6 +110,17 @@ export async function apiFetch(endpoint, opts = {}) {
   // Solo il vero blocco dell'account è un RateLimitError. Gli altri "troppe richieste"
   // (codici SMS, tentativi di login, account per connessione) mostrano il messaggio del backend.
   if (json && json.error === 'RATE_LIMIT_BLOCKED') throw new RateLimitError(json.permanent);
+  // Token rifiutato (per esempio scaduto mentre la scheda era in background):
+  // un solo tentativo di rinnovo, poi la stessa richiesta viene ripetuta
+  if (res.status === 401 && rinnovabile && !_giaRiprovato && _refreshToken && !(json && json.error === 'SESSION_DUPLICATE')) {
+    let rinnovato = false;
+    try {
+      rinnovato = await rinnovaToken();
+    } catch (e) {
+      if (e instanceof RateLimitError || ERRORI_DA_PROPAGARE.includes(e.message)) throw e;
+    }
+    if (rinnovato) return apiFetch(endpoint, opts, true);
+  }
   if (!res.ok) {
     const err = new Error((json && json.error) || 'Errore server');
     // Blocco al login: il backend dice se è temporaneo o permanente

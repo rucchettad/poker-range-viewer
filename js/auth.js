@@ -5,7 +5,7 @@
 'use strict';
 
 import {
-  getToken, setToken, clearToken, RateLimitError,
+  getToken, setToken, setRefreshToken, clearToken, impostaGestioneRinnovo, RateLimitError,
   apiFetch, apiLogin, apiCheckStatus,
   apiResetPasswordRequest, apiNuovaPassword,
   apiRegistrazione, apiCreaCheckout, apiDisdici,
@@ -15,6 +15,7 @@ import {
 const SESSION_KEY = 'poker_token';
 const EMAIL_KEY   = 'poker_email';
 const SESSION_TK  = 'poker_session';
+const REFRESH_KEY = 'poker_refresh';
 
 function el(id) { return document.getElementById(id); }
 
@@ -37,17 +38,20 @@ function setLoading(elId, visible) {
   if (e) e.style.display = visible ? 'block' : 'none';
 }
 
-function saveSession(token, email, sessionToken) {
+function saveSession(token, email, sessionToken, refreshToken) {
   sessionStorage.setItem(SESSION_KEY, token);
   sessionStorage.setItem(EMAIL_KEY, email);
   if (sessionToken) sessionStorage.setItem(SESSION_TK, sessionToken);
+  if (refreshToken) sessionStorage.setItem(REFRESH_KEY, refreshToken);
   setToken(token);
+  setRefreshToken(refreshToken);
 }
 function clearSession() {
   clearToken();
   sessionStorage.removeItem(SESSION_KEY);
   sessionStorage.removeItem(EMAIL_KEY);
   sessionStorage.removeItem(SESSION_TK);
+  sessionStorage.removeItem(REFRESH_KEY);
   window.APP_AVVIATA       = false;
   window.DISCLAIMER_CHIUSO = false;
 }
@@ -381,12 +385,17 @@ async function doLogin(email, password) {
     } else if (/^Troppi tentativi/i.test(e.message || '')) {
       // Troppe password errate: il backend dice tra quanti minuti riprovare
       setError('loginError', e.message);
+    } else if (/^Errore di rete/i.test(e.message || '')) {
+      // Il server non risponde o manca la connessione: non è colpa della password
+      setError('loginError', 'Connessione non riuscita. Controlla la connessione a internet e riprova.');
+    } else if (e.message === 'Email o password errati.' || e.message === 'Email e password obbligatorie.') {
+      setError('loginError', e.message);
     } else {
-      setError('loginError', 'Email o password errati.');
+      setError('loginError', 'Accesso non riuscito per un problema temporaneo. Riprova tra qualche minuto.');
     }
     return;
   }
-  saveSession(loginData.access_token, loginData.user.email, loginData.session_token);
+  saveSession(loginData.access_token, loginData.user.email, loginData.session_token, loginData.refresh_token);
   setLoading('loginLoading', false);
   try {
     const sessionToken = sessionStorage.getItem(SESSION_TK);
@@ -455,6 +464,7 @@ export async function ripristinaSessione() {
   const sessionToken = sessionStorage.getItem(SESSION_TK);
   if (token && email) {
     setToken(token);
+    setRefreshToken(sessionStorage.getItem(REFRESH_KEY));
     try {
       await apiCheckStatus(token, sessionToken);
     } catch (e) {
@@ -506,6 +516,14 @@ export function avviaPollingSessione() {
 // ===== INIT =====
 
 export function initAuth() {
+  // Rinnovo automatico del token: api.js chiede il session token e salva i token nuovi
+  impostaGestioneRinnovo({
+    sessionToken: () => sessionStorage.getItem(SESSION_TK),
+    salva: (accessToken, refreshToken) => {
+      sessionStorage.setItem(SESSION_KEY, accessToken);
+      if (refreshToken) sessionStorage.setItem(REFRESH_KEY, refreshToken);
+    },
+  });
   initLogin();
   initForgotPassword();
   initResetPassword();
