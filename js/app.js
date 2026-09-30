@@ -162,7 +162,7 @@ function aggiornaStatistiche() {
   let html = `<div class="stat"><div class="stat-color" style="background:linear-gradient(45deg,#16a34a,#ffe57f,#ff6600,#dc2626,#ffb347)"></div><div class="stat-content"><div class="stat-label">Range Totale (senza Fold)</div><div class="stat-value">${Math.round(tot)} (${((tot / 1326) * 100).toFixed(1)}%)</div></div></div>`;
   Object.keys(contatori).forEach(az => {
     if (contatori[az] <= 0) return;
-    const etichettaAz = (az === 'threebshove' && azioneSelezionata === 'RFI/OSHOVE') ? 'Open Shove' : (ETICHETTE[az] || az);
+        const etichettaAz = (az === 'threebshove' && azioneSelezionata === 'RFI/OSHOVE') ? 'Open Shove' : (az === 'threebshove' && azioneSelezionata.startsWith('Vs 3Bet')) ? '4Bet Shove' : (ETICHETTE[az] || az);
     html += `<div class="stat"><div class="stat-color" style="background:${COLORI[az]}"></div><div class="stat-content"><div class="stat-label">${etichettaAz}</div><div class="stat-value">${Math.round(contatori[az])} (${((contatori[az] / 1326) * 100).toFixed(1)}%)</div></div></div>`;
   });
   el('rangeStats').innerHTML = html;
