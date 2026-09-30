@@ -236,11 +236,6 @@ function initResetPassword() {
 
 // ===== REGISTRAZIONE =====
 
-function toggleRakeback(cb) {
-  const pct = document.querySelector(`.reg-room-pct[data-room="${cb.value}"]`);
-  if (pct) { pct.style.display = cb.checked ? 'inline-block' : 'none'; if (!cb.checked) pct.value = ''; }
-}
-
 // ===== VERIFICA OTP =====
 // MODIFICA: usa apiVerifyOtpRegistration invece di /api/verify-otp
 function initVerificaOtp() {
@@ -287,12 +282,6 @@ function initRegistrazione() {
     setError('regError', '');
     showScreen('loginScreen');
   });
-  el('regRoomAltreChk').addEventListener('change', function () {
-    el('regRoomAltreText').style.display = this.checked ? 'block' : 'none';
-  });
-  document.querySelectorAll('.reg-room-cb').forEach(cb => {
-    cb.addEventListener('change', () => toggleRakeback(cb));
-  });
 
   // MODIFICA: usa apiSendOtpRegistration invece di apiRegistrazione + login + send-otp
   el('regBtn').addEventListener('click', async () => {
@@ -304,17 +293,8 @@ function initRegistrazione() {
     if (!el('regGdprChk').checked) { setError('regError', 'Devi accettare i Termini di servizio e la Privacy per procedere.'); return; }
     if (!nome || !email || !password || !phone) { setError('regError', 'Compila tutti i campi obbligatori (incluso il telefono).'); return; }
     if (password.length < 6) { setError('regError', 'La password deve essere di almeno 6 caratteri.'); return; }
-    const roomSelezionate = [];
-    document.querySelectorAll('.reg-room-cb:checked').forEach(cb => {
-      if (cb.value === 'Altre') {
-        const altro = el('regRoomAltreText').value.trim();
-        if (altro) roomSelezionate.push('Altre: ' + altro);
-      } else {
-        const pct    = document.querySelector(`.reg-room-pct[data-room="${cb.value}"]`);
-        const pctVal = pct ? pct.value.trim() : '';
-        roomSelezionate.push(pctVal ? `${cb.value} (${pctVal})` : cb.value);
-      }
-    });
+    // Room più usata: facoltativa, testo libero (max 60 caratteri)
+    const roomPreferita = (el('regRoom')?.value || '').trim().slice(0, 60);
     setLoading('regLoading', true);
     try {
       await apiSendOtpRegistration({
@@ -322,7 +302,7 @@ function initRegistrazione() {
         email,
         password,
         phone_number: phone,
-        room_principale: roomSelezionate.join(', ')
+        room_principale: roomPreferita
       });
 
       // Salva dati temporanei per la verifica OTP
