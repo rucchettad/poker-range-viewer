@@ -54,7 +54,13 @@ function aggiungiStilePile() {
     '.auth-stacks svg{transition:opacity ' + T_SVUOTA + 's ease}' +
     '.auth-stacks svg.svuota{opacity:0}' +
     // Telefono e tablet: stessa intensità dei simboli del desktop (style.css li rendeva più tenui)
-    '@media (max-width:1023px){.auth-left{opacity:1 !important}}';
+    '@media (max-width:1023px){.auth-left{opacity:1 !important}}' +
+    // Frase in alto a destra: circa il 20% più grande
+    '.auth-quote{font-size:clamp(18px,1.75vw,36px);will-change:transform}' +
+    // Marchio © in basso a destra, sulla parte scura della foto (solo computer, come la foto)
+    '.auth-copy{position:absolute;right:max(20px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));margin:0;' +
+      'font:500 12px/1.4 system-ui,sans-serif;letter-spacing:.02em;color:rgba(230,235,245,.6);text-shadow:0 0 6px #0b0c10,0 0 12px #0b0c10}' +
+    '@media (max-width:1023px){.auth-copy{display:none}}';
   document.head.appendChild(st);
 }
 
@@ -72,6 +78,7 @@ function creaSfondo() {
       <div class="auth-stacks"></div>
     </div>
     <img class="auth-photo" src="img/sala-poker.webp" alt="" decoding="async" loading="lazy">
+    <p class="auth-copy">&copy; ${new Date().getFullYear()} Mindset &amp; Discipline Lab &middot; pokerrange.online</p>
     <p class="auth-quote">
       <span class="q1">Il flop, il turn e il river sono i capitoli.</span>
       <span class="q2">Il <b>preflop</b> è la trama che li tiene insieme.</span>
@@ -87,7 +94,10 @@ function creaSfondo() {
   brand.innerHTML = 'Mindset <span class="amp">&amp;</span> Discipline Lab';
   document.body.prepend(brand);
 
-  return { bg, brand, canvas: bg.querySelector('.auth-canvas'), pileBox: bg.querySelector('.auth-stacks') };
+  return {
+    bg, brand, canvas: bg.querySelector('.auth-canvas'), pileBox: bg.querySelector('.auth-stacks'),
+    fraseEl: bg.querySelector('.auth-quote'), fotoEl: bg.querySelector('.auth-photo'),
+  };
 }
 
 // Pile di fiches a contorno (SVG), con il nome della tappa sopra ognuna.
@@ -215,19 +225,51 @@ function avviaSemi(canvas) {
   };
 }
 
+// ===== FRASE CHE GALLEGGIA =====
+// Parte dalla sua posizione di sempre (limite alto) e scende lentamente fin quasi
+// sopra la foto (limite basso), poi risale: un ciclo completo dura circa 24 secondi,
+// con un leggerissimo ondeggiamento laterale. Resta sempre allineata a destra,
+// quindi non invade il riquadro di accesso o registrazione.
+const T_CICLO_FRASE = 24;   // secondi per scendere e risalire
+function avviaFrase(frase, foto) {
+  let raf = 0, attivo = false, t0 = 0;
+
+  function ciclo(ts) {
+    if (!t0) t0 = ts;
+    const t = (ts - t0) / 1000;
+    // Posizione naturale (senza spostamento) e spazio libero fino alla foto
+    const altoFrase = frase.offsetTop, alt = frase.offsetHeight;
+    const fotoTop = foto.getBoundingClientRect().top;
+    const corsa = Math.max(0, (fotoTop > 0 ? fotoTop : window.innerHeight) - 24 - (altoFrase + alt));
+    const discesa = corsa * (0.5 - 0.5 * Math.cos((2 * Math.PI * t) / T_CICLO_FRASE));
+    const ondeggio = 6 * Math.sin((2 * Math.PI * t) / (T_CICLO_FRASE * 0.7));
+    frase.style.transform = `translate(${ondeggio.toFixed(1)}px, ${discesa.toFixed(1)}px)`;
+    raf = requestAnimationFrame(ciclo);
+  }
+
+  return {
+    avvia() {
+      if (attivo || FERMO) return;
+      attivo = true; t0 = 0; raf = requestAnimationFrame(ciclo);
+    },
+    ferma() { attivo = false; cancelAnimationFrame(raf); frase.style.transform = ''; },
+  };
+}
+
 // ===== VISIBILITÀ =====
 function init() {
   aggiungiStilePile();
-  const { bg, brand, canvas, pileBox } = creaSfondo();
+  const { bg, brand, canvas, pileBox, fraseEl, fotoEl } = creaSfondo();
   const semi = avviaSemi(canvas);
   const pile = avviaPile(pileBox);
+  const frase = avviaFrase(fraseEl, fotoEl);
   const schermate = SCHERMATE.map(id => document.getElementById(id)).filter(Boolean);
 
   function aggiorna() {
     const visibile = schermate.some(s => s.style.display && s.style.display !== 'none');
     bg.style.display = visibile ? 'block' : 'none';
     brand.style.display = visibile ? 'block' : 'none';
-    if (visibile) { semi.avvia(); pile.avvia(); } else { semi.ferma(); pile.ferma(); }
+    if (visibile) { semi.avvia(); pile.avvia(); frase.avvia(); } else { semi.ferma(); pile.ferma(); frase.ferma(); }
   }
 
   const osserva = new MutationObserver(aggiorna);
