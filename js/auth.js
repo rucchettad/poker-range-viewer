@@ -510,7 +510,7 @@ export function avviaPollingSessione() {
         mostraAccessoScaduto(email, e.prezzo);
       }
     }
-  }, 30_000);
+  }, 60_000);
 }
 
 // ===== INIT =====
