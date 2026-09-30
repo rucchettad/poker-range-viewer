@@ -345,11 +345,31 @@ function trovaRiquadro(schermata) {
 let rafPos = 0, riquadroOsservato = null;
 const roRiquadro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => posiziona()) : null;
 
+// Spazio aggiunto sotto la schermata quando la pillola non ci sta (telefono):
+// si ricorda l'elemento e il valore originale per rimetterlo com'era.
+const SPAZIO_PILLOLA = 96;
+let allungata = null, paddingOriginale = '';
+function allunga(schermata) {
+  if (allungata === schermata) return;
+  accorcia();
+  allungata = schermata;
+  paddingOriginale = schermata.style.paddingBottom;
+  schermata.style.paddingBottom = SPAZIO_PILLOLA + 'px';
+}
+function accorcia() {
+  if (!allungata) return;
+  allungata.style.paddingBottom = paddingOriginale;
+  allungata = null;
+}
+
 function posiziona() {
   cancelAnimationFrame(rafPos);
   rafPos = requestAnimationFrame(() => {
     if (!pulsante) return;
-    const reset = () => { pulsante.style.top = ''; pulsante.style.bottom = ''; pulsante.style.left = ''; };
+    const reset = () => {
+      pulsante.style.top = ''; pulsante.style.bottom = ''; pulsante.style.left = ''; pulsante.style.position = '';
+      accorcia();
+    };
     if (!pulsante.classList.contains('gd-pill')) return reset();
     const schermata = schermataAccesso();
     const riquadro = schermata && trovaRiquadro(schermata);
@@ -359,12 +379,25 @@ function posiziona() {
       roRiquadro.observe(riquadro);
       riquadroOsservato = riquadro;
     }
-    const r = riquadro.getBoundingClientRect();
-    const top = r.bottom + 18;
-    if (top + 56 > window.innerHeight) return reset(); // non c'è spazio sotto: resta in basso
-    pulsante.style.top = top + 'px';
+    if (allungata && allungata !== schermata) accorcia();
+
+    let r = riquadro.getBoundingClientRect();
+    if (allungata !== schermata && r.bottom + 18 + 56 <= window.innerHeight) {
+      // C'è spazio sotto il riquadro (desktop): pillola fissa sotto il riquadro, come prima
+      pulsante.style.position = '';
+      pulsante.style.top = (r.bottom + 18) + 'px';
+      pulsante.style.bottom = 'auto';
+      pulsante.style.left = (r.left + r.width / 2) + 'px';
+      return;
+    }
+    // Non c'è spazio (telefono): la pagina si allunga un po' e la pillola sta sotto il riquadro,
+    // nel flusso della pagina, così non copre più l'email dell'assistenza
+    allunga(schermata);
+    r = riquadro.getBoundingClientRect();
+    pulsante.style.position = 'absolute';
+    pulsante.style.top = (r.bottom + window.scrollY + 18) + 'px';
     pulsante.style.bottom = 'auto';
-    pulsante.style.left = (r.left + r.width / 2) + 'px';
+    pulsante.style.left = (r.left + window.scrollX + r.width / 2) + 'px';
   });
 }
 
