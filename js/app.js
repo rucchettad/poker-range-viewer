@@ -47,7 +47,7 @@ const ETICHETTE = {
   threebshove:'3Bet Shove', open:'Open',
   isotobrokefold:'ISO to Broke/Fold', checkback:'Check Back', bbshovebase:'ISO Shove',
   shove:'Shove', callnai:'Call', '4betbrokenai':'4Bet NAI to Broke',
-  '4betnaitofold':'4Bet NAI to Fold', foldnai:'Fold', callai:'Call (AI)', foldai:'Fold (AI)',
+  '4betnaitofold':'4Bet NAI to Fold', foldnai:'Fold', callai:'Call', foldai:'Fold',
   raisevsiso:'Limp 3Bet', foldvsiso:'Fold vs ISO', shovevsiso:'Shove vs ISO', callvsiso:'Call vs ISO',
   shovevsbbiso:'Shove vs BB ISO', callvsbbiso:'Call vs BB ISO', foldvsbbiso:'Fold vs BB ISO',
   callvsbbisoai:'Call vs BB ISO AI', foldvsbbisoai:'Fold vs BB ISO AI',
