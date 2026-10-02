@@ -564,6 +564,15 @@ export async function ripristinaSessione() {
         showScreen('loginScreen');
         return;
       }
+      if (e.message === 'TRIAL_EXPIRED' || e.message === 'SUBSCRIPTION_EXPIRED') {
+        // Mancava questo ramo: un token salvato che risulta scaduto al semplice
+        // ricaricamento della pagina veniva ignorato silenziosamente, aprendo l'app
+        // invece di mostrare "Accesso scaduto". Il token letto sopra è ancora valido
+        // (la scadenza del trial non invalida il JWT) e permette il checkout senza password.
+        clearSession();
+        mostraAccessoScaduto(email, e.prezzo, token);
+        return;
+      }
     }
     mostraDisclaimerPoiApp({ email });
   } else {
