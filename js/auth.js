@@ -27,6 +27,11 @@ const SUPABASE_URL = 'https://abnsmqheydlpoffxjhsx.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFibnNtcWhleWRscG9mZnhqaHN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwMDE3ODYsImV4cCI6MjA5NzU3Nzc4Nn0.Rs6XIs_54FrvAXWkLGSYK1rIfKYwaMn-bV1sFC3WoKc';
 const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// Client ID OAuth di Google (pubblico, non è un segreto). Usato dal bottone
+// Google Identity Services: il login avviene direttamente su pokerrange.online,
+// così la schermata Google mostra "Poker Range" e non il dominio Supabase.
+const GOOGLE_CLIENT_ID = '910317094229-ills67lnkrbht26gkmfdnvolmqnm02ga.apps.googleusercontent.com';
+
 function el(id) { return document.getElementById(id); }
 
 function showScreen(id) {
@@ -468,18 +473,87 @@ async function handleGoogleLogin() {
   if (error) setError('loginError', 'Errore avvio accesso Google: ' + error.message);
 }
 
+// ----- Bottone Google Identity Services (GIS) -----
+// Flusso principale: Google restituisce un ID token direttamente sulla pagina,
+// che passiamo a Supabase con signInWithIdToken. Se lo script di Google non si
+// carica (rete, blocco estensioni, ecc.) restano visibili i bottoni classici
+// googleLoginBtn/googleRegisterBtn, che usano il vecchio redirect OAuth.
+
+let googleNonce = null; // nonce in chiaro: a Google va l'hash, a Supabase il valore in chiaro
+
+async function sha256Hex(testo) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(testo));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function attendiGoogleGis(timeoutMs = 5000) {
+  return new Promise(resolve => {
+    const inizio = Date.now();
+    (function controlla() {
+      if (window.google?.accounts?.id) return resolve(true);
+      if (Date.now() - inizio > timeoutMs) return resolve(false);
+      setTimeout(controlla, 100);
+    })();
+  });
+}
+
+async function handleGoogleCredential(response) {
+  setError('loginError', '');
+  const { data, error } = await supabaseAuth.auth.signInWithIdToken({
+    provider: 'google',
+    token: response.credential,
+    nonce: googleNonce,
+  });
+  if (error || !data?.session) {
+    showScreen('loginScreen');
+    setError('loginError', 'Accesso con Google non riuscito' + (error?.message ? ': ' + error.message : '.'));
+    return;
+  }
+  await completaLoginGoogle(data.session);
+}
+
+async function initGoogleGis() {
+  if (!window.crypto?.subtle) return;          // serve https o localhost
+  if (!(await attendiGoogleGis())) return;     // script Google non caricato: resta il bottone classico
+  try {
+    googleNonce = crypto.randomUUID ? crypto.randomUUID()
+      : Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, '0')).join('');
+    const nonceHash = await sha256Hex(googleNonce);
+
+    window.google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: handleGoogleCredential,
+      nonce: nonceHash,
+      ux_mode: 'popup',
+      auto_select: false,
+    });
+
+    const larghezza = Math.max(200, Math.min(360, window.innerWidth - 80));
+    [['googleLoginGis', 'googleLoginBtn'], ['googleRegisterGis', 'googleRegisterBtn']].forEach(([idBox, idVecchio]) => {
+      const box = el(idBox);
+      if (!box) return;
+      window.google.accounts.id.renderButton(box, {
+        type: 'standard', theme: 'outline', size: 'large', text: 'continue_with',
+        shape: 'rectangular', logo_alignment: 'center', width: larghezza, locale: 'it',
+      });
+      box.style.display = 'flex';
+      const vecchio = el(idVecchio);
+      if (vecchio) vecchio.style.display = 'none';
+    });
+  } catch (e) {
+    console.warn('Google Identity Services non disponibile, uso il login Google classico.', e);
+  }
+}
+
 function initGoogleLogin() {
   el('googleLoginBtn')?.addEventListener('click', handleGoogleLogin);
   el('googleRegisterBtn')?.addEventListener('click', handleGoogleLogin);
+  initGoogleGis(); // non blocca il resto dell'avvio
 }
 
-// Controlla, al caricamento della pagina, se si arriva da un redirect di
-// Google con una sessione Supabase pronta. Restituisce true se l'ha gestita
-// (il chiamante non deve proseguire con la logica normale di ripristinaSessione).
-async function gestisciRitornoGoogle() {
-  const { data: { session } } = await supabaseAuth.auth.getSession();
-  if (!session) return false;
-
+// Parte comune ai due flussi Google (bottone GIS e vecchio redirect): riceve
+// una sessione Supabase valida e la passa al backend (/api/login-google).
+async function completaLoginGoogle(session) {
   let loginData;
   try {
     loginData = await apiLoginGoogle(session.access_token, session.refresh_token);
@@ -499,7 +573,7 @@ async function gestisciRitornoGoogle() {
     } else {
       setError('loginError', e.message || 'Accesso con Google non riuscito.');
     }
-    return true;
+    return;
   }
   // Sessione Supabase locale non più necessaria: la chiudiamo solo in locale
   // (scope 'local'), così il refresh token resta valido lato server per
@@ -507,6 +581,15 @@ async function gestisciRitornoGoogle() {
   await supabaseAuth.auth.signOut({ scope: 'local' });
   saveSession(loginData.access_token, loginData.user.email, loginData.session_token, loginData.refresh_token);
   mostraDisclaimerPoiApp({ email: loginData.user.email });
+}
+
+// Controlla, al caricamento della pagina, se si arriva da un redirect di
+// Google (flusso classico di riserva) con una sessione Supabase pronta.
+// Restituisce true se l'ha gestita (il chiamante non deve proseguire).
+async function gestisciRitornoGoogle() {
+  const { data: { session } } = await supabaseAuth.auth.getSession();
+  if (!session) return false;
+  await completaLoginGoogle(session);
   return true;
 }
 
