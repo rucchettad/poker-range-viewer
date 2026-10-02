@@ -10,6 +10,7 @@ import {
   apiResetPasswordRequest, apiNuovaPassword,
   apiRegistrazione, apiCreaCheckout, apiDisdici,
   apiSendOtpRegistration, apiVerifyOtpRegistration,
+  apiGoogleSendOtp, apiGoogleVerifyOtp,
 } from './api.js';
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
@@ -35,7 +36,7 @@ const GOOGLE_CLIENT_ID = '910317094229-ills67lnkrbht26gkmfdnvolmqnm02ga.apps.goo
 function el(id) { return document.getElementById(id); }
 
 function showScreen(id) {
-  ['loginScreen','forgotScreen','resetScreen','trialScadutoScreen','registrazioneScreen','verificaOtpScreen','appScreen']
+  ['loginScreen','forgotScreen','resetScreen','trialScadutoScreen','registrazioneScreen','verificaOtpScreen','telefonoGoogleScreen','appScreen']
     .forEach(s => { const e = el(s); if (e) e.style.display = 'none'; });
   const target = el(id);
   if (target) target.style.display = ['appScreen'].includes(id) ? 'block' : 'flex';
@@ -295,6 +296,7 @@ function initVerificaOtp() {
 function initRegistrazione() {
   el('registrazioneLink').addEventListener('click', () => {
     setError('regError', '');
+    if (el('regGoogleInfo')) el('regGoogleInfo').style.display = 'none';
     showScreen('registrazioneScreen');
   });
   el('backToLoginFromReg').addEventListener('click', () => {
@@ -309,7 +311,7 @@ function initRegistrazione() {
     const password = el('regPassword').value;
     const phone    = normalizzaTelefono(el('regPhone').value);
     setError('regError', '');
-    if (!el('regGdprChk').checked) { setError('regError', 'Devi accettare i Termini di servizio e la Privacy per procedere.'); return; }
+    if (!el('regGdprChk').checked) { setError('regError', 'Per procedere devi dichiarare di essere maggiorenne e accettare i Termini di servizio e la Privacy.'); return; }
     if (!nome || !email || !password || !phone) { setError('regError', 'Compila tutti i campi obbligatori (incluso il telefono).'); return; }
     if (password.length < 6) { setError('regError', 'La password deve essere di almeno 6 caratteri.'); return; }
     // Room più usata: facoltativa, testo libero (max 60 caratteri)
@@ -462,7 +464,14 @@ function initLogin() {
 // backend (/api/login-google) crea il profilo al primo accesso se non esiste
 // già, senza chiedere verifica telefono (chi passa da Google ha già
 // un'identità verificata da Google stessa).
-async function handleGoogleLogin() {
+const GOOGLE_MODO_KEY = 'poker_google_modo';
+// Schermata da cui è partito il clic su "Continua con Google":
+// 'login' = solo account esistenti, 'registrazione' = può creare l'account
+let googleModo = 'login';
+
+async function handleGoogleLogin(modo = 'login') {
+  googleModo = modo;
+  try { sessionStorage.setItem(GOOGLE_MODO_KEY, modo); } catch (e) { /* storage non disponibile */ }
   setError('loginError', '');
   const { error } = await supabaseAuth.auth.signInWithOAuth({
     provider: 'google',
@@ -509,7 +518,7 @@ async function handleGoogleCredential(response) {
     setError('loginError', 'Accesso con Google non riuscito' + (error?.message ? ': ' + error.message : '.'));
     return;
   }
-  await completaLoginGoogle(data.session);
+  await completaLoginGoogle(data.session, googleModo);
 }
 
 async function initGoogleGis() {
@@ -529,12 +538,13 @@ async function initGoogleGis() {
     });
 
     const larghezza = Math.max(200, Math.min(360, window.innerWidth - 80));
-    [['googleLoginGis', 'googleLoginBtn'], ['googleRegisterGis', 'googleRegisterBtn']].forEach(([idBox, idVecchio]) => {
+    [['googleLoginGis', 'googleLoginBtn', 'login'], ['googleRegisterGis', 'googleRegisterBtn', 'registrazione']].forEach(([idBox, idVecchio, modo]) => {
       const box = el(idBox);
       if (!box) return;
       window.google.accounts.id.renderButton(box, {
         type: 'standard', theme: 'outline', size: 'large', text: 'continue_with',
         shape: 'rectangular', logo_alignment: 'center', width: larghezza, locale: 'it',
+        click_listener: () => { googleModo = modo; },
       });
       box.style.display = 'flex';
       const vecchio = el(idVecchio);
@@ -546,19 +556,36 @@ async function initGoogleGis() {
 }
 
 function initGoogleLogin() {
-  el('googleLoginBtn')?.addEventListener('click', handleGoogleLogin);
-  el('googleRegisterBtn')?.addEventListener('click', handleGoogleLogin);
+  el('googleLoginBtn')?.addEventListener('click', () => handleGoogleLogin('login'));
+  el('googleRegisterBtn')?.addEventListener('click', () => handleGoogleLogin('registrazione'));
+  initTelefonoGoogle();
   initGoogleGis(); // non blocca il resto dell'avvio
 }
 
 // Parte comune ai due flussi Google (bottone GIS e vecchio redirect): riceve
 // una sessione Supabase valida e la passa al backend (/api/login-google).
-async function completaLoginGoogle(session) {
+async function completaLoginGoogle(session, modo = 'login') {
   let loginData;
   try {
-    loginData = await apiLoginGoogle(session.access_token, session.refresh_token);
+    loginData = await apiLoginGoogle(session.access_token, session.refresh_token, modo);
   } catch (e) {
     await supabaseAuth.auth.signOut({ scope: 'local' });
+    if (e.message === 'NO_ACCOUNT') {
+      // Dal login non si creano account: si passa alla registrazione
+      showScreen('registrazioneScreen');
+      setError('regError', '');
+      const info = el('regGoogleInfo');
+      if (info) {
+        info.textContent = 'Non hai ancora un account Poker Range con questo account Google. Per registrarti clicca "Continua con Google" qui sotto.';
+        info.style.display = 'block';
+      }
+      return;
+    }
+    if (e.message === 'PHONE_REQUIRED') {
+      // Il token resta valido (~1 ora) anche dopo signOut locale: serve per gli SMS
+      mostraTelefonoGoogle(session, !!e.nuovo);
+      return;
+    }
     showScreen('loginScreen');
     if (e.message === 'TRIAL_EXPIRED' || e.message === 'SUBSCRIPTION_EXPIRED') {
       // Il token è ancora valido: signOut({scope:'local'}) pulisce solo lo storage
@@ -589,8 +616,84 @@ async function completaLoginGoogle(session) {
 async function gestisciRitornoGoogle() {
   const { data: { session } } = await supabaseAuth.auth.getSession();
   if (!session) return false;
-  await completaLoginGoogle(session);
+  let modo = 'login';
+  try {
+    modo = sessionStorage.getItem(GOOGLE_MODO_KEY) || 'login';
+    sessionStorage.removeItem(GOOGLE_MODO_KEY);
+  } catch (e) { /* storage non disponibile */ }
+  await completaLoginGoogle(session, modo);
   return true;
+}
+
+// ===== GOOGLE: VERIFICA DEL NUMERO VIA SMS =====
+// Utente nuovo con Google (nuovo = true) oppure utente Google già registrato
+// senza numero (nuovo = false). Il profilo viene creato/completato dal backend
+// solo dopo il codice corretto; poi l'accesso si completa con /login-google.
+let googleInAttesa = null; // { session, phone }
+
+function mostraTelefonoGoogle(session, nuovo) {
+  googleInAttesa = { session, phone: null };
+  el('telGoogleTitolo').textContent = nuovo ? 'Completa la registrazione' : 'Verifica il tuo numero';
+  el('telGoogleTesto').textContent = nuovo
+    ? 'Per attivare la prova gratuita di 15 giorni inserisci il tuo numero di cellulare: ti invieremo un codice via SMS. Il numero serve solo per la verifica.'
+    : 'Per continuare a usare Poker Range è richiesta, una sola volta, la verifica del numero di cellulare. Il numero serve solo per questo.';
+  el('telGoogleFaseNumero').style.display = 'block';
+  el('telGoogleFaseCodice').style.display = 'none';
+  el('telGooglePhone').value = '';
+  el('telGoogleCode').value = '';
+  setError('telGoogleError', '');
+  showScreen('telefonoGoogleScreen');
+}
+
+function initTelefonoGoogle() {
+  el('telGoogleInviaBtn')?.addEventListener('click', async () => {
+    if (!googleInAttesa) { showScreen('loginScreen'); return; }
+    const phone = normalizzaTelefono(el('telGooglePhone').value);
+    if (!phone) { setError('telGoogleError', 'Inserisci il tuo numero di cellulare.'); return; }
+    setError('telGoogleError', '');
+    setLoading('telGoogleLoading', true);
+    try {
+      await apiGoogleSendOtp({ accessToken: googleInAttesa.session.access_token, phone_number: phone });
+      googleInAttesa.phone = phone;
+      el('telGoogleFaseNumero').style.display = 'none';
+      el('telGoogleFaseCodice').style.display = 'block';
+      el('telGoogleCode').focus();
+    } catch (e) {
+      setError('telGoogleError', e.message || 'Invio del codice non riuscito. Riprova.');
+    } finally {
+      setLoading('telGoogleLoading', false);
+    }
+  });
+
+  el('telGoogleVerificaBtn')?.addEventListener('click', async () => {
+    if (!googleInAttesa || !googleInAttesa.phone) { showScreen('loginScreen'); return; }
+    const codice = el('telGoogleCode').value.trim();
+    if (!/^\d{6}$/.test(codice)) { setError('telGoogleError', 'Inserisci il codice di 6 cifre ricevuto via SMS.'); return; }
+    setError('telGoogleError', '');
+    setLoading('telGoogleLoading', true);
+    try {
+      await apiGoogleVerifyOtp({ accessToken: googleInAttesa.session.access_token, phone_number: googleInAttesa.phone, otp_code: codice });
+      const session = googleInAttesa.session;
+      googleInAttesa = null;
+      await completaLoginGoogle(session, 'registrazione');
+    } catch (e) {
+      setError('telGoogleError', e.message || 'Verifica del codice non riuscita. Riprova.');
+    } finally {
+      setLoading('telGoogleLoading', false);
+    }
+  });
+
+  el('telGoogleCambiaNumero')?.addEventListener('click', () => {
+    el('telGoogleFaseCodice').style.display = 'none';
+    el('telGoogleFaseNumero').style.display = 'block';
+    setError('telGoogleError', '');
+  });
+
+  el('telGoogleAnnulla')?.addEventListener('click', () => {
+    googleInAttesa = null;
+    setError('loginError', '');
+    showScreen('loginScreen');
+  });
 }
 
 // ===== RIPRISTINO SESSIONE =====

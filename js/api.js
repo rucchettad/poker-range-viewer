@@ -20,7 +20,7 @@ export function clearToken()      { _authToken = null; _refreshToken = null; }
 let _gestione = { sessionToken: () => null, salva: () => {} };
 export function impostaGestioneRinnovo(g) { _gestione = { ..._gestione, ...g }; }
 
-const ENDPOINT_SENZA_RINNOVO = ['/api/login', '/api/login-google', '/api/refresh'];
+const ENDPOINT_SENZA_RINNOVO = ['/api/login', '/api/login-google', '/api/refresh', '/api/google-send-otp', '/api/google-verify-otp'];
 const ERRORI_DA_PROPAGARE    = ['SESSION_DUPLICATE', 'TRIAL_EXPIRED', 'SUBSCRIPTION_EXPIRED'];
 
 // Scadenza del token (millisecondi), letta dal token stesso; 0 se non leggibile
@@ -127,6 +127,8 @@ export async function apiFetch(endpoint, opts = {}, _giaRiprovato = false) {
     if (json && json.permanent !== undefined) err.permanent = !!json.permanent;
     // Accesso scaduto: il backend manda anche il prezzo da mostrare (lib/prezzo.js)
     if (json && json.prezzo) err.prezzo = json.prezzo;
+    // Google senza numero verificato: il backend dice se l'utente è nuovo o già registrato
+    if (json && json.nuovo !== undefined) err.nuovo = !!json.nuovo;
     throw err;
   }
   return json;
@@ -149,8 +151,16 @@ export function apiLogin(email, password) {
 }
 // Login/registrazione con Google: access_token e refresh_token arrivano da Supabase
 // dopo che il frontend ha completato il flusso OAuth (vedi auth.js, gestisciRitornoGoogle).
-export function apiLoginGoogle(accessToken, refreshToken) {
-  return apiFetch('/api/login-google', { method: 'POST', body: JSON.stringify({ access_token: accessToken, refresh_token: refreshToken }) });
+// modo: 'login' (solo account esistenti) oppure 'registrazione'
+export function apiLoginGoogle(accessToken, refreshToken, modo = 'login') {
+  return apiFetch('/api/login-google', { method: 'POST', body: JSON.stringify({ access_token: accessToken, refresh_token: refreshToken, modo }) });
+}
+// Verifica del numero via SMS dopo "Continua con Google"
+export function apiGoogleSendOtp({ accessToken, phone_number }) {
+  return apiFetch('/api/google-send-otp', { method: 'POST', body: JSON.stringify({ access_token: accessToken, phone_number }) });
+}
+export function apiGoogleVerifyOtp({ accessToken, phone_number, otp_code }) {
+  return apiFetch('/api/google-verify-otp', { method: 'POST', body: JSON.stringify({ access_token: accessToken, phone_number, otp_code }) });
 }
 export function apiCheckStatus(accessToken, sessionToken) {
   return apiFetch('/api/check-status', { method: 'POST', body: JSON.stringify({ access_token: accessToken, session_token: sessionToken }) });
