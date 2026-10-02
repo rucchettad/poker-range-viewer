@@ -174,10 +174,14 @@ export function apiVerifyOtpRegistration({ phone_number, otp_code }) {
   return apiFetch('/api/verify-otp-registration', { method: 'POST', body: JSON.stringify({ phone_number, otp_code }) });
 }
 
-export async function apiCreaCheckout(email, password) {
+// Il backend accetta sia { access_token } sia { email, password } per identificare
+// l'utente prima di creare la sessione di checkout Stripe. Il token viene usato
+// quando disponibile (es. utenti Google, che non hanno mai impostato una password).
+export async function apiCreaCheckout({ email, password, accessToken } = {}) {
+  const body = accessToken ? { access_token: accessToken } : { email, password };
   let res, data;
   try {
-    res  = await fetch(API_URL + '/api/crea-checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
+    res  = await fetch(API_URL + '/api/crea-checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     data = await res.json();
   } catch (e) {
     throw new Error('Errore di rete: ' + e.message);

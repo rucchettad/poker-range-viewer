@@ -343,8 +343,13 @@ function initRegistrazione() {
 
 // Mostra la schermata "Accesso scaduto" con il prezzo di questo utente (arriva dal backend).
 // Se il prezzo non arriva, resta quello scritto in index.html.
-function mostraAccessoScaduto(email, prezzo) {
+// accessToken (opzionale): quando disponibile (utenti Google al ritorno dal redirect,
+// o chiunque abbia ancora un token valido al momento della scadenza), permette di
+// pagare senza richiedere una password — fondamentale per gli utenti Google, che non
+// ne hanno mai impostata una.
+function mostraAccessoScaduto(email, prezzo, accessToken) {
   window._TRIAL_EMAIL = email;
+  window._TRIAL_ACCESS_TOKEN = accessToken || null;
   if (prezzo) {
     const p1 = el('trialPrezzo'), p2 = el('trialPrezzoBtn');
     if (p1) p1.textContent = prezzo;
@@ -358,9 +363,15 @@ function initTrialScaduto() {
     setLoading('trialLoading', true);
     setError('trialError', '');
     try {
-      const email    = window._TRIAL_EMAIL || el('loginEmail').value.trim();
-      const password = el('loginPassword').value;
-      const url      = await apiCreaCheckout(email, password);
+      const token = window._TRIAL_ACCESS_TOKEN || null;
+      let url;
+      if (token) {
+        url = await apiCreaCheckout({ accessToken: token });
+      } else {
+        const email    = window._TRIAL_EMAIL || el('loginEmail').value.trim();
+        const password = el('loginPassword').value;
+        url = await apiCreaCheckout({ email, password });
+      }
       window.location.href = url;
     } catch (e) {
       setError('trialError', e.message);
@@ -476,7 +487,9 @@ async function gestisciRitornoGoogle() {
     await supabaseAuth.auth.signOut({ scope: 'local' });
     showScreen('loginScreen');
     if (e.message === 'TRIAL_EXPIRED' || e.message === 'SUBSCRIPTION_EXPIRED') {
-      mostraAccessoScaduto(session.user.email, e.prezzo);
+      // Il token è ancora valido: signOut({scope:'local'}) pulisce solo lo storage
+      // locale, non invalida il JWT lato server (dura comunque ~1 ora dall'emissione).
+      mostraAccessoScaduto(session.user.email, e.prezzo, session.access_token);
     } else if (e.message === 'ACCOUNT_BLOCKED' || e instanceof RateLimitError) {
       const errEl = el('loginError');
       errEl.innerHTML = e.permanent ? HTML_LOGIN_BLOCCO_PERM : HTML_LOGIN_BLOCCO_TEMP;
@@ -574,10 +587,12 @@ export function avviaPollingSessione() {
         setError('loginError', "⚠️ Sessione non valida. Un altro dispositivo ha effettuato l'accesso con questo account.");
       } else if (e.message === 'TRIAL_EXPIRED' || e.message === 'SUBSCRIPTION_EXPIRED') {
         // Prova o abbonamento terminati durante l'uso: schermata di rinnovo.
-        // L'email va letta prima di clearSession(), che la cancella.
+        // Email e token vanno letti prima di clearSession(), che li cancella.
+        // Il token (ancora valido: la scadenza del trial non invalida il JWT)
+        // permette il checkout senza password, utile anche per gli utenti Google.
         const email = sessionStorage.getItem(EMAIL_KEY) || '';
         clearSession();
-        mostraAccessoScaduto(email, e.prezzo);
+        mostraAccessoScaduto(email, e.prezzo, token);
       }
     }
   }, 60_000);
