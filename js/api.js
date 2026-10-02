@@ -20,7 +20,7 @@ export function clearToken()      { _authToken = null; _refreshToken = null; }
 let _gestione = { sessionToken: () => null, salva: () => {} };
 export function impostaGestioneRinnovo(g) { _gestione = { ..._gestione, ...g }; }
 
-const ENDPOINT_SENZA_RINNOVO = ['/api/login', '/api/refresh'];
+const ENDPOINT_SENZA_RINNOVO = ['/api/login', '/api/login-google', '/api/refresh'];
 const ERRORI_DA_PROPAGARE    = ['SESSION_DUPLICATE', 'TRIAL_EXPIRED', 'SUBSCRIPTION_EXPIRED'];
 
 // Scadenza del token (millisecondi), letta dal token stesso; 0 se non leggibile
@@ -146,6 +146,11 @@ export function svuotaCache() { Object.keys(_CACHE).forEach(k => delete _CACHE[k
 
 export function apiLogin(email, password) {
   return apiFetch('/api/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+}
+// Login/registrazione con Google: access_token e refresh_token arrivano da Supabase
+// dopo che il frontend ha completato il flusso OAuth (vedi auth.js, gestisciRitornoGoogle).
+export function apiLoginGoogle(accessToken, refreshToken) {
+  return apiFetch('/api/login-google', { method: 'POST', body: JSON.stringify({ access_token: accessToken, refresh_token: refreshToken }) });
 }
 export function apiCheckStatus(accessToken, sessionToken) {
   return apiFetch('/api/check-status', { method: 'POST', body: JSON.stringify({ access_token: accessToken, session_token: sessionToken }) });

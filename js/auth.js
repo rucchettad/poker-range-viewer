@@ -6,16 +6,26 @@
 
 import {
   getToken, setToken, setRefreshToken, clearToken, impostaGestioneRinnovo, RateLimitError,
-  apiFetch, apiLogin, apiCheckStatus,
+  apiFetch, apiLogin, apiLoginGoogle, apiCheckStatus,
   apiResetPasswordRequest, apiNuovaPassword,
   apiRegistrazione, apiCreaCheckout, apiDisdici,
   apiSendOtpRegistration, apiVerifyOtpRegistration,
 } from './api.js';
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
 const SESSION_KEY = 'poker_token';
 const EMAIL_KEY   = 'poker_email';
 const SESSION_TK  = 'poker_session';
 const REFRESH_KEY = 'poker_refresh';
+
+// Client Supabase usato SOLO per il flusso "Accedi con Google" (signInWithOAuth).
+// Il resto dell'app continua a gestire la sessione a modo suo (sessionStorage +
+// backend custom): dopo aver letto i token da qui, la sessione Supabase locale
+// viene chiusa con scope 'local' (vedi gestisciRitornoGoogle), senza invalidare
+// il refresh token lato server, che resta valido per /api/refresh.
+const SUPABASE_URL = 'https://abnsmqheydlpoffxjhsx.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFibnNtcWhleWRscG9mZnhqaHN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwMDE3ODYsImV4cCI6MjA5NzU3Nzc4Nn0.Rs6XIs_54FrvAXWkLGSYK1rIfKYwaMn-bV1sFC3WoKc';
+const supabaseAuth = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 function el(id) { return document.getElementById(id); }
 
@@ -431,9 +441,69 @@ function initLogin() {
   el('loginPassword').addEventListener('keydown', e => { if (e.key === 'Enter') el('loginBtn').click(); });
 }
 
+// ===== LOGIN / REGISTRAZIONE CON GOOGLE =====
+// Un solo bottone serve sia per il login che per la prima registrazione: il
+// backend (/api/login-google) crea il profilo al primo accesso se non esiste
+// già, senza chiedere verifica telefono (chi passa da Google ha già
+// un'identità verificata da Google stessa).
+async function handleGoogleLogin() {
+  setError('loginError', '');
+  const { error } = await supabaseAuth.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin + window.location.pathname },
+  });
+  // In caso di successo il browser viene reindirizzato a Google: il codice
+  // riprende al ritorno sul sito, gestito da gestisciRitornoGoogle().
+  if (error) setError('loginError', 'Errore avvio accesso Google: ' + error.message);
+}
+
+function initGoogleLogin() {
+  el('googleLoginBtn')?.addEventListener('click', handleGoogleLogin);
+  el('googleRegisterBtn')?.addEventListener('click', handleGoogleLogin);
+}
+
+// Controlla, al caricamento della pagina, se si arriva da un redirect di
+// Google con una sessione Supabase pronta. Restituisce true se l'ha gestita
+// (il chiamante non deve proseguire con la logica normale di ripristinaSessione).
+async function gestisciRitornoGoogle() {
+  const { data: { session } } = await supabaseAuth.auth.getSession();
+  if (!session) return false;
+
+  let loginData;
+  try {
+    loginData = await apiLoginGoogle(session.access_token, session.refresh_token);
+  } catch (e) {
+    await supabaseAuth.auth.signOut({ scope: 'local' });
+    showScreen('loginScreen');
+    if (e.message === 'TRIAL_EXPIRED' || e.message === 'SUBSCRIPTION_EXPIRED') {
+      mostraAccessoScaduto(session.user.email, e.prezzo);
+    } else if (e.message === 'ACCOUNT_BLOCKED' || e instanceof RateLimitError) {
+      const errEl = el('loginError');
+      errEl.innerHTML = e.permanent ? HTML_LOGIN_BLOCCO_PERM : HTML_LOGIN_BLOCCO_TEMP;
+      errEl.style.display = 'block';
+    } else if (e.message === 'ACCOUNT_PENDING') {
+      setError('loginError', 'Account in attesa di approvazione.');
+    } else {
+      setError('loginError', e.message || 'Accesso con Google non riuscito.');
+    }
+    return true;
+  }
+  // Sessione Supabase locale non più necessaria: la chiudiamo solo in locale
+  // (scope 'local'), così il refresh token resta valido lato server per
+  // /api/refresh, che lo usa per rinnovare l'access_token dell'app.
+  await supabaseAuth.auth.signOut({ scope: 'local' });
+  saveSession(loginData.access_token, loginData.user.email, loginData.session_token, loginData.refresh_token);
+  mostraDisclaimerPoiApp({ email: loginData.user.email });
+  return true;
+}
+
 // ===== RIPRISTINO SESSIONE =====
 
 export async function ripristinaSessione() {
+  // Se arriviamo da un redirect di Google, gestiscilo subito e non proseguire
+  // con la logica normale (sessionStorage, link di registrazione, ecc.).
+  if (await gestisciRitornoGoogle()) return;
+
   const urlParams = new URLSearchParams(window.location.search);
   // Link "Registrati" della landing (https://pokerrange.online/?registrati):
   // se l'utente non è loggato apre direttamente la schermata di registrazione.
@@ -525,6 +595,7 @@ export function initAuth() {
     },
   });
   initLogin();
+  initGoogleLogin();
   initForgotPassword();
   initResetPassword();
   initRegistrazione();
