@@ -311,19 +311,17 @@ function initRegistrazione() {
     const password = el('regPassword').value;
     const phone    = normalizzaTelefono(el('regPhone').value);
     setError('regError', '');
-    if (!el('regGdprChk').checked) { setError('regError', 'Per procedere devi dichiarare di essere maggiorenne e accettare i Termini di servizio e la Privacy.'); return; }
+    if (!el('regGdprChk').checked) { setError('regError', 'Dichiara di essere maggiorenne e di accettare i Termini di servizio e la Privacy.'); return; }
     if (!nome || !email || !password || !phone) { setError('regError', 'Compila tutti i campi obbligatori (incluso il telefono).'); return; }
     if (password.length < 6) { setError('regError', 'La password deve essere di almeno 6 caratteri.'); return; }
     // Room più usata: facoltativa, testo libero (max 60 caratteri)
-    const roomPreferita = (el('regRoom')?.value || '').trim().slice(0, 60);
     setLoading('regLoading', true);
     try {
       await apiSendOtpRegistration({
         nome_cognome: nome,
         email,
         password,
-        phone_number: phone,
-        room_principale: roomPreferita
+        phone_number: phone
       });
 
       // Salva dati temporanei per la verifica OTP
