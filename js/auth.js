@@ -12,7 +12,9 @@ import {
   apiSendOtpRegistration, apiVerifyOtpRegistration,
   apiGoogleSendOtp, apiGoogleVerifyOtp,
 } from './api.js';
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+// Libreria Supabase ospitata sul nostro sito (js/vendor/supabase.js, caricata in
+// index.html prima dei moduli): nessuna richiesta a CDN esterni come jsDelivr.
+const { createClient } = window.supabase;
 
 const SESSION_KEY = 'poker_token';
 const EMAIL_KEY   = 'poker_email';
@@ -493,17 +495,6 @@ async function sha256Hex(testo) {
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-function attendiGoogleGis(timeoutMs = 5000) {
-  return new Promise(resolve => {
-    const inizio = Date.now();
-    (function controlla() {
-      if (window.google?.accounts?.id) return resolve(true);
-      if (Date.now() - inizio > timeoutMs) return resolve(false);
-      setTimeout(controlla, 100);
-    })();
-  });
-}
-
 async function handleGoogleCredential(response) {
   setError('loginError', '');
   const { data, error } = await supabaseAuth.auth.signInWithIdToken({
@@ -519,45 +510,80 @@ async function handleGoogleCredential(response) {
   await completaLoginGoogle(data.session, googleModo);
 }
 
-async function initGoogleGis() {
-  if (!window.crypto?.subtle) return;          // serve https o localhost
-  if (!(await attendiGoogleGis())) return;     // script Google non caricato: resta il bottone classico
+// ===== GOOGLE CARICATO SOLO DOPO IL CLIC (privacy) =====
+// Lo script di Google NON viene caricato all'apertura della pagina: finché
+// l'utente non clicca il nostro bottone "Continua con Google", Google non
+// riceve nulla (né IP né cookie). Al clic carichiamo lo script e mostriamo il
+// bottone ufficiale di Google al posto del nostro; il secondo clic apre la
+// scelta dell'account. Se lo script non si carica, si usa il vecchio redirect.
+const GOOGLE_GIS_URL = 'https://accounts.google.com/gsi/client';
+let googlePronto = null; // Promise: script caricato e inizializzato
+
+function caricaScriptGoogle(timeoutMs = 8000) {
+  return new Promise((resolve, reject) => {
+    if (window.google?.accounts?.id) return resolve();
+    const tag = document.createElement('script');
+    tag.src = GOOGLE_GIS_URL;
+    tag.async = true;
+    const timer = setTimeout(() => reject(new Error('timeout')), timeoutMs);
+    tag.onload = () => { clearTimeout(timer); resolve(); };
+    tag.onerror = () => { clearTimeout(timer); reject(new Error('script non caricato')); };
+    document.head.appendChild(tag);
+  });
+}
+
+async function preparaGoogle() {
+  if (!window.crypto?.subtle) throw new Error('crypto non disponibile');
+  await caricaScriptGoogle();
+  googleNonce = crypto.randomUUID ? crypto.randomUUID()
+    : Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, '0')).join('');
+  const nonceHash = await sha256Hex(googleNonce);
+  window.google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: handleGoogleCredential,
+    nonce: nonceHash,
+    ux_mode: 'popup',
+    auto_select: false,
+  });
+}
+
+const BOTTONI_GOOGLE = {
+  login:         { box: 'googleLoginGis',    nostro: 'googleLoginBtn',    nota: 'googleLoginNota' },
+  registrazione: { box: 'googleRegisterGis', nostro: 'googleRegisterBtn', nota: 'googleRegisterNota' },
+};
+
+async function attivaGoogle(modo) {
+  googleModo = modo;
+  const ids = BOTTONI_GOOGLE[modo];
+  const nostro = el(ids.nostro);
+  const testoOriginale = nostro ? nostro.innerHTML : '';
+  if (nostro) { nostro.disabled = true; nostro.textContent = 'Connessione a Google...'; }
   try {
-    googleNonce = crypto.randomUUID ? crypto.randomUUID()
-      : Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, '0')).join('');
-    const nonceHash = await sha256Hex(googleNonce);
-
-    window.google.accounts.id.initialize({
-      client_id: GOOGLE_CLIENT_ID,
-      callback: handleGoogleCredential,
-      nonce: nonceHash,
-      ux_mode: 'popup',
-      auto_select: false,
+    if (!googlePronto) googlePronto = preparaGoogle();
+    await googlePronto;
+    const box = el(ids.box);
+    const larghezza = Math.max(200, Math.min(360, (box?.parentElement?.clientWidth || window.innerWidth) - 40));
+    window.google.accounts.id.renderButton(box, {
+      type: 'standard', theme: 'outline', size: 'large', text: 'continue_with',
+      shape: 'rectangular', logo_alignment: 'center', width: larghezza, locale: 'it',
+      click_listener: () => { googleModo = modo; },
     });
-
-    const larghezza = Math.max(200, Math.min(360, window.innerWidth - 80));
-    [['googleLoginGis', 'googleLoginBtn', 'login'], ['googleRegisterGis', 'googleRegisterBtn', 'registrazione']].forEach(([idBox, idVecchio, modo]) => {
-      const box = el(idBox);
-      if (!box) return;
-      window.google.accounts.id.renderButton(box, {
-        type: 'standard', theme: 'outline', size: 'large', text: 'continue_with',
-        shape: 'rectangular', logo_alignment: 'center', width: larghezza, locale: 'it',
-        click_listener: () => { googleModo = modo; },
-      });
-      box.style.display = 'flex';
-      const vecchio = el(idVecchio);
-      if (vecchio) vecchio.style.display = 'none';
-    });
+    box.style.display = 'flex';
+    if (nostro) { nostro.style.display = 'none'; nostro.innerHTML = testoOriginale; nostro.disabled = false; }
+    const nota = el(ids.nota);
+    if (nota) nota.style.display = 'block';
   } catch (e) {
     console.warn('Google Identity Services non disponibile, uso il login Google classico.', e);
+    googlePronto = null;
+    if (nostro) { nostro.innerHTML = testoOriginale; nostro.disabled = false; }
+    handleGoogleLogin(modo); // ripiego: redirect OAuth (contatta Google solo ora, dopo il clic)
   }
 }
 
 function initGoogleLogin() {
-  el('googleLoginBtn')?.addEventListener('click', () => handleGoogleLogin('login'));
-  el('googleRegisterBtn')?.addEventListener('click', () => handleGoogleLogin('registrazione'));
+  el('googleLoginBtn')?.addEventListener('click', () => attivaGoogle('login'));
+  el('googleRegisterBtn')?.addEventListener('click', () => attivaGoogle('registrazione'));
   initTelefonoGoogle();
-  initGoogleGis(); // non blocca il resto dell'avvio
 }
 
 // Parte comune ai due flussi Google (bottone GIS e vecchio redirect): riceve
@@ -577,6 +603,9 @@ async function completaLoginGoogle(session, modo = 'login') {
         info.textContent = 'Non hai ancora un account Poker Range con questo account Google. Per registrarti clicca "Continua con Google" qui sotto.';
         info.style.display = 'block';
       }
+      // Lo script di Google è già caricato (l'utente l'ha appena usato):
+      // mostriamo subito il bottone ufficiale anche qui
+      if (window.google?.accounts?.id) attivaGoogle('registrazione');
       return;
     }
     if (e.message === 'PHONE_REQUIRED') {
