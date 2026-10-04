@@ -723,11 +723,39 @@ function initTelefonoGoogle() {
   });
 }
 
+// ===== LINK DI RECUPERO PASSWORD (token_hash) =====
+// Il template "Reset password" di Supabase porta a
+// https://pokerrange.online/?token_hash=...&type=recovery, così il link nell'email
+// resta sul nostro dominio (niente supabase.co, meno sospetto per i filtri antispam).
+// Il codice viene verificato qui; poi la sessione Supabase locale viene chiusa
+// (scope 'local'), altrimenti al prossimo caricamento gestisciRitornoGoogle() la
+// scambierebbe per un ritorno da Google. Il token resta valido per apiNuovaPassword.
+async function gestisciLinkRecupero() {
+  const p = new URLSearchParams(window.location.search);
+  const tokenHash = p.get('token_hash');
+  if (!tokenHash || p.get('type') !== 'recovery') return false;
+  history.replaceState(null, '', window.location.pathname);
+  try {
+    const { data, error } = await supabaseAuth.auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' });
+    if (error || !data || !data.session) throw error || new Error('Sessione non ricevuta');
+    const accessToken = data.session.access_token;
+    await supabaseAuth.auth.signOut({ scope: 'local' });
+    setToken(accessToken);
+    showScreen('resetScreen');
+  } catch (e) {
+    setError('forgotError', 'Il link non è più valido o è già stato usato. Inserisci la tua email per riceverne uno nuovo.');
+    showScreen('forgotScreen');
+  }
+  return true;
+}
+
 // ===== RIPRISTINO SESSIONE =====
 
 export async function ripristinaSessione() {
   // Se arriviamo da un redirect di Google, gestiscilo subito e non proseguire
   // con la logica normale (sessionStorage, link di registrazione, ecc.).
+  // Link di recupero password dall'email: va gestito prima di tutto il resto.
+  if (await gestisciLinkRecupero()) return;
   if (await gestisciRitornoGoogle()) return;
 
   const urlParams = new URLSearchParams(window.location.search);
