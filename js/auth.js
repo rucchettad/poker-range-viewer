@@ -727,19 +727,23 @@ function initTelefonoGoogle() {
 // Il template "Reset password" di Supabase porta a
 // https://pokerrange.online/?token_hash=...&type=recovery, così il link nell'email
 // resta sul nostro dominio (niente supabase.co, meno sospetto per i filtri antispam).
-// Il codice viene verificato qui; poi la sessione Supabase locale viene chiusa
-// (scope 'local'), altrimenti al prossimo caricamento gestisciRitornoGoogle() la
-// scambierebbe per un ritorno da Google. Il token resta valido per apiNuovaPassword.
+// Il codice viene verificato con un client Supabase separato che NON salva la
+// sessione nel browser: così gestisciRitornoGoogle() non la scambia per un ritorno
+// da Google e non serve signOut (che chiuderebbe la sessione anche sul server,
+// rendendo inutilizzabile il token per apiNuovaPassword).
+const supabaseRecupero = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false, storageKey: 'poker-recupero' },
+});
+
 async function gestisciLinkRecupero() {
   const p = new URLSearchParams(window.location.search);
   const tokenHash = p.get('token_hash');
   if (!tokenHash || p.get('type') !== 'recovery') return false;
   history.replaceState(null, '', window.location.pathname);
   try {
-    const { data, error } = await supabaseAuth.auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' });
+    const { data, error } = await supabaseRecupero.auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' });
     if (error || !data || !data.session) throw error || new Error('Sessione non ricevuta');
     const accessToken = data.session.access_token;
-    await supabaseAuth.auth.signOut({ scope: 'local' });
     setToken(accessToken);
     showScreen('resetScreen');
   } catch (e) {
