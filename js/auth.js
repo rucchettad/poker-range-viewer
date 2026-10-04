@@ -209,6 +209,9 @@ function initForgotPassword() {
   el('forgotPasswordLink').addEventListener('click', () => {
     el('forgotEmail').value = el('loginEmail').value || '';
     setError('forgotError', '');
+    // Il bottone viene disattivato dopo un invio riuscito: va riattivato ogni volta
+    // che si riapre la schermata, altrimenti resta bloccato fino al ricaricamento.
+    el('forgotBtn').disabled = false; el('forgotBtn').style.opacity = '';
     showScreen('forgotScreen');
   });
   el('backToLoginLink').addEventListener('click', () => {
