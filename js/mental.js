@@ -13,6 +13,7 @@ const KEY_TAVOLI = 'mgc_tavoli_max';
 const KEY_REGOLE = 'mgc_regole';      // regole personali della scheda In sessione
 const KEY_TETTO  = 'mgc_tetto_oggi';  // limite di tavoli e % dell'ultima Pre-sessione, con la data
 const KEY_DIARIO = 'mgc_diario';      // voci del diario (sessioni), solo in questo browser
+const KEY_CREDENZE = 'mgc_credenze';  // diario delle credenze, solo in questo browser
 
 const risposte = {};
 let domandeIds = [];
@@ -272,6 +273,12 @@ function disegnaPost(d) {
     `<p class="section-label mgc-block-title">${esc(titolo)}</p>${guida ? `<p class="mgc-hint">${esc(guida)}</p>` : ''}`;
 
   el('postContenuto').innerHTML = `
+    ${sezione('Dati della sessione (facoltativi)')}
+    <div class="mgc-rules mgc-num" style="margin-bottom:24px;">
+      <div class="mgc-field" style="margin:0;"><label for="pdTornei">Tornei giocati</label><input type="number" id="pdTornei" min="0" step="1"/></div>
+      <div class="mgc-field" style="margin:0;"><label for="pdBuyin">Buy-in pagati (€)</label><input type="number" id="pdBuyin" min="0" step="0.01"/></div>
+    </div>
+
     ${sezione('Rispetto delle regole', d.guidaRegole)}
     <div class="mgc-rules" style="gap:0;margin-bottom:6px;">
       ${d.regole.map(r => `
@@ -356,11 +363,13 @@ function disegnaPost(d) {
 }
 
 let letturaAttuale = null;
+let letturaTipo = null;
 async function aggiornaLettura() {
   if (!post.qualita || !post.risultato) return;
   try {
     const r = await chiamaApi('/api/mentale/post', { qualita: post.qualita, risultato: post.risultato });
     letturaAttuale = r.lettura;
+    letturaTipo = r.tipo;
     const classe = r.tipo === 'scarsoPositivo' ? ' ego' : (r.tipo === 'buonoNegativo' ? ' var' : '');
     el('postLettura').innerHTML = `<div class="mgc-reading${classe}">${esc(r.lettura)}</div>`;
   } catch (e) {
@@ -387,6 +396,9 @@ function salvaPost() {
     qualita: post.qualita,
     risultato: post.risultato,
     lettura: letturaAttuale,
+    letturaTipo,
+    tornei: numeroOppureNull(el('pdTornei').value),
+    buyin: numeroOppureNull(el('pdBuyin').value),
     trigger: [...post.trigger],
     note: Object.fromEntries(POST.riflessione.map(r => [r.id, el('pn-' + r.id).value.trim()])),
   };
@@ -397,7 +409,252 @@ function salvaPost() {
   // Modulo pulito per la prossima sessione, conferma visibile
   disegnaPost(POST);
   el('postSalvato').hidden = false;
+  letturaAttuale = null; letturaTipo = null;
+  mostraCorrezione();
+  disegnaDiario();
   el('postSalvato').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+
+// ===== DIARIO =====
+// Tutto calcolato nel browser: sessioni e credenze non lasciano mai il dispositivo.
+const RISULTATO_TESTO = { positivo: 'positivo', pari: 'in pari', negativo: 'negativo' };
+
+function numeroOppureNull(v) {
+  const n = parseFloat(String(v).replace(',', '.'));
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+
+function dataLeggibile(iso) {
+  const [a, m, g] = iso.split('-').map(Number);
+  return new Date(a, m - 1, g).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function fmt1(n) { return n.toFixed(1).replace('.', ','); }
+
+// Banner "Da correggere oggi" in Pre-sessione, dall'ultima Post-sessione con la correzione scritta
+function mostraCorrezione() {
+  const diario = leggiJson(KEY_DIARIO) || [];
+  const ultima = [...diario].sort((a, b) => b.id - a.id).find(v => v.note && v.note.correzione);
+  const box = el('preCorrezione');
+  if (!box) return;
+  box.hidden = !ultima;
+  if (ultima) box.textContent = 'Da correggere oggi: ' + ultima.note.correzione;
+}
+
+// Credenze scritte in sessione
+function salvaCredenza() {
+  const pensiero = el('crPensiero').value.trim();
+  if (!pensiero) { alert('Scrivi almeno il pensiero automatico.'); el('crPensiero').focus(); return; }
+  const credenze = leggiJson(KEY_CREDENZE) || [];
+  credenze.push({ id: Date.now(), data: oggi(), ora: new Date().toTimeString().slice(0, 5),
+    pensiero, prova: el('crProva').value.trim(), alternativa: el('crAlternativa').value.trim() });
+  scriviJson(KEY_CREDENZE, credenze);
+  ['crPensiero', 'crProva', 'crAlternativa'].forEach(id => { el(id).value = ''; });
+  el('crSalvata').hidden = false;
+  setTimeout(() => { el('crSalvata').hidden = true; }, 4000);
+  disegnaDiario();
+}
+
+function rigaDettaglio(titolo, testo) {
+  return testo ? `<div><dt>${esc(titolo)}</dt><dd>${esc(testo)}</dd></div>` : '';
+}
+
+function schedaSessione(v) {
+  const r = v.regole || {};
+  const segno = k => (r[k] === true ? '✓' : (r[k] === false ? '✗' : '–'));
+  const parti = [];
+  if (v.preparazione !== null && v.preparazione !== undefined) parti.push(`Preparazione ${v.preparazione}%`);
+  parti.push(`Regole ${segno('orario')} ${segno('tavoli')} ${segno('spesa')}`);
+  parti.push(`Gioco ${v.qualita}/5`);
+  parti.push(`Risultato ${RISULTATO_TESTO[v.risultato] || v.risultato}`);
+  const n = v.note || {};
+  return `
+    <details class="mgc-advice">
+      <summary><span><span class="mgc-sub">Sessione delle ${esc(v.ora || '')}</span><small>${esc(parti.join(' · '))}</small></span></summary>
+      <dl>
+        ${rigaDettaglio('Lettura', v.lettura)}
+        ${rigaDettaglio('Trigger', (v.trigger || []).join(', '))}
+        ${rigaDettaglio('Tornei', v.tornei !== null && v.tornei !== undefined ? String(v.tornei) : '')}
+        ${rigaDettaglio('Buy-in', v.buyin !== null && v.buyin !== undefined ? fmt1(v.buyin).replace(',0', '') + ' €' : '')}
+        ${rigaDettaglio('Una decisione presa bene', n.decisioneBuona)}
+        ${rigaDettaglio('Il momento in cui hai perso lucidità', n.momento)}
+        ${rigaDettaglio('Note dei post-it', n.postit)}
+        ${rigaDettaglio('Da correggere', n.correzione)}
+        <button type="button" class="mgc-del" data-del-sessione="${v.id}">Elimina</button>
+      </dl>
+    </details>`;
+}
+
+function schedaCredenza(c) {
+  return `
+    <details class="mgc-advice">
+      <summary><span><span class="mgc-sub">Credenza delle ${esc(c.ora || '')}</span><small>${esc(c.pensiero)}</small></span></summary>
+      <dl>
+        ${rigaDettaglio('Il pensiero automatico', c.pensiero)}
+        ${rigaDettaglio('La prova contro', c.prova)}
+        ${rigaDettaglio('Il pensiero alternativo', c.alternativa)}
+        <button type="button" class="mgc-del" data-del-credenza="${c.id}">Elimina</button>
+      </dl>
+    </details>`;
+}
+
+function tendenze(sessioni) {
+  const ult = [...sessioni].sort((a, b) => a.id - b.id).slice(-30);
+  if (ult.length < 5) return ['Servono almeno 5 sessioni per vedere le tendenze.'];
+  const righe = [];
+  const conta = {};
+  ult.forEach(v => (v.trigger || []).filter(t => t !== 'Nessuno').forEach(t => { conta[t] = (conta[t] || 0) + 1; }));
+  const top = Object.entries(conta).sort((a, b) => b[1] - a[1])[0];
+  if (top) righe.push(`Il trigger più frequente è "${top[0]}" (${top[1]} sessioni su ${ult.length}).`);
+  const prep = ult.map(v => v.preparazione).filter(p => typeof p === 'number');
+  if (prep.length) righe.push(`Preparazione media: ${Math.round(prep.reduce((a, b) => a + b, 0) / prep.length)}%.`);
+  const tutte = ult.filter(v => v.regole && ['orario', 'tavoli', 'spesa'].every(k => v.regole[k] === true)).length;
+  righe.push(`Regole tutte rispettate in ${tutte} sessioni su ${ult.length}.`);
+  const ego = ult.filter(v => v.letturaTipo === 'scarsoPositivo' || (v.lettura || '').includes("l'ego ti inganna")).length;
+  righe.push(`"L'ego ti inganna" è uscito ${ego} ${ego === 1 ? 'volta' : 'volte'}.`);
+
+  // Volume dopo una sessione negativa (serve il numero di tornei)
+  const dopoNeg = [], altri = [];
+  for (let i = 1; i < ult.length; i++) {
+    if (typeof ult[i].tornei !== 'number') continue;
+    (ult[i - 1].risultato === 'negativo' ? dopoNeg : altri).push(ult[i].tornei);
+  }
+  if (dopoNeg.length >= 3 && altri.length >= 3) {
+    const media = a => a.reduce((s, x) => s + x, 0) / a.length;
+    const base = media(altri);
+    if (base > 0) {
+      const diff = Math.round((media(dopoNeg) / base - 1) * 100);
+      if (diff > 10) righe.push(`Dopo una sessione negativa giochi in media il ${diff}% di tornei in più.`);
+      else if (diff < -10) righe.push(`Dopo una sessione negativa giochi in media il ${-diff}% di tornei in meno.`);
+      else righe.push('Dopo una sessione negativa il tuo volume resta stabile.');
+    }
+  }
+
+  // Giudizio e risultato
+  const q = ris => ult.filter(v => v.risultato === ris).map(v => v.qualita);
+  const pos = q('positivo'), neg = q('negativo');
+  if (pos.length >= 2 && neg.length >= 2) {
+    const mp = pos.reduce((a, b) => a + b, 0) / pos.length;
+    const mn = neg.reduce((a, b) => a + b, 0) / neg.length;
+    righe.push(`Qualità che ti dai: ${fmt1(mp)} nelle sessioni positive, ${fmt1(mn)} in quelle negative.`);
+    righe.push(mp - mn >= 1
+      ? 'Il tuo giudizio segue il risultato: valuta le decisioni, non l\'esito.'
+      : 'Giudichi le decisioni senza farti condizionare dal risultato.');
+  }
+  return righe;
+}
+
+function disegnaDiario() {
+  const sessioni = leggiJson(KEY_DIARIO) || [];
+  const credenze = leggiJson(KEY_CREDENZE) || [];
+
+  el('diTendenze').innerHTML = tendenze(sessioni).map(t => `<div class="mgc-card"><p>${esc(t)}</p></div>`).join('');
+
+  const giorni = {};
+  sessioni.forEach(v => { (giorni[v.data] = giorni[v.data] || { s: [], c: [] }).s.push(v); });
+  credenze.forEach(c => { (giorni[c.data] = giorni[c.data] || { s: [], c: [] }).c.push(c); });
+  const date = Object.keys(giorni).sort().reverse();
+
+  if (!date.length) {
+    el('diGiorni').innerHTML = '<p class="mgc-soon" style="padding:8px 0;">Nessuna sessione salvata. Compila la Post-sessione a fine gioco: la ritrovi qui.</p>';
+  } else {
+    el('diGiorni').innerHTML = date.map(d => {
+      const g = giorni[d];
+      return `<p class="mgc-day">${esc(dataLeggibile(d))}</p>` +
+        g.s.sort((a, b) => b.id - a.id).map(schedaSessione).join('') +
+        g.c.sort((a, b) => b.id - a.id).map(schedaCredenza).join('');
+    }).join('');
+  }
+
+  el('diGiorni').querySelectorAll('[data-del-sessione]').forEach(b => b.addEventListener('click', () => {
+    if (!confirm('Eliminare questa sessione dal diario?')) return;
+    scriviJson(KEY_DIARIO, (leggiJson(KEY_DIARIO) || []).filter(v => String(v.id) !== b.dataset.delSessione));
+    disegnaDiario(); mostraCorrezione();
+  }));
+  el('diGiorni').querySelectorAll('[data-del-credenza]').forEach(b => b.addEventListener('click', () => {
+    if (!confirm('Eliminare questa credenza dal diario?')) return;
+    scriviJson(KEY_CREDENZE, (leggiJson(KEY_CREDENZE) || []).filter(c => String(c.id) !== b.dataset.delCredenza));
+    disegnaDiario();
+  }));
+}
+
+// ===== COPIA DI SICUREZZA =====
+function scaricaFile(nome, contenuto, tipo) {
+  const url = URL.createObjectURL(new Blob([contenuto], { type: tipo }));
+  const a = document.createElement('a');
+  a.href = url; a.download = nome;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function scaricaCopia() {
+  const copia = {
+    app: 'mental-game-check', versione: 1, creata: new Date().toISOString(),
+    dati: {
+      tavoliMax: (() => { try { return localStorage.getItem(KEY_TAVOLI); } catch (e) { return null; } })(),
+      regole: leggiJson(KEY_REGOLE), tettoOggi: leggiJson(KEY_TETTO),
+      diario: leggiJson(KEY_DIARIO) || [], credenze: leggiJson(KEY_CREDENZE) || [],
+    },
+  };
+  scaricaFile(`mental-game-check-${oggi()}.json`, JSON.stringify(copia, null, 2), 'application/json');
+}
+
+// CSV con ";" e BOM: Excel in italiano lo apre già diviso in colonne
+function scaricaExcel() {
+  const sessioni = [...(leggiJson(KEY_DIARIO) || [])].sort((a, b) => a.id - b.id);
+  const credenze = leggiJson(KEY_CREDENZE) || [];
+  const siNo = b => (b === true ? 'Sì' : (b === false ? 'No' : ''));
+  const cella = v => `"${String(v === null || v === undefined ? '' : v).replace(/"/g, '""')}"`;
+  const intest = ['Data', 'Ora', 'Preparazione %', 'Limite tavoli', 'Orario rispettato', 'Limite tavoli rispettato',
+    'Limite di spesa rispettato', 'Tornei giocati', 'Buy-in pagati (€)', 'Qualità del gioco (1-5)', 'Risultato', 'Lettura',
+    'Trigger', 'Una decisione presa bene', 'Il momento in cui hai perso lucidità', 'Note dei post-it', 'Da correggere',
+    'Credenze annotate quel giorno'];
+  const righe = sessioni.map(v => {
+    const n = v.note || {}, r = v.regole || {};
+    const cr = credenze.filter(c => c.data === v.data).map(c => c.pensiero).join(' | ');
+    return [v.data, v.ora, v.preparazione, v.limiteTavoli, siNo(r.orario), siNo(r.tavoli), siNo(r.spesa),
+      v.tornei, v.buyin !== null && v.buyin !== undefined ? String(v.buyin).replace('.', ',') : '', v.qualita,
+      RISULTATO_TESTO[v.risultato] || v.risultato, v.lettura, (v.trigger || []).join(', '),
+      n.decisioneBuona, n.momento, n.postit, n.correzione, cr].map(cella).join(';');
+  });
+  scaricaFile(`mental-game-check-${oggi()}.csv`, '\uFEFF' + [intest.map(cella).join(';'), ...righe].join('\r\n'), 'text/csv;charset=utf-8');
+}
+
+function caricaCopia(file) {
+  const lettore = new FileReader();
+  lettore.onload = () => {
+    let copia;
+    try { copia = JSON.parse(lettore.result); } catch (e) { copia = null; }
+    if (!copia || copia.app !== 'mental-game-check' || !copia.dati || !Array.isArray(copia.dati.diario)) {
+      alert('Questo file non è una copia valida del Mental Game Check.');
+      return;
+    }
+    if (!confirm('Caricare questa copia? Sostituirà i dati attuali di questo browser.')) return;
+    const d = copia.dati;
+    try { if (d.tavoliMax) localStorage.setItem(KEY_TAVOLI, d.tavoliMax); } catch (e) { /* non bloccante */ }
+    if (d.regole) scriviJson(KEY_REGOLE, d.regole);
+    if (d.tettoOggi) scriviJson(KEY_TETTO, d.tettoOggi);
+    scriviJson(KEY_DIARIO, d.diario);
+    scriviJson(KEY_CREDENZE, Array.isArray(d.credenze) ? d.credenze : []);
+    el('diCaricata').hidden = false;
+    disegnaDiario(); mostraCorrezione(); caricaTavoli(); mostraTettoOggi();
+    // Aggiorna i campi delle regole con i valori della copia
+    const r = leggiJson(KEY_REGOLE) || {};
+    const campi = { orario: 'regOrario', spesa: 'regSpesa', dopoElim: 'regDopoElim', frase: 'regFrase' };
+    for (const [k, id] of Object.entries(campi)) if (r[k] !== undefined && el(id)) el(id).value = r[k];
+  };
+  lettore.readAsText(file);
+}
+
+function setupDiario() {
+  el('crSalva')?.addEventListener('click', salvaCredenza);
+  el('diScarica')?.addEventListener('click', scaricaCopia);
+  el('diExcel')?.addEventListener('click', scaricaExcel);
+  el('diCarica')?.addEventListener('click', () => el('diFile').click());
+  el('diFile')?.addEventListener('change', e => { if (e.target.files[0]) caricaCopia(e.target.files[0]); e.target.value = ''; });
+  disegnaDiario();
+  mostraCorrezione();
 }
 
 // ─── INIT ─────────────────────────────────────────────────
@@ -410,5 +667,6 @@ setTimeout(() => {
   el('pausaControlla')?.addEventListener('click', controllaPausa);
   setupTavoloFinale();
   mostraTettoOggi();
+  setupDiario();
 }, 100);
 })();

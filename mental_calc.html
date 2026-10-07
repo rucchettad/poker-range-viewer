@@ -106,6 +106,17 @@
   .mgc-reading.ego { border-color: var(--warning); background: #1d1606; color: #fcd58a; }
   .mgc-reading.var { border-color: var(--success); background: #061a12; color: #a7f3d0; }
   @media (max-width: 560px) { .mgc-yn { flex-direction: column; align-items: flex-start; } }
+  /* Diario */
+  .mgc-day { font-size: 13px; font-weight: 700; color: var(--muted); margin: 10px 0 2px; }
+  .mgc-advice .mgc-sub { font-size: 13px; font-weight: 600; color: var(--text); }
+  .mgc-advice summary small { display: block; font-size: 12px; font-weight: 500; color: var(--muted); margin-top: 2px; }
+  .mgc-del { background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 6px; padding: 6px 10px; font-size: 12px; cursor: pointer; justify-self: start; }
+  .mgc-del:hover { border-color: var(--error); color: #fca5a5; }
+  .mgc-backup { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  @media (max-width: 700px) { .mgc-backup { grid-template-columns: 1fr; } }
+  .mgc-num { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .mgc-num input { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; color: var(--text); padding: 8px 10px; font-size: 14px; }
+  .mgc-num input:focus { outline: none; border-color: var(--btn); }
   .res-box.stop { border-color: var(--warning); background: #1d1606; }
   .res-box.stop .res-value { color: var(--warning); }
   .mgc-disclaimer { font-size: 11px; color: var(--muted); margin-top: 8px; }
@@ -132,6 +143,7 @@
 
 <!-- PRE-SESSIONE -->
 <section class="mgc-panel active" id="panel-pre">
+  <div class="mgc-reading" id="preCorrezione" hidden style="margin:0 0 16px;"></div>
   <div id="preDomande"><p class="mgc-soon">Caricamento delle domande…</p></div>
 
   <div class="field mgc-tavoli">
@@ -185,6 +197,26 @@
   <button class="calc-btn" id="pausaControlla">Controlla</button>
   <div class="mgc-stack" id="pausaRisultato" style="margin-bottom:24px;"></div>
 
+  <p class="section-label mgc-block-title">Diario delle credenze</p>
+  <p class="mgc-hint">Scrivi il pensiero appena lo noti, nel momento caldo.</p>
+  <div class="mgc-rules" style="margin-bottom:8px;">
+    <div class="mgc-field" style="margin:0;">
+      <label for="crPensiero">Il pensiero automatico: cosa mi sono detto esattamente</label>
+      <textarea id="crPensiero" rows="2" placeholder="es. «Questa room è truccata»"></textarea>
+    </div>
+    <div class="mgc-field" style="margin:0;">
+      <label for="crProva">La prova contro: cosa dicono i dati reali</label>
+      <textarea id="crProva" rows="2" placeholder="es. «Sul lungo periodo il mio ROI su questa room è positivo»"></textarea>
+    </div>
+    <div class="mgc-field" style="margin:0;">
+      <label for="crAlternativa">Il pensiero alternativo: una lettura più realistica</label>
+      <textarea id="crAlternativa" rows="2" placeholder="es. «È una deviazione statistica normale, non un'ingiustizia»"></textarea>
+    </div>
+  </div>
+  <button class="calc-btn" id="crSalva" style="margin-top:4px;">Salva nel diario delle credenze</button>
+  <div class="mgc-ok" id="crSalvata" hidden style="margin-bottom:24px;">Credenza salvata.</div>
+  <div style="height:12px;"></div>
+
   <p class="section-label mgc-block-title">Pausa prima del tavolo finale</p>
   <p class="mgc-hint">Prima fai il controllo in pausa qui sopra, poi apri anche questi consigli.</p>
   <button class="mgc-ft-btn" id="ftBtn" aria-expanded="false" aria-controls="ftWrap">Sto per giocare un tavolo finale</button>
@@ -197,7 +229,25 @@
 <section class="mgc-panel" id="panel-post">
   <div id="postContenuto"><p class="mgc-soon">Caricamento delle domande…</p></div>
 </section>
-<section class="mgc-panel" id="panel-diario"><p class="mgc-soon">In arrivo.</p></section>
+<!-- DIARIO -->
+<section class="mgc-panel" id="panel-diario">
+  <p class="section-label mgc-block-title">Le tue tendenze</p>
+  <p class="mgc-hint">Calcolate sulle ultime 30 sessioni.</p>
+  <div class="mgc-stack" id="diTendenze" style="margin:0 0 24px;"></div>
+
+  <p class="section-label mgc-block-title">Le mie sessioni</p>
+  <div class="mgc-stack" id="diGiorni" style="margin:0 0 24px;"></div>
+
+  <p class="section-label mgc-block-title">Copia di sicurezza</p>
+  <p class="mgc-hint">I tuoi dati restano solo in questo browser: scarica una copia ogni tanto.</p>
+  <div class="mgc-backup">
+    <button type="button" class="mgc-ft-btn" id="diScarica">Scarica una copia</button>
+    <button type="button" class="mgc-ft-btn" id="diExcel">Scarica in formato Excel</button>
+    <button type="button" class="mgc-ft-btn" id="diCarica">Carica una copia</button>
+    <input type="file" id="diFile" accept=".json,application/json" hidden/>
+  </div>
+  <div class="mgc-ok" id="diCaricata" hidden style="margin-top:10px;">Copia caricata.</div>
+</section>
 
 <script src="js/mental.js"></script>
 </body>
