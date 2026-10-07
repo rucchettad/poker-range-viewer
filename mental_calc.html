@@ -19,9 +19,14 @@
   .mgc-tab:hover { color: var(--text); }
   .mgc-tab.active { color: var(--text); border-bottom-color: var(--btn); }
   .mgc-select {
-    display: none; width: 100%; margin-bottom: 20px; background: var(--panel); color: var(--text);
-    border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; font-size: 14px; font-weight: 700;
+    display: none; width: 100%; margin-bottom: 20px;
+    border: 1px solid #388bfd; border-radius: 8px; padding: 12px 44px 12px 14px; font-size: 15px; font-weight: 700;
+    /* Scritta blu forzata (alcuni telefoni la scrivono in nero) e freccia sempre visibile */
+    color: #58a6ff; -webkit-text-fill-color: #58a6ff;
+    -webkit-appearance: none; appearance: none; cursor: pointer;
+    background: rgba(56,139,253,0.16) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9'%3E%3Cpath d='M1 1l6 6 6-6' fill='none' stroke='%2358a6ff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 16px center / 14px 9px;
   }
+  .mgc-select option { color: #e6eef7; -webkit-text-fill-color: #e6eef7; background: #11131a; }
   @media (max-width: 700px) {
     body { padding: 16px; }
     .mgc-tabs { display: none; }
