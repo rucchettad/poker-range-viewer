@@ -54,6 +54,8 @@ export function initTools() {
     { id: 'toolPkoMobile',     url: 'pko_calc.html',  title: 'PKO Calculator' },
     { id: 'toolMysteryMobile', url: 'mb_calc.html',   title: 'Mystery Bounty' },
     { id: 'toolIcmMobile',     url: 'icm_calc.html',  title: 'ICM Final Table' },
+    { id: 'toolMentale',       url: 'mental_calc.html', title: '🧠 Mental Game Check' },
+    { id: 'toolMentaleMobile', url: 'mental_calc.html', title: '🧠 Mental Game Check' },
   ];
 
   TOOLS.forEach(({ id, url, title }) => {
@@ -64,4 +66,26 @@ export function initTools() {
     });
   });
   el('toolOverlayBack')?.addEventListener('click', chiudiTool);
+  initAnteprimaMentale();
+}
+
+// ===== MENTAL GAME CHECK: ANTEPRIMA =====
+// Finché il tool è in prova, i bottoni compaiono solo per gli account di Danilo.
+// Si legge l'email mostrata nell'header (#userEmail) e si ricontrolla a ogni cambio
+// (login, logout, cambio account). Per aprirlo a tutti: ANTEPRIMA_MENTALE = false.
+const ANTEPRIMA_MENTALE = true;
+const EMAIL_ANTEPRIMA   = ['rucchettad@gmail.com', 'danilo.rucchetta@yahoo.it'];
+
+function initAnteprimaMentale() {
+  const emailEl = el('userEmail');
+  const aggiorna = () => {
+    const email = (emailEl?.textContent || '').trim().toLowerCase();
+    const visibile = !ANTEPRIMA_MENTALE || EMAIL_ANTEPRIMA.some(e => email.includes(e));
+    ['toolMentale', 'toolMentaleMobile'].forEach(id => {
+      const b = el(id);
+      if (b) b.style.display = visibile ? '' : 'none';
+    });
+  };
+  aggiorna();
+  if (emailEl) new MutationObserver(aggiorna).observe(emailEl, { childList: true, characterData: true, subtree: true });
 }

@@ -1,0 +1,126 @@
+<!--
+  © 2026 pokerrange.online - Danilo Rucchetta
+  Tutti i diritti riservati. Vietata la riproduzione senza autorizzazione scritta.
+-->
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Mental Game Check</title>
+<link rel="stylesheet" href="js/pko_style.css">
+<style>
+  /* Linguette (desktop) e menu a tendina (sotto i 700 px) */
+  .mgc-tabs { display: flex; gap: 6px; border-bottom: 1px solid var(--line); margin-bottom: 20px; }
+  .mgc-tab {
+    background: none; border: none; border-bottom: 2px solid transparent; color: var(--muted);
+    padding: 10px 14px; font-size: 13px; font-weight: 700; cursor: pointer; margin-bottom: -1px;
+  }
+  .mgc-tab:hover { color: var(--text); }
+  .mgc-tab.active { color: var(--text); border-bottom-color: var(--btn); }
+  .mgc-select {
+    display: none; width: 100%; margin-bottom: 20px; background: var(--panel); color: var(--text);
+    border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; font-size: 14px; font-weight: 700;
+  }
+  @media (max-width: 700px) {
+    body { padding: 16px; }
+    .mgc-tabs { display: none; }
+    .mgc-select { display: block; }
+  }
+  .mgc-tab:focus-visible, .mgc-scale button:focus-visible, .mgc-select:focus-visible { outline: 2px solid var(--btn); outline-offset: 2px; }
+
+  .mgc-panel { display: none; }
+  .mgc-panel.active { display: block; }
+  .mgc-soon { color: var(--muted); font-size: 14px; padding: 24px 0; }
+
+  /* Domande */
+  .mgc-q { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 10px; }
+  .mgc-q-text { font-size: 14px; font-weight: 600; margin-bottom: 10px; line-height: 1.4; }
+  .mgc-scale { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .mgc-scale button {
+    background: var(--bg); border: 1px solid var(--line); color: var(--text); border-radius: 8px;
+    padding: 10px 4px; font-size: 15px; font-weight: 700; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  }
+  .mgc-scale button small { font-size: 10px; font-weight: 500; color: var(--muted); line-height: 1.2; text-align: center; }
+  .mgc-scale button:hover { border-color: var(--btn); }
+  .mgc-scale button.sel { background: var(--btn); border-color: var(--btn); }
+  .mgc-scale button.sel small { color: #dbe8ff; }
+  .mgc-ends { display: flex; justify-content: space-between; gap: 12px; margin-top: 6px; font-size: 11px; color: var(--muted); }
+  .mgc-ends span:last-child { text-align: right; }
+  .mgc-q.missing { border-color: var(--warning); }
+
+  .mgc-tavoli { max-width: 320px; margin-top: 6px; }
+
+  /* Risultato */
+  .mgc-alert { border: 1px solid var(--warning); background: #1d1606; color: #fcd58a; border-radius: 10px; padding: 12px 14px; font-size: 13px; line-height: 1.5; }
+  .mgc-ok { border: 1px solid var(--success); background: #061a12; color: #a7f3d0; border-radius: 10px; padding: 12px 14px; font-size: 13px; line-height: 1.5; }
+  .mgc-advice { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+  .mgc-advice summary { cursor: pointer; padding: 12px 14px; font-size: 14px; font-weight: 700; list-style: none; display: flex; justify-content: space-between; gap: 10px; }
+  .mgc-advice summary::-webkit-details-marker { display: none; }
+  .mgc-advice summary::after { content: '+'; color: var(--muted); font-weight: 700; }
+  .mgc-advice[open] summary::after { content: '−'; }
+  .mgc-advice .mgc-score { color: var(--warning); font-weight: 600; font-size: 12px; margin-left: auto; }
+  .mgc-advice dl { padding: 0 14px 14px; display: grid; gap: 10px; }
+  .mgc-advice dt { font-size: 11px; font-weight: 700; color: var(--muted); }
+  .mgc-advice dd { font-size: 13px; line-height: 1.55; margin-top: 2px; }
+  .mgc-more { font-size: 12px; font-weight: 700; color: var(--muted); margin-top: 4px; }
+  .res-box.stop { border-color: var(--warning); background: #1d1606; }
+  .res-box.stop .res-value { color: var(--warning); }
+  .mgc-disclaimer { font-size: 11px; color: var(--muted); margin-top: 8px; }
+  @media (max-width: 560px) { .res-row { flex-direction: column; } }
+</style>
+</head>
+<body>
+
+<h2>🧠 Mental Game Check</h2>
+<p class="subtitle">Prepara la testa prima, durante e dopo la sessione</p>
+
+<nav class="mgc-tabs" role="tablist">
+  <button class="mgc-tab active" data-panel="pre" role="tab">Pre-sessione</button>
+  <button class="mgc-tab" data-panel="in" role="tab">In sessione</button>
+  <button class="mgc-tab" data-panel="post" role="tab">Post-sessione</button>
+  <button class="mgc-tab" data-panel="diario" role="tab">Diario</button>
+</nav>
+<select class="mgc-select" id="mgcSelect" aria-label="Scheda">
+  <option value="pre">Pre-sessione</option>
+  <option value="in">In sessione</option>
+  <option value="post">Post-sessione</option>
+  <option value="diario">Diario</option>
+</select>
+
+<!-- PRE-SESSIONE -->
+<section class="mgc-panel active" id="panel-pre">
+  <div id="preDomande"><p class="mgc-soon">Caricamento delle domande…</p></div>
+
+  <div class="field mgc-tavoli">
+    <label for="tavoliMax" id="tavoliLabel">Quanti tavoli tieni al massimo, di solito?</label>
+    <input type="number" id="tavoliMax" min="1" max="60" step="1" placeholder="Es. 6"/>
+  </div>
+
+  <button class="calc-btn" id="preCalcola">Calcola</button>
+
+  <div class="risultati" id="preRisultati">
+    <div class="res-row">
+      <div class="res-box highlight">
+        <span class="res-label">Preparazione mentale</span>
+        <span class="res-value blue" id="rPerc">—</span>
+      </div>
+      <div class="res-box good" id="boxTavoli">
+        <span class="res-label">Tavoli di oggi</span>
+        <span class="res-value green" id="rTavoli" style="font-size:15px;">—</span>
+      </div>
+    </div>
+    <div class="mgc-alert" id="rCampanello" style="display:none;"></div>
+    <div class="mgc-ok" id="rPronto" style="display:none;"></div>
+    <div id="rConsigli" style="display:flex;flex-direction:column;gap:8px;"></div>
+    <p class="mgc-disclaimer" id="rDisclaimer"></p>
+  </div>
+</section>
+
+<section class="mgc-panel" id="panel-in"><p class="mgc-soon">In arrivo.</p></section>
+<section class="mgc-panel" id="panel-post"><p class="mgc-soon">In arrivo.</p></section>
+<section class="mgc-panel" id="panel-diario"><p class="mgc-soon">In arrivo.</p></section>
+
+<script src="js/mental.js"></script>
+</body>
+</html>
