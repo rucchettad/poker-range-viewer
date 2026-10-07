@@ -14,6 +14,8 @@ const KEY_REGOLE = 'mgc_regole';      // regole personali della scheda In sessio
 const KEY_TETTO  = 'mgc_tetto_oggi';  // limite di tavoli e % dell'ultima Pre-sessione, con la data
 const KEY_DIARIO = 'mgc_diario';      // voci del diario (sessioni), solo in questo browser
 const KEY_CREDENZE = 'mgc_credenze';  // diario delle credenze, solo in questo browser
+const KEY_SESSIONE = 'mgc_sessione';  // sessione in corso: Pre-sessione, controlli e bozza della Post-sessione
+const ORE_SESSIONE = 24;              // senza attività per 24 ore la sessione è considerata "di ieri"
 
 const risposte = {};
 let domandeIds = [];
@@ -90,7 +92,11 @@ function disegnaDomande(dati) {
   if (dati.campoTavoli?.testo) el('tavoliLabel').textContent = dati.campoTavoli.testo;
   if (dati.disclaimer) el('rDisclaimer').textContent = dati.disclaimer;
   if (dati.inSessione) disegnaInSessione(dati.inSessione);
-  if (dati.postSessione) disegnaPost(dati.postSessione);
+  if (dati.postSessione) {
+    const s = leggiSessione();
+    disegnaPost(dati.postSessione, { bozza: s?.bozza || null });
+  }
+  ripristinaSessione();
 }
 
 async function caricaDomande() {
@@ -114,7 +120,7 @@ function salvaTavoli(n) {
   try { localStorage.setItem(KEY_TAVOLI, String(n)); } catch (e) { /* non bloccante */ }
 }
 
-function mostraRisultato(r) {
+function mostraRisultato(r, { scorri = true } = {}) {
   el('rPerc').textContent   = r.percentuale + '%';
   el('rTavoli').textContent = r.messaggioTavoli;
   salvaTettoOggi(r.messaggioTavoli, r.percentuale);
@@ -147,7 +153,7 @@ function mostraRisultato(r) {
 
   if (r.disclaimer) el('rDisclaimer').textContent = r.disclaimer;
   el('preRisultati').classList.add('show');
-  el('preRisultati').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (scorri) el('preRisultati').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 async function calcolaPre() {
@@ -168,7 +174,13 @@ async function calcolaPre() {
   salvaTavoli(tavoliMax);
 
   try {
-    mostraRisultato(await chiamaApi('/api/mentale/pre', { risposte, tavoliMax }));
+    const r = await chiamaApi('/api/mentale/pre', { risposte, tavoliMax });
+    // Sessione ancora aperta: aggiorna la Pre-sessione e tiene controlli e bozza.
+    // Sessione vecchia o assente: ne inizia una nuova.
+    const nuova = !sessioneAttiva(leggiSessione());
+    aggiornaSessione(s => { s.pre = { risposte: { ...risposte }, tavoliMax, risultato: r }; }, { nuova });
+    mostraAvvisoSessione();
+    mostraRisultato(r);
   } catch (e) {
     alert(e.message);
   }
@@ -188,12 +200,48 @@ function scriviJson(chiave, valore) {
   try { localStorage.setItem(chiave, JSON.stringify(valore)); } catch (e) { /* non bloccante */ }
 }
 
+// ===== SESSIONE IN CORSO =====
+// Resta salvata finché il giocatore non la chiude con "Salva nel diario".
+// Se una sessione resta aperta oltre ORE_SESSIONE senza attività, è "di ieri": il tool riparte pulito
+// e un avviso chiede di completare la Post-sessione per salvarla nel diario.
+function leggiSessione() { return leggiJson(KEY_SESSIONE); }
+
+function sessioneAttiva(s) {
+  return !!s && (Date.now() - (s.ultima || 0)) < ORE_SESSIONE * 60 * 60 * 1000;
+}
+
+function sessioneDaChiudere(s) {
+  return !!s && !sessioneAttiva(s) && (!!s.pre || (s.controlli || []).length > 0);
+}
+
+// Modifica la sessione in corso (la crea se non c'è o se quella salvata è vecchia e da scartare)
+function aggiornaSessione(modifica, { nuova = false } = {}) {
+  let s = leggiSessione();
+  if (!s || nuova) s = { inizio: Date.now(), data: oggi(), controlli: [], bozza: null, pre: null };
+  modifica(s);
+  s.ultima = Date.now();
+  scriviJson(KEY_SESSIONE, s);
+  return s;
+}
+
+function chiudiSessione() {
+  try { localStorage.removeItem(KEY_SESSIONE); } catch (e) { /* non bloccante */ }
+}
+
+function mostraAvvisoSessione() {
+  const vecchia = sessioneDaChiudere(leggiSessione());
+  ['preAvviso', 'postAvviso'].forEach(id => { if (el(id)) el(id).hidden = !vecchia; });
+}
+
 function salvaTettoOggi(messaggio, percentuale) {
   scriviJson(KEY_TETTO, { data: oggi(), messaggio, percentuale });
   mostraTettoOggi();
 }
 
 function mostraTettoOggi() {
+  // Prima la Pre-sessione della sessione in corso (vale anche dopo la mezzanotte), poi quella di oggi
+  const s = leggiSessione();
+  if (sessioneAttiva(s) && s.pre?.risultato?.messaggioTavoli) { el('regTavoli').textContent = s.pre.risultato.messaggioTavoli; return; }
   const t = leggiJson(KEY_TETTO);
   if (t && t.data === oggi() && t.messaggio) el('regTavoli').textContent = t.messaggio;
 }
@@ -236,15 +284,51 @@ async function controllaPausa() {
   }
   try {
     const r = await chiamaApi('/api/mentale/pausa', { risposte: rispostePausa });
-    el('pausaRisultato').innerHTML =
-      `<div class="mgc-sem ${esc(r.colore)}">${PALLINO[r.colore] || ''} ${esc(r.messaggio)}</div>` +
-      r.consigli.map(c => `<div class="mgc-card"><h3>${esc(c.titolo)}</h3><p>${esc(c.testo)}</p></div>`).join('');
+    const ora = new Date().toTimeString().slice(0, 5);
+    const nuova = !sessioneAttiva(leggiSessione());
+    aggiornaSessione(s => {
+      s.controlli = [...(s.controlli || []), { ora, colore: r.colore }];
+      s.ultimoControllo = { ora, risposte: { ...rispostePausa }, risultato: r };
+    }, { nuova });
+    mostraAvvisoSessione();
+    mostraControllo(r, ora);
     el('pausaRisultato').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    controlloFatto = true;
-    el('ftPromemoria').hidden = true;
   } catch (e) {
     alert(e.message);
   }
+}
+
+function mostraControllo(r, ora) {
+  el('pausaRisultato').innerHTML =
+    `<p class="mgc-hint" style="margin:0;">Ultimo controllo: ${esc(ora)}</p>` +
+    `<div class="mgc-sem ${esc(r.colore)}">${PALLINO[r.colore] || ''} ${esc(r.messaggio)}</div>` +
+    r.consigli.map(c => `<div class="mgc-card"><h3>${esc(c.titolo)}</h3><p>${esc(c.testo)}</p></div>`).join('');
+  controlloFatto = true;
+  el('ftPromemoria').hidden = true;
+}
+
+// Rimette nella pagina lo stato della sessione in corso (dopo il caricamento delle domande)
+function selezionaBottoni(contenitore, store, valori) {
+  Object.entries(valori || {}).forEach(([q, v]) => {
+    store[q] = v;
+    contenitore.querySelectorAll(`button[data-q="${q}"]`).forEach(b => b.classList.toggle('sel', Number(b.dataset.v) === v));
+  });
+}
+
+function ripristinaSessione() {
+  const s = leggiSessione();
+  mostraAvvisoSessione();
+  if (!sessioneAttiva(s)) return;
+  if (s.pre) {
+    selezionaBottoni(el('preDomande'), risposte, s.pre.risposte);
+    if (s.pre.tavoliMax) el('tavoliMax').value = s.pre.tavoliMax;
+    if (s.pre.risultato) mostraRisultato(s.pre.risultato, { scorri: false });
+  }
+  if (s.ultimoControllo) {
+    selezionaBottoni(el('pausaDomande'), rispostePausa, s.ultimoControllo.risposte);
+    mostraControllo(s.ultimoControllo.risultato, s.ultimoControllo.ora);
+  }
+  mostraTettoOggi();
 }
 
 function setupTavoloFinale() {
@@ -266,13 +350,25 @@ let post = {};
 
 function nuovoPost() { post = { regole: {}, qualita: null, risultato: null, trigger: [] }; }
 
-function disegnaPost(d) {
+let ripristinando = false; // durante il ripristino della bozza non si risalva
+function salvaBozza() {
+  if (!POST || ripristinando) return;
+  const bozza = {
+    tornei: el('pdTornei')?.value || '', buyin: el('pdBuyin')?.value || '',
+    regole: { ...post.regole }, qualita: post.qualita, risultato: post.risultato, trigger: [...post.trigger],
+    note: Object.fromEntries(POST.riflessione.map(r => [r.id, el('pn-' + r.id)?.value || ''])),
+  };
+  aggiornaSessione(s => { s.bozza = bozza; });
+}
+
+function disegnaPost(d, { bozza = null } = {}) {
   POST = d;
   nuovoPost();
   const sezione = (titolo, guida) =>
     `<p class="section-label mgc-block-title">${esc(titolo)}</p>${guida ? `<p class="mgc-hint">${esc(guida)}</p>` : ''}`;
 
   el('postContenuto').innerHTML = `
+    <div class="mgc-alert" id="postAvviso" hidden style="margin-bottom:16px;">La sessione di ieri non è stata chiusa: compila la Post-sessione per salvarla nel diario.</div>
     ${sezione('Dati della sessione (facoltativi)')}
     <div class="mgc-rules mgc-num" style="margin-bottom:24px;">
       <div class="mgc-field" style="margin:0;"><label for="pdTornei">Tornei giocati</label><input type="number" id="pdTornei" min="0" step="1"/></div>
@@ -360,6 +456,32 @@ function disegnaPost(d) {
   }));
 
   el('postSalva').addEventListener('click', salvaPost);
+
+  // Ogni modifica finisce nella bozza della sessione in corso
+  el('postContenuto').addEventListener('click', e => { if (e.target.closest('button') && e.target.id !== 'postSalva') salvaBozza(); });
+  el('postContenuto').addEventListener('input', salvaBozza);
+
+  if (bozza) ripristinaBozza(bozza);
+  mostraAvvisoSessione();
+}
+
+function ripristinaBozza(b) {
+  ripristinando = true;
+  try {
+  if (b.tornei) el('pdTornei').value = b.tornei;
+  if (b.buyin) el('pdBuyin').value = b.buyin;
+  Object.entries(b.regole || {}).forEach(([id, si]) => {
+    el('postContenuto').querySelector(`.mgc-choice[data-regola="${id}"] button[data-v="${si ? 'si' : 'no'}"]`)?.click();
+  });
+  if (b.qualita) el('postQualita').querySelector(`button[data-v="${b.qualita}"]`)?.click();
+  if (b.risultato) el('postRisultato').querySelector(`button[data-v="${b.risultato}"]`)?.click();
+  (b.trigger || []).forEach(t => {
+    [...el('postTrigger').querySelectorAll('button')].find(x => x.dataset.t === t)?.click();
+  });
+  Object.entries(b.note || {}).forEach(([id, testo]) => { if (el('pn-' + id)) el('pn-' + id).value = testo; });
+  } finally {
+    ripristinando = false;
+  }
 }
 
 let letturaAttuale = null;
@@ -384,14 +506,18 @@ function salvaPost() {
   if (!post.risultato) el('pq-risultato')?.classList.add('missing');
   if (mancaRegola.length || !post.qualita || !post.risultato) { alert(POST.errore); return; }
 
-  const pre = leggiJson(KEY_TETTO);
-  const preOggi = pre && pre.data === oggi() ? pre : null;
+  // Dati della sessione in corso; senza sessione, la Pre-sessione di oggi (se c'è)
+  const s = leggiSessione();
+  const tetto = leggiJson(KEY_TETTO);
+  const preOggi = tetto && tetto.data === oggi() ? tetto : null;
+  const preSess = s?.pre?.risultato;
   const voce = {
     id: Date.now(),
-    data: oggi(),
+    data: s?.data || oggi(),
     ora: new Date().toTimeString().slice(0, 5),
-    preparazione: preOggi ? preOggi.percentuale ?? null : null,
-    limiteTavoli: preOggi ? preOggi.messaggio : null,
+    preparazione: preSess ? preSess.percentuale : (preOggi ? preOggi.percentuale ?? null : null),
+    limiteTavoli: preSess ? preSess.messaggioTavoli : (preOggi ? preOggi.messaggio : null),
+    controlli: s?.controlli || [],
     regole: { ...post.regole },
     qualita: post.qualita,
     risultato: post.risultato,
@@ -406,7 +532,9 @@ function salvaPost() {
   diario.push(voce);
   scriviJson(KEY_DIARIO, diario);
 
-  // Modulo pulito per la prossima sessione, conferma visibile
+  // Sessione chiusa: tutto pulito per la prossima, conferma visibile
+  chiudiSessione();
+  pulisciSessioneInPagina();
   disegnaPost(POST);
   el('postSalvato').hidden = false;
   letturaAttuale = null; letturaTipo = null;
@@ -415,6 +543,16 @@ function salvaPost() {
   el('postSalvato').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
+
+function pulisciSessioneInPagina() {
+  Object.keys(risposte).forEach(k => delete risposte[k]);
+  Object.keys(rispostePausa).forEach(k => delete rispostePausa[k]);
+  document.querySelectorAll('#preDomande .sel, #pausaDomande .sel').forEach(b => b.classList.remove('sel'));
+  el('preRisultati').classList.remove('show');
+  el('pausaRisultato').innerHTML = '';
+  controlloFatto = false;
+  mostraAvvisoSessione();
+}
 
 // ===== DIARIO =====
 // Tutto calcolato nel browser: sessioni e credenze non lasciano mai il dispositivo.
@@ -474,6 +612,7 @@ function schedaSessione(v) {
       <summary><span><span class="mgc-sub">Sessione delle ${esc(v.ora || '')}</span><small>${esc(parti.join(' · '))}</small></span></summary>
       <dl>
         ${rigaDettaglio('Lettura', v.lettura)}
+        ${rigaDettaglio('Controlli in pausa', (v.controlli || []).map(c => `${PALLINO[c.colore] || ''} ${c.ora}`).join(' · '))}
         ${rigaDettaglio('Trigger', (v.trigger || []).join(', '))}
         ${rigaDettaglio('Tornei', v.tornei !== null && v.tornei !== undefined ? String(v.tornei) : '')}
         ${rigaDettaglio('Buy-in', v.buyin !== null && v.buyin !== undefined ? fmt1(v.buyin).replace(',0', '') + ' €' : '')}
@@ -609,14 +748,15 @@ function scaricaExcel() {
   const intest = ['Data', 'Ora', 'Preparazione %', 'Limite tavoli', 'Orario rispettato', 'Limite tavoli rispettato',
     'Limite di spesa rispettato', 'Tornei giocati', 'Buy-in pagati (€)', 'Qualità del gioco (1-5)', 'Risultato', 'Lettura',
     'Trigger', 'Una decisione presa bene', 'Il momento in cui hai perso lucidità', 'Note dei post-it', 'Da correggere',
-    'Credenze annotate quel giorno'];
+    'Credenze annotate quel giorno', 'Controlli in pausa'];
   const righe = sessioni.map(v => {
     const n = v.note || {}, r = v.regole || {};
     const cr = credenze.filter(c => c.data === v.data).map(c => c.pensiero).join(' | ');
     return [v.data, v.ora, v.preparazione, v.limiteTavoli, siNo(r.orario), siNo(r.tavoli), siNo(r.spesa),
       v.tornei, v.buyin !== null && v.buyin !== undefined ? String(v.buyin).replace('.', ',') : '', v.qualita,
       RISULTATO_TESTO[v.risultato] || v.risultato, v.lettura, (v.trigger || []).join(', '),
-      n.decisioneBuona, n.momento, n.postit, n.correzione, cr].map(cella).join(';');
+      n.decisioneBuona, n.momento, n.postit, n.correzione, cr,
+      (v.controlli || []).map(c => `${c.ora} ${c.colore}`).join(', ')].map(cella).join(';');
   });
   scaricaFile(`mental-game-check-${oggi()}.csv`, '\uFEFF' + [intest.map(cella).join(';'), ...righe].join('\r\n'), 'text/csv;charset=utf-8');
 }
