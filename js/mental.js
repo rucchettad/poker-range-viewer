@@ -143,8 +143,8 @@ async function calcolaPre() {
     return;
   }
   const tavoliMax = parseInt(el('tavoliMax').value, 10);
-  if (!Number.isInteger(tavoliMax) || tavoliMax < 1 || tavoliMax > 60) {
-    alert('Inserisci un numero di tavoli da 1 a 60.');
+  if (!Number.isInteger(tavoliMax) || tavoliMax < 1 || tavoliMax > 30) {
+    alert('Inserisci un numero di tavoli da 1 a 30.');
     el('tavoliMax').focus();
     return;
   }
