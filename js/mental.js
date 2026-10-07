@@ -173,11 +173,23 @@ async function calcolaPre() {
   }
   salvaTavoli(tavoliMax);
 
+  // Sessione aperta iniziata in un altro giorno: chiedere prima di sostituirla
+  const aperta = leggiSessione();
+  const haContenuto = aperta && (aperta.pre || (aperta.controlli || []).length || aperta.bozza);
+  let forzaNuova = false;
+  if (haContenuto && aperta.data !== oggi()) {
+    if (!confirm('La sessione di ieri non è stata chiusa. Vuoi iniziarne una nuova? Quella di ieri non verrà salvata nel diario: se vuoi conservarla, compila prima la Post-sessione.')) {
+      mostraScheda('post');
+      return;
+    }
+    forzaNuova = true;
+  }
+
   try {
     const r = await chiamaApi('/api/mentale/pre', { risposte, tavoliMax });
     // Sessione ancora aperta: aggiorna la Pre-sessione e tiene controlli e bozza.
-    // Sessione vecchia o assente: ne inizia una nuova.
-    const nuova = !sessioneAttiva(leggiSessione());
+    // Sessione vecchia, assente o sostituita dopo la conferma: ne inizia una nuova.
+    const nuova = forzaNuova || !sessioneAttiva(leggiSessione());
     aggiornaSessione(s => { s.pre = { risposte: { ...risposte }, tavoliMax, risultato: r }; }, { nuova });
     mostraAvvisoSessione();
     mostraRisultato(r);
