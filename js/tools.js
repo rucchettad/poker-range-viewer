@@ -14,6 +14,9 @@ export function apriTool(url, titolo) {
   content.innerHTML  = '';
   overlay.style.display = 'flex';
   document.body.style.overflow = 'hidden';
+  // Il copyright dell'app resta sotto l'overlay: si nasconde finché un tool è aperto
+  const copyApp = el('appCopyright');
+  if (copyApp) copyApp.style.display = 'none';
 
   // Spinner mostrato finché l'iframe non ha finito di caricare
   const spinner = document.createElement('div');
@@ -44,6 +47,8 @@ export function chiudiTool() {
   el('toolOverlay').style.display = 'none';
   el('toolContent').innerHTML     = '';
   document.body.style.overflow    = '';
+  const copyApp = el('appCopyright');
+  if (copyApp) copyApp.style.display = '';
 }
 
 export function initTools() {
