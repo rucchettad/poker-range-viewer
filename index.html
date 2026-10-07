@@ -385,7 +385,15 @@
 <div id="assistenzaFooter" style="position:fixed;bottom:10px;left:12px;font-size:13px;color:#4b5563;z-index:999;display:none;">
   Per assistenza: <a href="mailto:assistenza@pokerrange.online" style="color:var(--btn);text-decoration:none;">assistenza@pokerrange.online</a>
 </div>
-<footer id="appCopyright" class="pr-copyright" style="max-width:1040px;margin:28px auto 0;padding:14px 12px 44px;border-top:1px solid #1d2330;font-size:11px;line-height:1.6;color:#6b7684;text-align:center;padding-bottom:56px;">© 2026 Poker Range™ – Danilo Rucchetta. Tutti i diritti riservati.<br>Range, note strategiche e contenuti di Poker Range sono protetti dal diritto d'autore: ne è vietata la copia o la riproduzione, anche parziale, senza autorizzazione scritta.</footer>
+<footer id="appCopyright" class="pr-copyright">© 2026 Poker Range™ – Danilo Rucchetta. Tutti i diritti riservati.<br><span id="appCopyrightTesto">Range, note strategiche e contenuti di Poker Range</span> sono protetti dal diritto d'autore: ne è vietata la copia o la riproduzione, anche parziale, senza autorizzazione scritta.</footer>
+<style>
+  /* Copyright fisso in fondo allo schermo, sulla riga di "Per assistenza" (da 701 px in su) */
+  #appCopyright { position: fixed; left: 50%; bottom: 8px; transform: translateX(-50%); z-index: 10000;
+    width: max-content; max-width: calc(100% - 640px); font-size: 10px; line-height: 1.5; color: #6b7684; text-align: center; pointer-events: none; }
+  @media (max-width: 1200px) { #appCopyright { max-width: calc(100% - 300px); left: auto; right: 12px; transform: none; text-align: right; } }
+  @media (max-width: 700px) { #appCopyright { position: static; transform: none; max-width: none; width: auto; margin: 24px auto 0;
+    padding: 14px 12px 56px; border-top: 1px solid #1d2330; text-align: center; font-size: 11px; } }
+</style>
 </div>
 
 <!-- DISCLAIMER OVERLAY -->

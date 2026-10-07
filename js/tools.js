@@ -6,6 +6,21 @@
 
 function el(id) { return document.getElementById(id); }
 
+// ===== COPYRIGHT =====
+// Una sola riga fissa in fondo allo schermo: il testo cambia secondo il tool aperto
+const COPYRIGHT = {
+  'pko_calc.html':    'Calcoli, tabelle e testi del PKO Calculator',
+  'mb_calc.html':     'Calcoli e testi del Mystery Bounty Calculator',
+  'icm_calc.html':    "Calcoli e testi dell'ICM Calculator",
+  'mental_calc.html': 'Domande, metodo e testi del Mental Game Check',
+};
+const COPYRIGHT_APP = 'Range, note strategiche e contenuti di Poker Range';
+
+function impostaCopyright(url) {
+  const t = el('appCopyrightTesto');
+  if (t) t.textContent = (url && COPYRIGHT[url]) || COPYRIGHT_APP;
+}
+
 export function apriTool(url, titolo) {
   const overlay = el('toolOverlay');
   const content = el('toolContent');
@@ -14,9 +29,7 @@ export function apriTool(url, titolo) {
   content.innerHTML  = '';
   overlay.style.display = 'flex';
   document.body.style.overflow = 'hidden';
-  // Il copyright dell'app resta sotto l'overlay: si nasconde finché un tool è aperto
-  const copyApp = el('appCopyright');
-  if (copyApp) copyApp.style.display = 'none';
+  impostaCopyright(url);
 
   // Spinner mostrato finché l'iframe non ha finito di caricare
   const spinner = document.createElement('div');
@@ -39,7 +52,13 @@ export function apriTool(url, titolo) {
   iframe.style.border = 'none';
   iframe.style.display = 'block';
   iframe.style.background = '#0d0f14';
-  iframe.addEventListener('load', () => spinner.remove());
+  iframe.addEventListener('load', () => {
+    spinner.remove();
+    // Su desktop il copyright è fisso in fondo allo schermo: quello dentro la pagina del tool non serve
+    if (window.innerWidth > 700) {
+      try { iframe.contentDocument.querySelector('.pr-copyright')?.style.setProperty('display', 'none'); } catch (e) { /* non bloccante */ }
+    }
+  });
   content.appendChild(iframe);
 }
 
@@ -47,8 +66,7 @@ export function chiudiTool() {
   el('toolOverlay').style.display = 'none';
   el('toolContent').innerHTML     = '';
   document.body.style.overflow    = '';
-  const copyApp = el('appCopyright');
-  if (copyApp) copyApp.style.display = '';
+  impostaCopyright(null);
 }
 
 export function initTools() {
