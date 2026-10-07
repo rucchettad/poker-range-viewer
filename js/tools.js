@@ -96,7 +96,7 @@ export function initTools() {
 // Finché il tool è in prova, i bottoni compaiono solo per gli account di Danilo.
 // Si legge l'email mostrata nell'header (#userEmail) e si ricontrolla a ogni cambio
 // (login, logout, cambio account). Per aprirlo a tutti: ANTEPRIMA_MENTALE = false.
-const ANTEPRIMA_MENTALE = true;
+const ANTEPRIMA_MENTALE = false;
 const EMAIL_ANTEPRIMA   = ['rucchettad@gmail.com', 'danilo.rucchetta@yahoo.it'];
 
 function initAnteprimaMentale() {
