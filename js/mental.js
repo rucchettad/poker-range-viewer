@@ -16,6 +16,7 @@ const KEY_TETTO  = 'mgc_tetto_oggi';  // tetto di tavoli dell'ultima Pre-session
 const risposte = {};
 let domandeIds = [];
 const rispostePausa = {};
+let controlloFatto = false; // controllo in pausa eseguito in questa apertura del tool
 let domandePausaIds = [];
 
 function el(id) { return document.getElementById(id); }
@@ -235,6 +236,8 @@ async function controllaPausa() {
       `<div class="mgc-sem ${esc(r.colore)}">${PALLINO[r.colore] || ''} ${esc(r.messaggio)}</div>` +
       r.consigli.map(c => `<div class="mgc-card"><h3>${esc(c.titolo)}</h3><p>${esc(c.testo)}</p></div>`).join('');
     el('pausaRisultato').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    controlloFatto = true;
+    el('ftPromemoria').hidden = true;
   } catch (e) {
     alert(e.message);
   }
@@ -243,10 +246,12 @@ async function controllaPausa() {
 function setupTavoloFinale() {
   const btn = el('ftBtn');
   btn?.addEventListener('click', () => {
-    const box = el('ftBox');
+    const box = el('ftWrap');
     const apri = box.hidden;
     box.hidden = !apri;
     btn.setAttribute('aria-expanded', String(apri));
+    // Promemoria solo se il controllo in pausa non è ancora stato fatto
+    if (apri) el('ftPromemoria').hidden = controlloFatto;
   });
 }
 

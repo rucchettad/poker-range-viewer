@@ -66,7 +66,8 @@
   .mgc-more { font-size: 12px; font-weight: 700; color: var(--muted); margin-top: 4px; }
 
   /* In sessione */
-  .mgc-block-title { margin: 4px 0 10px; }
+  .mgc-block-title { margin: 4px 0 4px; }
+  .mgc-hint { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
   .mgc-rules { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 14px; margin-bottom: 24px; }
   .mgc-rule { font-size: 14px; line-height: 1.9; }
   .mgc-rule input { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; color: var(--text); padding: 4px 8px; font-size: 14px; }
@@ -159,13 +160,18 @@
   </div>
 
   <p class="section-label mgc-block-title">Controllo in pausa</p>
+  <p class="mgc-hint">Da fare a ogni pausa sincronizzata.</p>
   <div id="pausaDomande"><p class="mgc-soon">Caricamento delle domande…</p></div>
   <button class="calc-btn" id="pausaControlla">Controlla</button>
   <div class="mgc-stack" id="pausaRisultato" style="margin-bottom:24px;"></div>
 
   <p class="section-label mgc-block-title">Pausa prima del tavolo finale</p>
-  <button class="mgc-ft-btn" id="ftBtn" aria-expanded="false" aria-controls="ftBox">Sto per giocare un tavolo finale</button>
-  <div class="mgc-stack" id="ftBox" hidden></div>
+  <p class="mgc-hint">Prima fai il controllo in pausa qui sopra, poi apri anche questi consigli.</p>
+  <button class="mgc-ft-btn" id="ftBtn" aria-expanded="false" aria-controls="ftWrap">Sto per giocare un tavolo finale</button>
+  <div class="mgc-stack" id="ftWrap" hidden>
+    <div class="mgc-alert" id="ftPromemoria" hidden>Fai anche il controllo in pausa qui sopra: il tavolo finale si affronta con la stessa lucidità di ogni pausa.</div>
+    <div class="mgc-stack" id="ftBox" style="margin-top:0;"></div>
+  </div>
 </section>
 <section class="mgc-panel" id="panel-post"><p class="mgc-soon">In arrivo.</p></section>
 <section class="mgc-panel" id="panel-diario"><p class="mgc-soon">In arrivo.</p></section>
