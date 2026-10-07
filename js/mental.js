@@ -2,16 +2,21 @@
  * POKER RANGE VIEWER — Mental Game Check
  * © 2026 pokerrange.online - Danilo Rucchetta
  * Domande, calcolo e consigli arrivano dal backend (/api/mentale/...).
- * Nel browser resta solo il numero massimo di tavoli (localStorage).
+ * Nel browser restano solo tavoli, regole personali e tetto di oggi (localStorage):
+ * nulla viene salvato sul server.
  */
 (function() {
 'use strict';
 
 const API_URL    = 'https://poker-range-api-production.up.railway.app';
 const KEY_TAVOLI = 'mgc_tavoli_max';
+const KEY_REGOLE = 'mgc_regole';      // regole personali della scheda In sessione
+const KEY_TETTO  = 'mgc_tetto_oggi';  // tetto di tavoli dell'ultima Pre-sessione, con la data
 
 const risposte = {};
 let domandeIds = [];
+const rispostePausa = {};
+let domandePausaIds = [];
 
 function el(id) { return document.getElementById(id); }
 
@@ -55,28 +60,33 @@ function setupSchede() {
 }
 
 // ===== PRE-SESSIONE =====
-function disegnaDomande(dati) {
-  domandeIds = dati.domande.map(d => d.id);
-  const html = dati.domande.map(d => {
+// Disegna una serie di domande da 1 a 5 dentro "contenitore"; le risposte finiscono in "store"
+function disegnaScala(contenitore, domande, store, prefisso) {
+  const html = domande.map(d => {
     const e = d.etichette || {};
     const tutteLeEtichette = [1, 2, 3, 4, 5].every(v => e[v]);
     const bottoni = [1, 2, 3, 4, 5].map(v =>
       `<button type="button" data-q="${esc(d.id)}" data-v="${v}" aria-label="${v}${e[v] ? ' — ' + esc(e[v]) : ''}">${v}${tutteLeEtichette ? `<small>${esc(e[v])}</small>` : ''}</button>`
     ).join('');
     const estremi = tutteLeEtichette ? '' : `<div class="mgc-ends"><span>1 = ${esc(e[1] || '')}</span><span>5 = ${esc(e[5] || '')}</span></div>`;
-    return `<div class="mgc-q" id="q-${esc(d.id)}"><div class="mgc-q-text">${esc(d.testo)}</div><div class="mgc-scale">${bottoni}</div>${estremi}</div>`;
+    return `<div class="mgc-q" id="${prefisso}${esc(d.id)}"><div class="mgc-q-text">${esc(d.testo)}</div><div class="mgc-scale">${bottoni}</div>${estremi}</div>`;
   }).join('');
-  el('preDomande').innerHTML = html;
+  contenitore.innerHTML = html;
 
-  el('preDomande').querySelectorAll('.mgc-scale button').forEach(b => b.addEventListener('click', () => {
+  contenitore.querySelectorAll('.mgc-scale button').forEach(b => b.addEventListener('click', () => {
     const q = b.dataset.q;
-    risposte[q] = Number(b.dataset.v);
+    store[q] = Number(b.dataset.v);
     b.parentElement.querySelectorAll('button').forEach(x => x.classList.toggle('sel', x === b));
-    el('q-' + q)?.classList.remove('missing');
+    el(prefisso + q)?.classList.remove('missing');
   }));
+}
 
+function disegnaDomande(dati) {
+  domandeIds = dati.domande.map(d => d.id);
+  disegnaScala(el('preDomande'), dati.domande, risposte, 'q-');
   if (dati.campoTavoli?.testo) el('tavoliLabel').textContent = dati.campoTavoli.testo;
   if (dati.disclaimer) el('rDisclaimer').textContent = dati.disclaimer;
+  if (dati.inSessione) disegnaInSessione(dati.inSessione);
 }
 
 async function caricaDomande() {
@@ -84,6 +94,7 @@ async function caricaDomande() {
     disegnaDomande(await chiamaApi('/api/mentale/domande', {}));
   } catch (e) {
     el('preDomande').innerHTML = `<p class="mgc-soon">${esc(e.message)}</p>`;
+    el('pausaDomande').innerHTML = `<p class="mgc-soon">${esc(e.message)}</p>`;
   }
 }
 
@@ -101,6 +112,7 @@ function salvaTavoli(n) {
 function mostraRisultato(r) {
   el('rPerc').textContent   = r.percentuale + '%';
   el('rTavoli').textContent = r.messaggioTavoli;
+  salvaTettoOggi(r.messaggioTavoli);
   // Niente tavoli: riquadro arancione invece che verde
   el('boxTavoli').classList.toggle('good', r.tetto > 0);
   el('boxTavoli').classList.toggle('stop', r.tetto === 0);
@@ -157,6 +169,87 @@ async function calcolaPre() {
   }
 }
 
+
+// ===== IN SESSIONE =====
+function oggi() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function leggiJson(chiave) {
+  try { return JSON.parse(localStorage.getItem(chiave) || 'null'); } catch (e) { return null; }
+}
+function scriviJson(chiave, valore) {
+  try { localStorage.setItem(chiave, JSON.stringify(valore)); } catch (e) { /* non bloccante */ }
+}
+
+function salvaTettoOggi(messaggio) {
+  scriviJson(KEY_TETTO, { data: oggi(), messaggio });
+  mostraTettoOggi();
+}
+
+function mostraTettoOggi() {
+  const t = leggiJson(KEY_TETTO);
+  if (t && t.data === oggi() && t.messaggio) el('regTavoli').textContent = t.messaggio;
+}
+
+// Regole personali: valori iniziali dal backend, poi quelli scritti dal giocatore (solo nel suo browser)
+function setupRegole(valoriIniziali) {
+  const salvate = leggiJson(KEY_REGOLE) || {};
+  const campi = { orario: 'regOrario', spesa: 'regSpesa', dopoElim: 'regDopoElim', frase: 'regFrase' };
+  const iniziali = { orario: '', spesa: '', dopoElim: valoriIniziali.dopoEliminazione || '', frase: valoriIniziali.frase || '' };
+  for (const [chiave, id] of Object.entries(campi)) {
+    const campo = el(id);
+    if (!campo) continue;
+    campo.value = salvate[chiave] !== undefined ? salvate[chiave] : iniziali[chiave];
+    campo.addEventListener('input', () => {
+      const attuali = leggiJson(KEY_REGOLE) || {};
+      attuali[chiave] = campo.value;
+      scriviJson(KEY_REGOLE, attuali);
+    });
+  }
+  if (valoriIniziali.notaSpesa) el('regNotaSpesa').textContent = valoriIniziali.notaSpesa;
+}
+
+function disegnaInSessione(dati) {
+  domandePausaIds = dati.domande.map(d => d.id);
+  disegnaScala(el('pausaDomande'), dati.domande, rispostePausa, 'p-');
+  setupRegole(dati.regole || {});
+  el('ftBox').innerHTML = (dati.tavoloFinale || []).map(c =>
+    `<div class="mgc-card"><h3>${esc(c.titolo)}</h3><p>${esc(c.testo)}</p></div>`).join('');
+}
+
+const PALLINO = { verde: '🟢', giallo: '🟡', rosso: '🔴' };
+
+async function controllaPausa() {
+  if (!domandePausaIds.length) { alert('Le domande non sono ancora state caricate.'); return; }
+  const mancanti = domandePausaIds.filter(id => !rispostePausa[id]);
+  if (mancanti.length) {
+    mancanti.forEach(id => el('p-' + id)?.classList.add('missing'));
+    alert('Rispondi a tutte le domande.');
+    return;
+  }
+  try {
+    const r = await chiamaApi('/api/mentale/pausa', { risposte: rispostePausa });
+    el('pausaRisultato').innerHTML =
+      `<div class="mgc-sem ${esc(r.colore)}">${PALLINO[r.colore] || ''} ${esc(r.messaggio)}</div>` +
+      r.consigli.map(c => `<div class="mgc-card"><h3>${esc(c.titolo)}</h3><p>${esc(c.testo)}</p></div>`).join('');
+    el('pausaRisultato').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+function setupTavoloFinale() {
+  const btn = el('ftBtn');
+  btn?.addEventListener('click', () => {
+    const box = el('ftBox');
+    const apri = box.hidden;
+    box.hidden = !apri;
+    btn.setAttribute('aria-expanded', String(apri));
+  });
+}
+
 // ─── INIT ─────────────────────────────────────────────────
 // Stesso piccolo ritardo usato in pko.js e icm.js
 setTimeout(() => {
@@ -164,5 +257,8 @@ setTimeout(() => {
   caricaTavoli();
   caricaDomande();
   el('preCalcola')?.addEventListener('click', calcolaPre);
+  el('pausaControlla')?.addEventListener('click', controllaPausa);
+  setupTavoloFinale();
+  mostraTettoOggi();
 }, 100);
 })();

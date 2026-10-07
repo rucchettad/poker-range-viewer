@@ -64,6 +64,27 @@
   .mgc-advice dt { font-size: 11px; font-weight: 700; color: var(--muted); }
   .mgc-advice dd { font-size: 13px; line-height: 1.55; margin-top: 2px; }
   .mgc-more { font-size: 12px; font-weight: 700; color: var(--muted); margin-top: 4px; }
+
+  /* In sessione */
+  .mgc-block-title { margin: 4px 0 10px; }
+  .mgc-rules { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 14px; margin-bottom: 24px; }
+  .mgc-rule { font-size: 14px; line-height: 1.9; }
+  .mgc-rule input { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; color: var(--text); padding: 4px 8px; font-size: 14px; }
+  .mgc-rule input[type="number"] { width: 90px; }
+  .mgc-rule input:focus, .mgc-rule textarea:focus { outline: none; border-color: var(--btn); }
+  .mgc-rule small { display: block; font-size: 11px; color: var(--muted); line-height: 1.4; }
+  .mgc-rule label { display: block; font-size: 11px; font-weight: 700; color: var(--muted); margin-bottom: 4px; }
+  .mgc-rule textarea, .mgc-rule .mgc-wide { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; color: var(--text); padding: 8px 10px; font-size: 14px; font-family: inherit; line-height: 1.5; resize: vertical; }
+  .mgc-sem { border-radius: 10px; padding: 14px; font-size: 15px; font-weight: 700; line-height: 1.5; }
+  .mgc-sem.verde  { border: 1px solid var(--success); background: #061a12; color: #a7f3d0; }
+  .mgc-sem.giallo { border: 1px solid var(--warning); background: #1d1606; color: #fcd58a; }
+  .mgc-sem.rosso  { border: 1px solid var(--error); background: #1f0808; color: #fca5a5; }
+  .mgc-card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .mgc-card h3 { font-size: 14px; margin-bottom: 4px; }
+  .mgc-card p { font-size: 13px; line-height: 1.55; }
+  .mgc-ft-btn { background: none; border: 1px solid var(--btn); color: var(--text); border-radius: 8px; padding: 12px; font-size: 14px; font-weight: 700; cursor: pointer; width: 100%; }
+  .mgc-ft-btn[aria-expanded="true"] { background: #0d1929; }
+  .mgc-stack { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
   .res-box.stop { border-color: var(--warning); background: #1d1606; }
   .res-box.stop .res-value { color: var(--warning); }
   .mgc-disclaimer { font-size: 11px; color: var(--muted); margin-top: 8px; }
@@ -117,7 +138,35 @@
   </div>
 </section>
 
-<section class="mgc-panel" id="panel-in"><p class="mgc-soon">In arrivo.</p></section>
+<!-- IN SESSIONE -->
+<section class="mgc-panel" id="panel-in">
+  <p class="section-label mgc-block-title">Le tue regole di oggi</p>
+  <div class="mgc-rules">
+    <div class="mgc-rule">Dopo le <input type="time" id="regOrario" aria-label="Ultimo orario di registrazione"/> non apro nuovi tornei.</div>
+    <div class="mgc-rule">Tavoli di oggi: <strong id="regTavoli">Fai la Pre-sessione per avere il tetto di oggi.</strong></div>
+    <div class="mgc-rule">
+      Tetto di spesa della sessione: quando i buy-in pagati oggi arrivano a <input type="number" id="regSpesa" min="0" step="1" aria-label="Tetto di spesa in euro"/> €, smetto di registrarmi.
+      <small id="regNotaSpesa"></small>
+    </div>
+    <div class="mgc-rule">
+      <label for="regDopoElim">Dopo un'eliminazione che mi brucia</label>
+      <textarea id="regDopoElim" rows="4"></textarea>
+    </div>
+    <div class="mgc-rule">
+      <label for="regFrase">La mia frase di riferimento</label>
+      <input type="text" id="regFrase" class="mgc-wide" maxlength="120"/>
+    </div>
+  </div>
+
+  <p class="section-label mgc-block-title">Controllo in pausa</p>
+  <div id="pausaDomande"><p class="mgc-soon">Caricamento delle domande…</p></div>
+  <button class="calc-btn" id="pausaControlla">Controlla</button>
+  <div class="mgc-stack" id="pausaRisultato" style="margin-bottom:24px;"></div>
+
+  <p class="section-label mgc-block-title">Pausa prima del tavolo finale</p>
+  <button class="mgc-ft-btn" id="ftBtn" aria-expanded="false" aria-controls="ftBox">Sto per giocare un tavolo finale</button>
+  <div class="mgc-stack" id="ftBox" hidden></div>
+</section>
 <section class="mgc-panel" id="panel-post"><p class="mgc-soon">In arrivo.</p></section>
 <section class="mgc-panel" id="panel-diario"><p class="mgc-soon">In arrivo.</p></section>
 
