@@ -86,6 +86,26 @@
   .mgc-ft-btn { background: none; border: 1px solid var(--btn); color: var(--text); border-radius: 8px; padding: 12px; font-size: 14px; font-weight: 700; cursor: pointer; width: 100%; }
   .mgc-ft-btn[aria-expanded="true"] { background: #0d1929; }
   .mgc-stack { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+  /* Post-sessione */
+  .mgc-yn { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .mgc-yn:last-of-type { border-bottom: none; }
+  .mgc-yn .mgc-choice { display: flex; gap: 6px; flex-shrink: 0; }
+  .mgc-choice button { background: var(--bg); border: 1px solid var(--line); color: var(--text); border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 700; cursor: pointer; }
+  .mgc-choice button:hover { border-color: var(--btn); }
+  .mgc-choice button.sel { background: var(--btn); border-color: var(--btn); }
+  .mgc-choice button.sel.no { background: var(--warning); border-color: var(--warning); color: #111; }
+  .mgc-choice.wide { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .mgc-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .mgc-chips button { background: var(--bg); border: 1px solid var(--line); color: var(--text); border-radius: 999px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .mgc-chips button.sel { background: #0d1929; border-color: var(--btn); color: #cfe0ff; }
+  .mgc-field { margin-bottom: 12px; }
+  .mgc-field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+  .mgc-field textarea { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; color: var(--text); padding: 8px 10px; font-size: 14px; font-family: inherit; line-height: 1.5; resize: vertical; }
+  .mgc-field textarea:focus { outline: none; border-color: var(--btn); }
+  .mgc-reading { border: 1px solid var(--btn); background: #0d1929; color: #cfe0ff; border-radius: 10px; padding: 12px 14px; font-size: 14px; line-height: 1.5; margin-top: 10px; }
+  .mgc-reading.ego { border-color: var(--warning); background: #1d1606; color: #fcd58a; }
+  .mgc-reading.var { border-color: var(--success); background: #061a12; color: #a7f3d0; }
+  @media (max-width: 560px) { .mgc-yn { flex-direction: column; align-items: flex-start; } }
   .res-box.stop { border-color: var(--warning); background: #1d1606; }
   .res-box.stop .res-value { color: var(--warning); }
   .mgc-disclaimer { font-size: 11px; color: var(--muted); margin-top: 8px; }
@@ -144,9 +164,9 @@
   <p class="section-label mgc-block-title">Le tue regole di oggi</p>
   <div class="mgc-rules">
     <div class="mgc-rule">Dopo le <input type="time" id="regOrario" aria-label="Ultimo orario di registrazione"/> non apro nuovi tornei.</div>
-    <div class="mgc-rule">Tavoli di oggi: <strong id="regTavoli">Fai la Pre-sessione per avere il tetto di oggi.</strong></div>
+    <div class="mgc-rule">Tavoli di oggi: <strong id="regTavoli">Fai la Pre-sessione per avere il limite di tavoli di oggi.</strong></div>
     <div class="mgc-rule">
-      Tetto di spesa della sessione: quando i buy-in pagati oggi arrivano a <input type="number" id="regSpesa" min="0" step="1" aria-label="Tetto di spesa in euro"/> €, smetto di registrarmi.
+      Limite di spesa della sessione: quando i buy-in pagati oggi arrivano a <input type="number" id="regSpesa" min="0" step="1" aria-label="Limite di spesa in euro"/> €, smetto di registrarmi.
       <small id="regNotaSpesa"></small>
     </div>
     <div class="mgc-rule">
@@ -173,7 +193,10 @@
     <div class="mgc-stack" id="ftBox" style="margin-top:0;"></div>
   </div>
 </section>
-<section class="mgc-panel" id="panel-post"><p class="mgc-soon">In arrivo.</p></section>
+<!-- POST-SESSIONE -->
+<section class="mgc-panel" id="panel-post">
+  <div id="postContenuto"><p class="mgc-soon">Caricamento delle domande…</p></div>
+</section>
 <section class="mgc-panel" id="panel-diario"><p class="mgc-soon">In arrivo.</p></section>
 
 <script src="js/mental.js"></script>

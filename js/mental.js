@@ -11,7 +11,8 @@
 const API_URL    = 'https://poker-range-api-production.up.railway.app';
 const KEY_TAVOLI = 'mgc_tavoli_max';
 const KEY_REGOLE = 'mgc_regole';      // regole personali della scheda In sessione
-const KEY_TETTO  = 'mgc_tetto_oggi';  // tetto di tavoli dell'ultima Pre-sessione, con la data
+const KEY_TETTO  = 'mgc_tetto_oggi';  // limite di tavoli e % dell'ultima Pre-sessione, con la data
+const KEY_DIARIO = 'mgc_diario';      // voci del diario (sessioni), solo in questo browser
 
 const risposte = {};
 let domandeIds = [];
@@ -88,6 +89,7 @@ function disegnaDomande(dati) {
   if (dati.campoTavoli?.testo) el('tavoliLabel').textContent = dati.campoTavoli.testo;
   if (dati.disclaimer) el('rDisclaimer').textContent = dati.disclaimer;
   if (dati.inSessione) disegnaInSessione(dati.inSessione);
+  if (dati.postSessione) disegnaPost(dati.postSessione);
 }
 
 async function caricaDomande() {
@@ -96,6 +98,7 @@ async function caricaDomande() {
   } catch (e) {
     el('preDomande').innerHTML = `<p class="mgc-soon">${esc(e.message)}</p>`;
     el('pausaDomande').innerHTML = `<p class="mgc-soon">${esc(e.message)}</p>`;
+    el('postContenuto').innerHTML = `<p class="mgc-soon">${esc(e.message)}</p>`;
   }
 }
 
@@ -113,7 +116,7 @@ function salvaTavoli(n) {
 function mostraRisultato(r) {
   el('rPerc').textContent   = r.percentuale + '%';
   el('rTavoli').textContent = r.messaggioTavoli;
-  salvaTettoOggi(r.messaggioTavoli);
+  salvaTettoOggi(r.messaggioTavoli, r.percentuale);
   // Niente tavoli: riquadro arancione invece che verde
   el('boxTavoli').classList.toggle('good', r.tetto > 0);
   el('boxTavoli').classList.toggle('stop', r.tetto === 0);
@@ -184,8 +187,8 @@ function scriviJson(chiave, valore) {
   try { localStorage.setItem(chiave, JSON.stringify(valore)); } catch (e) { /* non bloccante */ }
 }
 
-function salvaTettoOggi(messaggio) {
-  scriviJson(KEY_TETTO, { data: oggi(), messaggio });
+function salvaTettoOggi(messaggio, percentuale) {
+  scriviJson(KEY_TETTO, { data: oggi(), messaggio, percentuale });
   mostraTettoOggi();
 }
 
@@ -253,6 +256,148 @@ function setupTavoloFinale() {
     // Promemoria solo se il controllo in pausa non è ancora stato fatto
     if (apri) el('ftPromemoria').hidden = controlloFatto;
   });
+}
+
+
+// ===== POST-SESSIONE =====
+let POST = null;
+let post = {};
+
+function nuovoPost() { post = { regole: {}, qualita: null, risultato: null, trigger: [] }; }
+
+function disegnaPost(d) {
+  POST = d;
+  nuovoPost();
+  const sezione = (titolo, guida) =>
+    `<p class="section-label mgc-block-title">${esc(titolo)}</p>${guida ? `<p class="mgc-hint">${esc(guida)}</p>` : ''}`;
+
+  el('postContenuto').innerHTML = `
+    ${sezione('Rispetto delle regole', d.guidaRegole)}
+    <div class="mgc-rules" style="gap:0;margin-bottom:6px;">
+      ${d.regole.map(r => `
+        <div class="mgc-yn" id="pr-${esc(r.id)}">
+          <span>${esc(r.testo)}</span>
+          <div class="mgc-choice" data-regola="${esc(r.id)}">
+            <button type="button" data-v="si">Sì</button><button type="button" data-v="no" class="no-btn">No</button>
+          </div>
+        </div>`).join('')}
+    </div>
+    <div class="mgc-alert" id="postRegolaSuperata" hidden style="margin-bottom:18px;">${esc(d.regolaSuperata)}</div>
+    <div style="height:14px;"></div>
+
+    ${sezione('Decisioni e risultato')}
+    <div id="postQualita"></div>
+    <div class="mgc-q" id="pq-risultato">
+      <div class="mgc-q-text">${esc(d.risultato.testo)}</div>
+      <div class="mgc-choice wide" id="postRisultato">
+        ${d.risultato.opzioni.map(o => `<button type="button" data-v="${esc(o.id)}">${esc(o.testo)}</button>`).join('')}
+      </div>
+    </div>
+    <div id="postLettura"></div>
+    <div style="height:24px;"></div>
+
+    ${sezione('Il trigger della sessione')}
+    <div class="mgc-q">
+      <div class="mgc-q-text">${esc(d.triggerTitolo)}</div>
+      <div class="mgc-chips" id="postTrigger">
+        ${d.trigger.map(t => `<button type="button" data-t="${esc(t)}">${esc(t)}</button>`).join('')}
+      </div>
+    </div>
+    <div style="height:14px;"></div>
+
+    ${sezione('Riflessione')}
+    ${d.riflessione.map(r => `
+      <div class="mgc-field">
+        <label for="pn-${esc(r.id)}">${esc(r.testo)}</label>
+        <textarea id="pn-${esc(r.id)}" rows="2"></textarea>
+      </div>`).join('')}
+
+    <button class="calc-btn" id="postSalva">${esc(d.salva)}</button>
+    <div class="mgc-ok" id="postSalvato" hidden>${esc(d.salvato)}</div>
+    <p class="mgc-hint" style="margin-top:12px;">${esc(d.chiusura)}</p>`;
+
+  // Regole Sì/No
+  el('postContenuto').querySelectorAll('.mgc-choice[data-regola]').forEach(gr => {
+    gr.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+      post.regole[gr.dataset.regola] = b.dataset.v === 'si';
+      gr.querySelectorAll('button').forEach(x => x.classList.toggle('sel', x === b));
+      b.classList.toggle('no', b.dataset.v === 'no');
+      el('pr-' + gr.dataset.regola)?.classList.remove('missing');
+      el('postRegolaSuperata').hidden = !Object.values(post.regole).includes(false);
+    }));
+  });
+
+  // Qualità del gioco (scala 1-5) e risultato
+  const qualita = {};
+  disegnaScala(el('postQualita'), [d.qualita], qualita, 'pq-');
+  el('postQualita').querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    post.qualita = qualita.qualita; aggiornaLettura();
+  }));
+  el('postRisultato').querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    post.risultato = b.dataset.v;
+    el('postRisultato').querySelectorAll('button').forEach(x => x.classList.toggle('sel', x === b));
+    el('pq-risultato').classList.remove('missing');
+    aggiornaLettura();
+  }));
+
+  // Trigger: più scelte; "Nessuno" esclude gli altri
+  const nessuno = d.trigger[d.trigger.length - 1];
+  el('postTrigger').querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    const t = b.dataset.t;
+    if (t === nessuno) post.trigger = post.trigger.includes(t) ? [] : [t];
+    else {
+      post.trigger = post.trigger.filter(x => x !== nessuno);
+      post.trigger = post.trigger.includes(t) ? post.trigger.filter(x => x !== t) : [...post.trigger, t];
+    }
+    el('postTrigger').querySelectorAll('button').forEach(x => x.classList.toggle('sel', post.trigger.includes(x.dataset.t)));
+  }));
+
+  el('postSalva').addEventListener('click', salvaPost);
+}
+
+let letturaAttuale = null;
+async function aggiornaLettura() {
+  if (!post.qualita || !post.risultato) return;
+  try {
+    const r = await chiamaApi('/api/mentale/post', { qualita: post.qualita, risultato: post.risultato });
+    letturaAttuale = r.lettura;
+    const classe = r.tipo === 'scarsoPositivo' ? ' ego' : (r.tipo === 'buonoNegativo' ? ' var' : '');
+    el('postLettura').innerHTML = `<div class="mgc-reading${classe}">${esc(r.lettura)}</div>`;
+  } catch (e) {
+    el('postLettura').innerHTML = `<p class="mgc-hint">${esc(e.message)}</p>`;
+  }
+}
+
+function salvaPost() {
+  const mancaRegola = POST.regole.filter(r => post.regole[r.id] === undefined);
+  mancaRegola.forEach(r => el('pr-' + r.id)?.classList.add('missing'));
+  if (!post.qualita) el('pq-qualita')?.classList.add('missing');
+  if (!post.risultato) el('pq-risultato')?.classList.add('missing');
+  if (mancaRegola.length || !post.qualita || !post.risultato) { alert(POST.errore); return; }
+
+  const pre = leggiJson(KEY_TETTO);
+  const preOggi = pre && pre.data === oggi() ? pre : null;
+  const voce = {
+    id: Date.now(),
+    data: oggi(),
+    ora: new Date().toTimeString().slice(0, 5),
+    preparazione: preOggi ? preOggi.percentuale ?? null : null,
+    limiteTavoli: preOggi ? preOggi.messaggio : null,
+    regole: { ...post.regole },
+    qualita: post.qualita,
+    risultato: post.risultato,
+    lettura: letturaAttuale,
+    trigger: [...post.trigger],
+    note: Object.fromEntries(POST.riflessione.map(r => [r.id, el('pn-' + r.id).value.trim()])),
+  };
+  const diario = leggiJson(KEY_DIARIO) || [];
+  diario.push(voce);
+  scriviJson(KEY_DIARIO, diario);
+
+  // Modulo pulito per la prossima sessione, conferma visibile
+  disegnaPost(POST);
+  el('postSalvato').hidden = false;
+  el('postSalvato').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 // ─── INIT ─────────────────────────────────────────────────
