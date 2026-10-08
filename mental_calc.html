@@ -118,6 +118,8 @@
   .mgc-del { background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 6px; padding: 6px 10px; font-size: 12px; cursor: pointer; justify-self: start; }
   .mgc-del:hover { border-color: var(--error); color: #fca5a5; }
   .mgc-backup { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .mgc-backup > div { display: flex; flex-direction: column; gap: 6px; }
+  .mgc-backup small { font-size: 11px; color: var(--muted); line-height: 1.45; padding: 0 2px; }
   @media (max-width: 700px) { .mgc-backup { grid-template-columns: 1fr; } }
   .mgc-num { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .mgc-num input { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; color: var(--text); padding: 8px 10px; font-size: 14px; }
@@ -247,9 +249,18 @@
   <p class="section-label mgc-block-title">Copia di sicurezza</p>
   <p class="mgc-hint">I tuoi dati restano solo in questo browser: scarica una copia ogni tanto.</p>
   <div class="mgc-backup">
-    <button type="button" class="mgc-ft-btn" id="diScarica">Scarica una copia</button>
-    <button type="button" class="mgc-ft-btn" id="diExcel">Scarica in formato Excel</button>
-    <button type="button" class="mgc-ft-btn" id="diCarica">Carica una copia</button>
+    <div>
+      <button type="button" class="mgc-ft-btn" id="diScarica">Scarica una copia</button>
+      <small>Copia di sicurezza di tutto il diario, da ricaricare con «Carica una copia» se cambi browser o cancelli i dati del sito.</small>
+    </div>
+    <div>
+      <button type="button" class="mgc-ft-btn" id="diExcel">Scarica in formato Excel</button>
+      <small>Le sessioni in tabella, da leggere o mandare al tuo coach. Non si può ricaricare nel tool.</small>
+    </div>
+    <div>
+      <button type="button" class="mgc-ft-btn" id="diCarica">Carica una copia</button>
+      <small>Ripristina il diario da una copia scaricata prima.</small>
+    </div>
     <input type="file" id="diFile" accept=".json,application/json" hidden/>
   </div>
   <div class="mgc-ok" id="diCaricata" hidden style="margin-top:10px;">Copia caricata.</div>

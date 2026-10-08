@@ -123,7 +123,7 @@ function salvaTavoli(n) {
 function mostraRisultato(r, { scorri = true } = {}) {
   el('rPerc').textContent   = r.percentuale + '%';
   el('rTavoli').textContent = r.messaggioTavoli;
-  salvaTettoOggi(r.messaggioTavoli, r.percentuale);
+  salvaTettoOggi(r.messaggioTavoli, r.percentuale, r.tetto);
   // Niente tavoli: riquadro arancione invece che verde
   el('boxTavoli').classList.toggle('good', r.tetto > 0);
   el('boxTavoli').classList.toggle('stop', r.tetto === 0);
@@ -245,8 +245,8 @@ function mostraAvvisoSessione() {
   ['preAvviso', 'postAvviso'].forEach(id => { if (el(id)) el(id).hidden = !vecchia; });
 }
 
-function salvaTettoOggi(messaggio, percentuale) {
-  scriviJson(KEY_TETTO, { data: oggi(), messaggio, percentuale });
+function salvaTettoOggi(messaggio, percentuale, tetto) {
+  scriviJson(KEY_TETTO, { data: oggi(), messaggio, percentuale, tetto });
   mostraTettoOggi();
 }
 
@@ -526,9 +526,11 @@ function salvaPost() {
   const voce = {
     id: Date.now(),
     data: s?.data || oggi(),
-    ora: new Date().toTimeString().slice(0, 5),
+    inizio: s?.inizio ? oraDa(s.inizio) : null,           // ora di inizio della sessione
+    ora: new Date().toTimeString().slice(0, 5),            // ora di chiusura ("Salva nel diario")
     preparazione: preSess ? preSess.percentuale : (preOggi ? preOggi.percentuale ?? null : null),
     limiteTavoli: preSess ? preSess.messaggioTavoli : (preOggi ? preOggi.messaggio : null),
+    tavoli: preSess ? (preSess.tetto ?? null) : (preOggi ? preOggi.tetto ?? null : null),
     controlli: s?.controlli || [],
     regole: { ...post.regole },
     qualita: post.qualita,
@@ -581,6 +583,17 @@ function dataLeggibile(iso) {
 }
 
 function fmt1(n) { return n.toFixed(1).replace('.', ','); }
+
+function oraDa(ms) { return new Date(ms).toTimeString().slice(0, 5); }
+
+// Limite di tavoli come numero (0 = niente tavoli). Le voci salvate prima hanno solo la frase:
+// se contiene un numero si usa quello, se non ne contiene vuol dire niente tavoli.
+function tavoliNumero(v) {
+  if (typeof v.tavoli === 'number') return v.tavoli;
+  if (!v.limiteTavoli) return '';
+  const m = String(v.limiteTavoli).match(/\d+/);
+  return m ? Number(m[0]) : 0;
+}
 
 // Banner "Da correggere oggi" in Pre-sessione, dall'ultima Post-sessione con la correzione scritta
 function mostraCorrezione() {
@@ -757,14 +770,14 @@ function scaricaExcel() {
   const credenze = leggiJson(KEY_CREDENZE) || [];
   const siNo = b => (b === true ? 'Sì' : (b === false ? 'No' : ''));
   const cella = v => `"${String(v === null || v === undefined ? '' : v).replace(/"/g, '""')}"`;
-  const intest = ['Data', 'Ora', 'Preparazione %', 'Limite tavoli', 'Orario rispettato', 'Limite tavoli rispettato',
+  const intest = ['Data', 'Inizio', 'Fine', 'Preparazione %', 'Limite tavoli', 'Orario rispettato', 'Limite tavoli rispettato',
     'Limite di spesa rispettato', 'Tornei giocati', 'Buy-in pagati (€)', 'Qualità del gioco (1-5)', 'Risultato', 'Lettura',
     'Trigger', 'Una decisione presa bene', 'Il momento in cui hai perso lucidità', 'Note dei post-it', 'Da correggere',
     'Credenze annotate quel giorno', 'Controlli in pausa'];
   const righe = sessioni.map(v => {
     const n = v.note || {}, r = v.regole || {};
     const cr = credenze.filter(c => c.data === v.data).map(c => c.pensiero).join(' | ');
-    return [v.data, v.ora, v.preparazione, v.limiteTavoli, siNo(r.orario), siNo(r.tavoli), siNo(r.spesa),
+    return [v.data, v.inizio, v.ora, v.preparazione, tavoliNumero(v), siNo(r.orario), siNo(r.tavoli), siNo(r.spesa),
       v.tornei, v.buyin !== null && v.buyin !== undefined ? String(v.buyin).replace('.', ',') : '', v.qualita,
       RISULTATO_TESTO[v.risultato] || v.risultato, v.lettura, (v.trigger || []).join(', '),
       n.decisioneBuona, n.momento, n.postit, n.correzione, cr,
