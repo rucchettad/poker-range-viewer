@@ -232,16 +232,17 @@ function periodoDaInviare() {
 }
 
 // Chiede al server l'analisi del periodo scelto; con "ricostruisci" il programma si ricompila dai tornei
-async function aggiornaFile(ricostruisci = false) {
+// "aggiornaRoi": cambia solo il ROI e i tornei giocati (quando si tocca la casella del ROI)
+async function aggiornaFile(ricostruisci = false, aggiornaRoi = false) {
   if (!file) return;
   const esito = el('esitoPeriodo');
   el('periodoDate').hidden = el('periodo').value !== 'date';
   const labs = etichette();
   let a;
   try {
-    a = await chiamaApi('/api/bankroll/file', { tornei: torneiDaInviare(labs), periodo: periodoDaInviare(), rb: labs.map(n => rbValori[n] || 0) });
+    a = await chiamaApi('/api/bankroll/file', { tornei: torneiDaInviare(labs), periodo: periodoDaInviare(), roiTutto: roiTutto(), rb: labs.map(n => rbValori[n] || 0) });
   } catch (e) {
-    if (e.status === 429) { aggiornaFileRitardato(ricostruisci); return; }
+    if (e.status === 429) { aggiornaFileRitardato(ricostruisci, aggiornaRoi); return; }
     esito.innerHTML = `<div class="avviso" style="margin-top:10px;">${esc(e.message)}</div>`; return;
   }
   el('lettura').innerHTML = `<strong>Letti ${migliaia(a.lettura.n)} tornei</strong>${a.lettura.primo ? `, dal ${dataIt(a.lettura.primo)} al ${dataIt(a.lettura.ultimo)}` : ''}`
@@ -251,7 +252,10 @@ async function aggiornaFile(ricostruisci = false) {
   if (ricostruisci) {
     el('righe').innerHTML = '';
     a.programma.forEach(x => aggiungiRiga({ ...x, room: labs[x.lab], dalFile: true }));
+  }
+  if (ricostruisci || aggiornaRoi) {
     el('roi').value = a.roi;
+    el('roiOrigine').textContent = a.roiOrigine || '';
     el('campione').value = a.campione;
   }
   salvaImporti(a.rakeback, labs);
@@ -263,8 +267,10 @@ async function aggiornaFile(ricostruisci = false) {
     ${g.dett.map(d => `<tr><td>${nomeLab(d.lab)}</td><td>${esc(d.formato)}</td><td>${d.n}</td><td>${euro(d.spesa)}</td><td>${conSegno(d.ris)}</td><td>${d.roi}</td><td>${euro(d.rb)}</td></tr>`).join('')}
     </tbody></table></div></details>`;
   esito.innerHTML = `
-    <p style="margin-top:10px;"><strong>Nel periodo scelto: ${migliaia(p.n)} tornei</strong>, circa ${migliaia(p.alMese)} al mese.<br>
-    ROI totale: ${p.roi}. Oscillazione: ${p.ds} buy-in per torneo.</p>
+    <p style="margin-top:10px;">Periodo usato: dal ${esc(p.dal)} al ${esc(p.al)}, ${p.settimane} ${p.settimane === 1 ? 'settimana' : 'settimane'}.<br>
+    <strong>${migliaia(p.n)} tornei: in media ${esc(p.aSettimana)} a settimana, cioè circa ${migliaia(p.alMese)} al mese.</strong><br>
+    ROI totale del periodo: ${p.roi}. ROI totale di tutto il file: ${p.roiFile}. Oscillazione: ${p.ds} buy-in per torneo.</p>
+    ${p.vuote ? `<div class="avviso" style="margin-top:8px;">In ${p.vuote} di queste ${p.settimane} settimane non hai giocato nessun torneo, e abbassano la media. Se oggi giochi di più, scegli un periodo più recente.</div>` : ''}
     ${p.pochi ? '<div class="avviso" style="margin-top:8px;">Con meno di 500 tornei il ROI e la simulazione sono poco affidabili: per il calcolo del bankroll conviene un periodo più lungo.</div>' : ''}
     <p class="section-label" style="margin-top:16px;">Room e formato</p>
     <div class="scorri"><table><thead><tr><th>Room</th><th>Formato</th><th>Tornei</th><th>Costo per ingresso</th><th>Ingressi medi</th><th>Iscritti medi</th><th>ROI totale</th></tr></thead><tbody>
@@ -276,7 +282,8 @@ async function aggiornaFile(ricostruisci = false) {
     <div class="mesi"><div class="testa"><span>Mese</span><span>Tornei</span><span class="nasc">Spesa</span><span>Risultato</span><span>ROI totale</span><span class="nasc">Rakeback</span></div>
     ${a.mesi.map(m => riga(m)).join('')}${riga(a.totale, 'totale')}</div>`;
 }
-const aggiornaFileRitardato = ritardo(r => aggiornaFile(r), 500);
+const aggiornaFileRitardato = ritardo((r, roi) => aggiornaFile(r, roi), 500);
+const roiTutto = () => el('roiTutto') ? el('roiTutto').checked : true;
 
 function caricaFile(e) {
   const f = e.target.files[0];
@@ -307,8 +314,11 @@ function caricaFile(e) {
             <label for="periodoAl">Al</label><input type="date" id="periodoAl" value="${file.ultimo ? dataIso(file.ultimo) : ''}"/>
           </span>
         </div>
+        <label class="spunta"><input type="checkbox" id="roiTutto" checked/> <span><strong>Usa il ROI di tutti i tornei del file</strong><br>
+          <small>Spuntata: il ROI viene da tutti i tornei del file, perché su pochi mesi varia troppo. Senza spunta: il ROI viene solo dai tornei del periodo scelto. In tutti e due i casi è il periodo a decidere quanti tornei giochi e a che buy-in.</small></span></label>
         <div id="esitoPeriodo"></div>`;
       ['periodo', 'periodoDal', 'periodoAl'].forEach(id => el(id).addEventListener('change', () => aggiornaFile(true)));
+      el('roiTutto').addEventListener('change', () => aggiornaFile(false, true));
       aggiornaFile(true);
     } catch (err) {
       file = null;
@@ -332,7 +342,7 @@ async function calcola() {
       righe, roi: el('roi').value, profilo: el('profilo').value, campione: el('campione').value,
       fondi: el('bankroll').value, spese: el('spese').value, rb: labs.map(n => rbValori[n] || 0),
     };
-    if (file) { corpo.tornei = torneiDaInviare(labs); corpo.periodo = periodoDaInviare(); }
+    if (file) { corpo.tornei = torneiDaInviare(labs); corpo.periodo = periodoDaInviare(); corpo.roiTutto = roiTutto(); }
     mostraRisultato(await chiamaApi('/api/bankroll/calcola', corpo), labs);
   } catch (e) {
     alert(e.message);
@@ -345,6 +355,7 @@ function mostraRisultato(r, labs) {
   el('res').classList.add('show');
   el('sem').className = 'sem ' + r.sem.classe;
   el('sem').innerHTML = r.sem.html;
+  el('base').innerHTML = r.base || '';
   el('rAbi').textContent = r.abi.v; el('rAbiS').innerHTML = r.abi.s;
   salvaImporti(r.rakeback, labs);
   if (r.senzaVantaggio) {
@@ -374,6 +385,7 @@ setTimeout(() => {
   el('fileTornei')?.addEventListener('change', caricaFile);
   ['bankroll', 'spese'].forEach(id => el(id)?.addEventListener('input', aggiornaFondiRitardato));
   el('profilo')?.addEventListener('change', aggiornaFondi);
+  el('roi')?.addEventListener('input', () => { el('roiOrigine').textContent = ''; });   // ROI cambiato a mano: non viene più dal file
   aggiornaFondi();
 }, 100);
 })();

@@ -53,6 +53,10 @@
   .periodo #periodoDate { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; }
   .periodo #periodoDate[hidden] { display: none; }
   .periodo input[type=date] { width: auto; }
+  .spunta { display: flex; gap: 8px; align-items: flex-start; margin: 12px 0 0; font-weight: 400; cursor: pointer; }
+  .spunta input { width: auto; margin-top: 3px; }
+  .spunta small { color: var(--muted); }
+  .base { font-size: 13px; line-height: 1.7; margin-bottom: 10px; }
   .mesi details { border-bottom: 1px solid var(--line); }
   .mesi summary { cursor: pointer; list-style: none; display: grid; grid-template-columns: 1.4fr repeat(5, 1fr); gap: 6px; padding: 8px 4px; font-size: 13px; }
   .mesi summary::-webkit-details-marker { display: none; }
@@ -128,6 +132,7 @@
     <label for="roi">ROI totale (%)</label>
     <input type="number" id="roi" step="0.1" value="10"/>
     <small class="conto">Guadagno totale ÷ totale speso in buy-in e fee. Non è la media dei ROI dei singoli tornei.</small>
+    <small class="conto" id="roiOrigine" style="color:#a7f3d0;"></small>
   </div>
   <div>
     <label for="campione">Tornei giocati finora</label>
@@ -172,6 +177,8 @@
 <div class="res" id="res">
   <div class="sem" id="sem"></div>
   <div class="avviso" id="avvisoPro" hidden></div>
+  <p class="section-label">Su cosa si basa il calcolo</p>
+  <div class="panel base" id="base"></div>
   <div class="res-row">
     <div class="box"><span class="l">ABI reale</span><span class="v" id="rAbi">—</span><span class="s" id="rAbiS"></span></div>
     <div class="box"><span class="l">Buy-in necessari</span><span class="v" id="rBi">—</span><span class="s" id="rBiS"></span></div>
