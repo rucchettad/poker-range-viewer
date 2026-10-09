@@ -1,12 +1,5 @@
 
 (function() {
-const BF_TABLE = [
-  {bf:0.3,d:1.0},{bf:0.4,d:1.7},{bf:0.5,d:3.0},{bf:0.75,d:4.2},
-  {bf:1.0,d:5.4},{bf:1.25,d:6.2},{bf:1.5,d:7.4},{bf:1.75,d:8.5},
-  {bf:2.0,d:9.4},{bf:2.25,d:10.2},{bf:2.5,d:11.1},{bf:3.0,d:12.7},{bf:4.0,d:15.5},
-  {bf:5.0,d:17.5},{bf:10.0,d:25.0},{bf:20.0,d:32.0},{bf:50.0,d:40.0},{bf:100.0,d:50.0}
-];
-
 const villainActive = { 2: false, 3: false };
 
 function toggleVillain(n) {
@@ -24,12 +17,6 @@ function toggleVillain(n) {
     document.getElementById('sv' + n).value = '';
     document.getElementById('bv' + n).value = '';
   }
-}
-
-function getClosest(bf) {
-  let c = BF_TABLE[0], min = Math.abs(bf - BF_TABLE[0].bf);
-  for (const r of BF_TABLE) { const d = Math.abs(bf - r.bf); if (d < min) { min = d; c = r; } }
-  return c;
 }
 
 function fmt(n) { return n.toLocaleString('it-IT'); }

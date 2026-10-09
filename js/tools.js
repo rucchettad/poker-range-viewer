@@ -13,6 +13,7 @@ const COPYRIGHT = {
   'mb_calc.html':     'Calcoli e testi del Mystery Bounty Calculator',
   'icm_calc.html':    "Calcoli e testi dell'ICM Calculator",
   'mental_calc.html': 'Domande, metodo e testi del Mental Game Check',
+  'bankroll_calc.html': 'Calcoli, simulazione e testi del Bankroll Calculator',
 };
 const COPYRIGHT_APP = 'Range, note strategiche e contenuti di Poker Range';
 
@@ -79,6 +80,8 @@ export function initTools() {
     { id: 'toolIcmMobile',     url: 'icm_calc.html',  title: 'ICM Final Table' },
     { id: 'toolMentale',       url: 'mental_calc.html', title: '🧠 Mental Game Check' },
     { id: 'toolMentaleMobile', url: 'mental_calc.html', title: '🧠 Mental Game Check' },
+    { id: 'toolBankroll',       url: 'bankroll_calc.html', title: '💰 Bankroll' },
+    { id: 'toolBankrollMobile', url: 'bankroll_calc.html', title: '💰 Bankroll' },
   ];
 
   TOOLS.forEach(({ id, url, title }) => {
@@ -97,17 +100,21 @@ export function initTools() {
 // Si legge l'email mostrata nell'header (#userEmail) e si ricontrolla a ogni cambio
 // (login, logout, cambio account). Per aprirlo a tutti: ANTEPRIMA_MENTALE = false.
 const ANTEPRIMA_MENTALE = false;
+// Bankroll in prova: per aprirlo a tutti false qui E in routes/bankroll.js (backend), dopo aver aggiornato la Privacy
+const ANTEPRIMA_BANKROLL = true;
 const EMAIL_ANTEPRIMA   = ['rucchettad@gmail.com', 'danilo.rucchetta@yahoo.it'];
 
 function initAnteprimaMentale() {
   const emailEl = el('userEmail');
   const aggiorna = () => {
     const email = (emailEl?.textContent || '').trim().toLowerCase();
-    const visibile = !ANTEPRIMA_MENTALE || EMAIL_ANTEPRIMA.some(e => email.includes(e));
-    ['toolMentale', 'toolMentaleMobile'].forEach(id => {
+    const autorizzato = EMAIL_ANTEPRIMA.some(e => email.includes(e));
+    const mostra = (ids, anteprima) => ids.forEach(id => {
       const b = el(id);
-      if (b) b.style.display = visibile ? '' : 'none';
+      if (b) b.style.display = (!anteprima || autorizzato) ? '' : 'none';
     });
+    mostra(['toolMentale', 'toolMentaleMobile'], ANTEPRIMA_MENTALE);
+    mostra(['toolBankroll', 'toolBankrollMobile'], ANTEPRIMA_BANKROLL);
   };
   aggiorna();
   if (emailEl) new MutationObserver(aggiorna).observe(emailEl, { childList: true, characterData: true, subtree: true });

@@ -1,0 +1,199 @@
+<!--
+  © 2026 pokerrange.online - Danilo Rucchetta
+  Tutti i diritti riservati. Vietata la riproduzione senza autorizzazione scritta.
+-->
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Bankroll Calculator</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --line: #2a313c; --text: #e6eef7; --muted: #8b98a8;
+    --btn: #1f6feb; --success: #2ea043; --warning: #d29922; --error: #da3633;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; padding: 24px; max-width: 1040px; margin: 0 auto; }
+  h2 { font-size: 22px; }
+  .subtitle { color: var(--muted); font-size: 14px; margin: 4px 0 22px; }
+  .section-label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 22px 0 8px; }
+  .hint { font-size: 12px; color: var(--muted); margin-bottom: 10px; line-height: 1.5; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+  label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 4px; }
+  input, select { width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; color: var(--text); padding: 9px 10px; font-size: 14px; }
+  input:focus, select:focus { outline: none; border-color: var(--btn); }
+
+  /* Righe del programma */
+  .riga { display: grid; grid-template-columns: 1.2fr 1fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 36px; gap: 8px; align-items: end; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .riga:last-child { border-bottom: none; }
+  .del { background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 8px; height: 38px; cursor: pointer; font-size: 16px; }
+  .del:hover { border-color: var(--error); color: #fca5a5; }
+  .add { background: none; border: 1px dashed var(--line); color: var(--muted); border-radius: 8px; padding: 10px; width: 100%; cursor: pointer; font-size: 13px; font-weight: 700; margin-top: 10px; }
+  .add:hover { border-color: var(--btn); color: var(--text); }
+
+  .grid2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .calcolato { background: #0b0f15; border: 1px dashed var(--line); border-radius: 8px; padding: 9px 10px; font-size: 14px; font-weight: 700; color: var(--muted); min-height: 38px; }
+  .conto { display: block; font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .calcolato.evidente { border: 1px solid var(--btn); color: #cfe0ff; background: #0d1929; font-size: 16px; }
+  .carica input[type=file] { padding: 8px; }
+  .dalfile { margin-top: 12px; font-size: 13px; line-height: 1.55; }
+  .dalfile table { margin-top: 8px; }
+  .rb-riga { display: grid; grid-template-columns: 1fr 110px 1.4fr; gap: 10px; align-items: center; padding: 6px 0; font-size: 14px; }
+  .rb-euro { font-size: 13px; color: var(--muted); line-height: 1.4; }
+  .rb-euro strong { color: #a7f3d0; }
+  .calc-btn:disabled { opacity: .6; cursor: wait; }
+  .mesi { margin-top: 14px; }
+  /* Tabelle larghe: sul telefono scorrono di lato dentro il riquadro, la pagina no */
+  .scorri { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .scorri table { min-width: 520px; }
+  .periodo { display: flex; flex-wrap: wrap; align-items: end; gap: 8px 12px; margin-top: 12px; }
+  .periodo label { margin: 0 0 4px; }
+  .periodo select { width: auto; min-width: 180px; }
+  .periodo #periodoDate { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; }
+  .periodo #periodoDate[hidden] { display: none; }
+  .periodo input[type=date] { width: auto; }
+  .mesi details { border-bottom: 1px solid var(--line); }
+  .mesi summary { cursor: pointer; list-style: none; display: grid; grid-template-columns: 1.4fr repeat(5, 1fr); gap: 6px; padding: 8px 4px; font-size: 13px; }
+  .mesi summary::-webkit-details-marker { display: none; }
+  .mesi summary > span:not(:first-child) { text-align: right; }
+  .mesi summary > span:first-child::before { content: '▸ '; color: var(--muted); }
+  .mesi details[open] summary > span:first-child::before { content: '▾ '; }
+  .mesi .testa { display: grid; grid-template-columns: 1.4fr repeat(5, 1fr); gap: 6px; padding: 6px 4px; font-size: 11px; font-weight: 700; color: var(--muted); }
+  .mesi .testa span:not(:first-child) { text-align: right; }
+  .mesi .totale summary { font-weight: 700; }
+  .mesi table { margin: 0 0 10px; font-size: 12px; }
+  .pos { color: #a7f3d0; } .neg { color: #fca5a5; }
+  @media (max-width: 760px) { .mesi summary, .mesi .testa { grid-template-columns: 1.2fr 0.8fr 1fr 1fr; } .mesi .nasc { display: none; } }
+  .avviso { border: 1px solid var(--warning); background: #1d1606; color: #fcd58a; border-radius: 10px; padding: 12px 14px; font-size: 13px; line-height: 1.55; margin-bottom: 10px; }
+  .calc-btn { background: var(--btn); color: #fff; border: none; border-radius: 8px; padding: 13px; font-size: 15px; font-weight: 700; width: 100%; cursor: pointer; margin-top: 18px; }
+
+  /* Risultati */
+  .res { display: none; margin-top: 22px; }
+  .res.show { display: block; }
+  .res-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-bottom: 10px; }
+  .box { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+  .box span { display: block; }
+  .box .l { font-size: 11px; font-weight: 700; color: var(--muted); margin-bottom: 4px; }
+  .box .v { font-size: 20px; font-weight: 800; }
+  .box .s { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.55; }
+  .sem { border-radius: 10px; padding: 14px; font-size: 15px; font-weight: 700; line-height: 1.5; margin-bottom: 10px; }
+  .sem small { display: block; font-weight: 500; font-size: 13px; margin-top: 4px; }
+  .verde  { border: 1px solid var(--success); background: #061a12; color: #a7f3d0; }
+  .giallo { border: 1px solid var(--warning); background: #1d1606; color: #fcd58a; }
+  .rosso  { border: 1px solid var(--error); background: #1f0808; color: #fca5a5; }
+  .note { display: grid; gap: 8px; }
+  .note div { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; font-size: 13px; line-height: 1.55; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--muted); font-size: 11px; font-weight: 700; }
+
+  @media (max-width: 760px) {
+    body { padding: 16px; }
+    .riga { grid-template-columns: 1fr 1fr; }
+    .riga .del { grid-column: 2; }
+    .grid2 { grid-template-columns: 1fr; }
+    .res-row { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<h2>💰 Bankroll Calculator</h2>
+<p class="subtitle">Il tuo ABI reale e il bankroll che serve per giocarlo</p>
+
+<p class="section-label">1 · Il tuo programma</p>
+<div class="panel carica">
+  <label for="fileTornei">Hai l'elenco dei tuoi tornei? Caricalo e il programma si compila da solo</label>
+  <input type="file" id="fileTornei" accept=".csv,text/csv"/>
+  <p class="hint" style="margin:8px 0 0;">File CSV con un torneo per riga (buy-in, fee, rientri, iscritti, risultato). Il file viene letto nel tuo browser. Al server arrivano solo date, costi, iscritti e risultati dei tornei, senza nomi di tornei, room o nickname, e non vengono salvati.</p>
+  <div id="dalFile" hidden></div>
+</div>
+<p class="hint" style="margin-top:12px;">Oppure inserisci a mano i tornei che giochi di solito in una settimana, raggruppati per tipo e buy-in. Buy-in: il costo di un ingresso, fee compresa; nella colonna «Di cui fee» indica quanto è fee (se la lasci vuota si usa il 10%). Re-entry medi: quante volte entri in media in ogni torneo (1 = mai rientri).</p>
+<div class="panel" id="righe"></div>
+<button class="add" id="aggiungi" type="button">+ Aggiungi tornei</button>
+
+<p class="section-label">2 · Tu</p>
+<div class="panel grid2">
+  <div>
+    <label for="profilo">Come giochi</label>
+    <select id="profilo">
+      <option value="amatore">Amatore: il poker non è il mio reddito</option>
+      <option value="semi" selected>Semi-pro: parte del mio reddito</option>
+      <option value="pro">Professionista: vivo di poker</option>
+    </select>
+  </div>
+  <div>
+    <label for="roi">ROI totale (%)</label>
+    <input type="number" id="roi" step="0.1" value="10"/>
+    <small class="conto">Guadagno totale ÷ totale speso in buy-in e fee. Non è la media dei ROI dei singoli tornei.</small>
+  </div>
+  <div>
+    <label for="campione">Tornei giocati finora</label>
+    <select id="campione">
+      <option value="0">Meno di 1.000</option>
+      <option value="1" selected>Tra 1.000 e 3.000</option>
+      <option value="2">Più di 3.000</option>
+    </select>
+  </div>
+</div>
+
+<div class="panel" style="margin-top:12px;">
+  <label>Rakeback per room (% della fee che ti viene restituita)</label>
+  <p class="hint" style="margin:0 0 6px;">Inserisci solo il rakeback che incassi davvero: non tutte le room lo pagano. Le room sono quelle indicate nel programma.</p>
+  <div id="rbRoom"></div>
+</div>
+
+<p class="section-label">3 · I tuoi soldi</p>
+<div class="panel grid2">
+  <div>
+    <label for="bankroll">Fondi totali a disposizione (€)</label>
+    <input type="number" id="bankroll" min="0" step="1" placeholder="Es. 3000"/>
+  </div>
+  <div class="solo-pro">
+    <label for="spese">Spese mensili per vivere (€)</label>
+    <input type="number" id="spese" min="0" step="1" placeholder="Es. 1200"/>
+  </div>
+  <div class="solo-pro">
+    <label>Da mettere da parte: 6 mesi di spese</label>
+    <div class="calcolato" id="vRiserva">—</div>
+  </div>
+  <div>
+    <label>Il tuo bankroll</label>
+    <div class="calcolato evidente" id="vUtile">—</div>
+    <small class="conto" id="vConto"></small>
+  </div>
+</div>
+<p class="hint" id="bankrollHint" style="margin-top:8px;"></p>
+
+<button class="calc-btn" id="calcola" type="button">Calcola</button>
+
+<div class="res" id="res">
+  <div class="sem" id="sem"></div>
+  <div class="avviso" id="avvisoPro" hidden></div>
+  <div class="res-row">
+    <div class="box"><span class="l">ABI reale</span><span class="v" id="rAbi">—</span><span class="s" id="rAbiS"></span></div>
+    <div class="box"><span class="l">Buy-in necessari</span><span class="v" id="rBi">—</span><span class="s" id="rBiS"></span></div>
+    <div class="box"><span class="l" id="rBrL">Bankroll necessario</span><span class="v" id="rBr">—</span><span class="s" id="rBrS"></span></div>
+    <div class="box"><span class="l">Guadagno atteso al mese</span><span class="v" id="rMese">—</span><span class="s" id="rMeseS"></span></div>
+    <div class="box"><span class="l" id="rMaxL">ABI massimo</span><span class="v" id="rMax">—</span><span class="s" id="rMaxS"></span></div>
+  </div>
+
+  <p class="section-label">Le tue soglie</p>
+  <div class="panel">
+    <table>
+      <thead><tr><th>Soglia</th><th>Bankroll</th><th>Cosa fare</th></tr></thead>
+      <tbody id="soglie"></tbody>
+    </table>
+  </div>
+
+  <p class="section-label">Da sapere</p>
+  <div class="note" id="note"></div>
+</div>
+
+<footer class="pr-copyright" style="max-width:1040px;margin:28px auto 0;padding:14px 12px 44px;border-top:1px solid #1d2330;font-size:11px;line-height:1.6;color:#6b7684;text-align:center;">© 2026 Poker Range™ – Danilo Rucchetta. Tutti i diritti riservati.<br>Calcoli, simulazione e testi del Bankroll Calculator sono protetti dal diritto d'autore: ne è vietata la copia o la riproduzione, anche parziale, senza autorizzazione scritta.</footer>
+
+<script src="js/bankroll.js"></script>
+</body>
+</html>
