@@ -67,6 +67,9 @@
   .mesi .testa span:not(:first-child) { text-align: right; }
   .mesi .totale summary { font-weight: 700; }
   .mesi table { margin: 0 0 10px; font-size: 12px; }
+  tr.tot td { font-weight: 700; }
+  #fasce { min-width: 760px; } #fasce td:first-child, #fasce td:nth-child(4) { white-space: nowrap; }
+  table.performato { margin-top: 4px; }
   .pos { color: #a7f3d0; } .neg { color: #fca5a5; }
   @media (max-width: 760px) { .mesi summary, .mesi .testa { grid-template-columns: 1.2fr 0.8fr 1fr 1fr; } .mesi .nasc { display: none; } }
   .avviso { border: 1px solid var(--warning); background: #1d1606; color: #fcd58a; border-radius: 10px; padding: 12px 14px; font-size: 13px; line-height: 1.55; margin-bottom: 10px; }
@@ -193,6 +196,14 @@
       <thead><tr><th>Soglia</th><th>Bankroll</th><th>Cosa fare</th></tr></thead>
       <tbody id="soglie"></tbody>
     </table>
+  </div>
+
+  <div id="fasceBox" hidden>
+    <p class="section-label">Le tue fasce di buy-in</p>
+    <div class="panel"><p class="hint" id="fasceFonte" style="margin:0 0 6px;"></p><div class="scorri"><table id="fasce"></table></div>
+      <p class="hint" style="margin:8px 0 0;">Fascia = costo di un ingresso, fee compresa, nella valuta del torneo: 11 € e $11 stanno nella stessa fascia. Margine: dove può stare il ROI vero, 2 volte su 3. Il ROI di una fascia conta per i consigli solo se il margine è al massimo di ±20 punti.</p>
+    </div>
+    <div class="note" id="fasceConsigli" style="margin-top:10px;"></div>
   </div>
 
   <p class="section-label">Da sapere</p>

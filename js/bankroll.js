@@ -265,7 +265,10 @@ async function aggiornaFile(ricostruisci = false, aggiornaRoi = false) {
   const riga = (g, classe = '') => `<details class="${classe}"><summary><span>${esc(g.titolo)}</span><span>${migliaia(g.n)}</span><span class="nasc">${euro(g.spesa)}</span><span>${conSegno(g.ris)}</span><span>${g.roi}</span><span class="nasc">${euro(g.rb)}</span></summary>
     <div class="scorri"><table><thead><tr><th>Room</th><th>Formato</th><th>Tornei</th><th>Spesa</th><th>Risultato</th><th>ROI totale</th><th>Rakeback</th></tr></thead><tbody>
     ${g.dett.map(d => `<tr><td>${nomeLab(d.lab)}</td><td>${esc(d.formato)}</td><td>${d.n}</td><td>${euro(d.spesa)}</td><td>${conSegno(d.ris)}</td><td>${d.roi}</td><td>${euro(d.rb)}</td></tr>`).join('')}
-    </tbody></table></div></details>`;
+    </tbody></table></div>
+    ${g.formati && g.formati.length > 1 ? `<div class="scorri"><table class="performato"><thead><tr><th>Per formato</th><th>Tornei</th><th>Spesa</th><th>Risultato</th><th>ROI totale</th><th>Rakeback</th></tr></thead><tbody>
+    ${g.formati.map(d => `<tr><td>${esc(d.formato)}</td><td>${migliaia(d.n)}</td><td>${euro(d.spesa)}</td><td>${conSegno(d.ris)}</td><td>${d.roi}</td><td>${euro(d.rb)}</td></tr>`).join('')}
+    </tbody></table></div>` : ''}</details>`;
   esito.innerHTML = `
     <p style="margin-top:10px;">Periodo usato: dal ${esc(p.dal)} al ${esc(p.al)}, ${p.settimane} ${p.settimane === 1 ? 'settimana' : 'settimane'}.<br>
     <strong>${migliaia(p.n)} tornei: in media ${esc(p.aSettimana)} a settimana, cioè circa ${migliaia(p.alMese)} al mese.</strong><br>
@@ -276,6 +279,12 @@ async function aggiornaFile(ricostruisci = false, aggiornaRoi = false) {
     <div class="scorri"><table><thead><tr><th>Room</th><th>Formato</th><th>Tornei</th><th>Costo per ingresso</th><th>Ingressi medi</th><th>Iscritti medi</th><th>ROI totale</th></tr></thead><tbody>
     ${a.gruppi.map(g => `<tr><td>${nomeLab(g.lab)}</td><td>${esc(g.formato)}</td><td>${g.n}</td><td>${euro(g.costoIngresso)}</td><td>${g.ingressi}</td><td>${g.iscritti}</td><td>${g.roi}</td></tr>`).join('')}
     </tbody></table></div>
+    <p class="section-label" style="margin-top:16px;">Per formato, tutti gli account insieme</p>
+    <div class="scorri"><table><thead><tr><th>Formato</th><th>Tornei</th><th>Costo per ingresso</th><th>Ingressi medi</th><th>Iscritti medi</th><th>Spesa</th><th>Risultato</th><th>ROI totale</th><th>Margine</th></tr></thead><tbody>
+    ${(a.formati || []).map(f => `<tr><td>${esc(f.formato)}</td><td>${migliaia(f.n)}</td><td>${euro(f.costoIngresso)}</td><td>${f.ingressi}</td><td>${f.iscritti}</td><td>${euro(f.spesa)}</td><td>${conSegno(f.ris)}</td><td>${f.roi}</td><td>${f.margine}</td></tr>`).join('')}
+    <tr class="tot"><td>Totale</td><td>${migliaia(a.totale.n)}</td><td></td><td></td><td></td><td>${euro(a.totale.spesa)}</td><td>${conSegno(a.totale.ris)}</td><td>${a.totale.roi}</td><td></td></tr>
+    </tbody></table></div>
+    <p class="hint" style="margin-top:8px;">Margine: dove può stare il ROI vero, 2 volte su 3. Con pochi tornei è largo.</p>
     <p class="hint" style="margin-top:8px;">Con pochi tornei in una riga, il suo ROI totale è solo indicativo. Il programma più in basso e il ROI sono stati compilati da questi tornei: puoi modificarli. Nella colonna «Room» del programma puoi scrivere il nome della skin al posto dell'account: vale per tutte le righe di quell'account.</p>
     <p class="section-label" style="margin-top:16px;">Mese per mese</p>
     <p class="hint" style="margin:0;">Tocca un mese per vedere il dettaglio per room e formato, con il ROI totale.</p>
@@ -371,7 +380,21 @@ function mostraRisultato(r, labs) {
   el('avvisoPro').hidden = !r.avviso; el('avvisoPro').textContent = r.avviso;
   el('soglie').innerHTML = r.soglie.map(([n, v, c]) => `<tr><td>${n}</td><td>${v}</td><td style="text-align:left;">${c}</td></tr>`).join('');
   el('note').innerHTML = r.note.map(t => `<div>${t}</div>`).join('');
+  mostraFasce(r.fasce);
   el('res').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Fasce di buy-in: peso sulla spesa, ROI con margine (con il file) e cosa succede togliendo ogni fascia
+function mostraFasce(f) {
+  const box = el('fasceBox');
+  if (!f) { box.hidden = true; return; }
+  box.hidden = false;
+  const conFile = f.conFile;
+  el('fasce').innerHTML = `<thead><tr><th>Fascia (€ o $)</th><th>Quota della spesa</th>${conFile ? '<th>Tornei</th><th>Risultato</th><th>ROI totale</th><th>Margine</th><th>Affidabilità</th>' : ''}<th>Senza questa fascia: bankroll necessario</th><th>Senza questa fascia: guadagno al mese</th></tr></thead><tbody>`
+    + f.righe.map(g => `<tr><td>${esc(g.nome)}</td><td>${g.quota}</td>${conFile ? `<td>${g.tornei ?? '—'}</td><td>${g.risultato === null ? '—' : conSegno(g.risultato)}</td><td>${g.roi ?? '—'}</td><td>${g.margine ?? ''}</td><td>${g.giudizio ?? ''}</td>` : ''}<td>${g.brSenza}</td><td>${g.meseSenza}</td></tr>`).join('')
+    + '</tbody>';
+  el('fasceFonte').textContent = f.fonte || '';
+  el('fasceConsigli').innerHTML = f.consigli.length ? f.consigli.map(t => `<div>${t}</div>`).join('') : '<div>Nessuna fascia da togliere o da limitare: il programma è equilibrato per il tuo bankroll.</div>';
 }
 
 // ─── INIT ─────────────────────────────────────────────────
